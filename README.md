@@ -72,7 +72,7 @@ dotnet publish src/FluentControl/FluentControl.csproj -c Release -p:PublishProfi
 ./scripts/Build-Msi.ps1 -Version 0.3.0
 ```
 
-安装包位于 `artifacts/installer/FluentControl-0.3.0-x64.msi`。双击安装，之后从开始菜单启动；安装在 `%LOCALAPPDATA%\Programs\FluentControl`，无需管理员权限。自带 .NET 和必要的 WinUI 运行库，可离线安装；使用按需 WinAppSDK 组件，排除未用的 AI/ML/Widgets 依赖和调试符号，并采用内嵌 CAB 高压缩。保留 XAML/PRI 与反射支持，不做不安全的 DLL 删除或裁剪。
+安装包位于 `artifacts/installer/FluentControl-0.3.0-x64.msi`。双击安装，之后从开始菜单启动；安装在 `%LOCALAPPDATA%\Programs\FluentControl`，无需管理员权限。自带 .NET 和必要的 WinUI 运行库，可离线安装；使用按需 WinAppSDK 组件和 WASAPI 音频包，排除未用的 AI/ML/Widgets、WPF/WinForms 依赖和调试符号，并采用内嵌 CAB 高压缩。保留 XAML/PRI 与反射支持，不做不安全的 DLL 删除或裁剪。更换依赖后重新发布时，应先清空旧 `publish` 文件夹，避免残留旧文件。
 
 Actions 每次输出 `FluentControl-MSI-x64`，其中只有一个 MSI；Actions 下载外层仍是 ZIP，解压后双击 MSI 即可。版本为 `0.3.<run_number>`，新版本覆盖升级，拒绝降级；固定安装位置，升级保留开机自启动入口。卸载移除程序和快捷方式，个人配置保留在原有数据目录。原便携版安装前请从托盘退出，安装后原有配置会继续读取；便携版启用过自启动时，请在新版本设置中重新启用一次以更新路径。
 

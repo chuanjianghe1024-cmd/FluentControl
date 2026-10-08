@@ -27,15 +27,15 @@ try {
         $installer = New-Object -ComObject WindowsInstaller.Installer
         $database = $installer.OpenDatabase($path, 0)
         $view = $database.OpenView("SELECT ``Value`` FROM ``Property`` WHERE ``Property``='$property'")
-        $view.Execute()
+        [void]$view.Execute()
         $record = $view.Fetch()
         $value = $record.StringData(1)
-        $view.Close()
+        [void]$view.Close()
         [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($record)
         [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($view)
         [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($database)
         [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($installer)
-        return $value
+        return [string]$value
     }
     function AssertRetained {
         if ((Get-Content $sentinel -Raw).Trim() -ne $marker) { throw 'User data was removed/changed.' }
@@ -45,8 +45,8 @@ try {
     & "$PSScriptRoot/Build-Msi.ps1" -Version '0.0.1' -OutputDirectory 'artifacts/upgrade-fixture'
     $old = (Resolve-Path 'artifacts/upgrade-fixture/FluentControl-0.0.1-x64.msi').Path
     $current = (Resolve-Path "artifacts/installer/FluentControl-$Version-x64.msi").Path
-    $oldCode = MsiProperty $old 'ProductCode'
-    $currentCode = MsiProperty $current 'ProductCode'
+    $oldCode = [Guid]::Parse((MsiProperty $old 'ProductCode')).ToString('B').ToUpperInvariant()
+    $currentCode = [Guid]::Parse((MsiProperty $current 'ProductCode')).ToString('B').ToUpperInvariant()
     if ($oldCode -eq $currentCode) { throw 'Major upgrade packages must have different ProductCodes.' }
     RunMsi "/i `"$old`"" 'install'
     $installed = $oldCode

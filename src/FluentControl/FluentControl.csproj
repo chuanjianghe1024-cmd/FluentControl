@@ -22,7 +22,9 @@
          Keep the same WinUI component version as WindowsAppSDK 1.8.260921001. -->
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="1.8.260803003" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.MSIX" Version="1.7.260930100" PrivateAssets="all" />
-    <PackageReference Include="NAudio" Version="2.2.1" />
+    <!-- CoreAudio endpoint control only; NAudio's umbrella also brings WinForms
+         and the entire WindowsDesktop runtime into self-contained publishing. -->
+    <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
   </ItemGroup>
   <!-- ApplicationIcon is already indexed by the SDK. Copy the native tray icon
        after resource generation instead of adding a duplicate Content item. -->

@@ -18,6 +18,9 @@ try {
     if (-not ((Test-Path "$publish/resources.pri") -or (Test-Path "$publish/FluentControl.pri"))) { throw 'Application PRI is missing.' }
     $runtime = Get-Content "$publish/FluentControl.runtimeconfig.json" -Raw | ConvertFrom-Json
     if ($runtime.runtimeOptions.framework -or $runtime.runtimeOptions.frameworks) { throw 'The MSI payload must contain its .NET runtime.' }
+    if ((Test-Path "$publish/PresentationFramework.dll") -or (Test-Path "$publish/System.Windows.Forms.dll")) {
+        throw 'Unused WindowsDesktop runtime detected. Use the WASAPI-only audio package and a clean publish folder.'
+    }
     # Never blanket-delete DLLs/resources from publish. Exclude only debug symbols.
     $files = @(Get-ChildItem $publish -File -Recurse | Where-Object { $_.Extension -notin @('.pdb', '.dbg') } | Sort-Object FullName)
     New-Item $OutputDirectory -ItemType Directory -Force | Out-Null
