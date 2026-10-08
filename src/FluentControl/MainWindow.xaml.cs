@@ -141,7 +141,7 @@ public sealed partial class MainWindow : Window
             Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
             BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"], Child = grid
         };
-        border.Transitions = new TransitionCollection { new Microsoft.UI.Xaml.Media.Animation.EntranceThemeTransition() };
+        border.Transitions = new Microsoft.UI.Xaml.Media.Animation.TransitionCollection { new Microsoft.UI.Xaml.Media.Animation.EntranceThemeTransition() };
         return border;
     }
     private static TextBlock Empty(string message) => new() { Text = message, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(16) };
