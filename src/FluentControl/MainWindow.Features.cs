@@ -301,8 +301,10 @@ public sealed partial class MainWindow
         await WaitForWritesAsync(); await gate.WaitAsync();
         try
         {
-            profile.Values = CaptureProfile(); profile.BrightnessMappings = CaptureMappings(); profile.Monitors = CaptureMonitorMetadata(); profileDirty = false;
-            if (SaveState()) ShowStatus(T("配置已更新。", "Profile updated."), InfoBarSeverity.Success);
+            var values = profile.Values; var mappings = profile.BrightnessMappings; var metadata = profile.Monitors;
+            ProfileUpdates.Merge(profile, CaptureProfile(), CaptureMonitorMetadata(), CaptureMappings());
+            if (SaveState()) { profileDirty = false; ShowStatus(T("配置已更新。", "Profile updated."), InfoBarSeverity.Success); }
+            else { profile.Values = values; profile.BrightnessMappings = mappings; profile.Monitors = metadata; }
             RefreshProfiles();
         }
         finally { gate.Release(); }

@@ -22,5 +22,6 @@
     <Compile Include="../../src/FluentControl/Services/MonitorLinking.cs" Link="MonitorLinking.cs" />
     <Compile Include="../../src/FluentControl/Services/StartupService.cs" Link="StartupService.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorNames.cs" Link="MonitorNames.cs" />
+    <Compile Include="../../src/FluentControl/Services/ProfileUpdates.cs" Link="ProfileUpdates.cs" />
   </ItemGroup>
 </Project>

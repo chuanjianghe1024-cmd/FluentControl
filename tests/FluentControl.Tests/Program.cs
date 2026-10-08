@@ -117,6 +117,24 @@ Check(!ProfileGroups.Remove(grouped, ProfileGroup.LocalId) && grouped.Profiles.C
 grouped.SelectedGroupId = importedGroup.Id; grouped.SelectedProfileId = importedScene.Id;
 Check(ProfileGroups.Remove(grouped, importedGroup.Id) && grouped.Profiles.Count == 1 && grouped.Profiles[0] == localScene && grouped.SelectedGroupId == ProfileGroup.LocalId && grouped.SelectedProfileId is null, "Group deletion removes only its scenes and resets dangling selections.");
 Check(ProfileGroups.Remove(grouped, emptyGroup.Id) && grouped.Groups.Count == 1, "Empty imported groups can be deleted.");
+var offlineProfile = new ControlProfile
+{
+    Name = "双屏办公", Applications = new() { "Editor" },
+    Monitors = new() { ["left"] = new() { ModelId = "HWV1234", ModelName = "Custom model", DisplayName = "左屏", Brand = "Custom brand" }, ["right"] = new() { ModelId = "DEL1234", DisplayName = "右屏" } },
+    Values = new() { [ProfileGroups.MonitorKey("left", "brightness")] = new() { Value = 20 }, [ProfileGroups.MonitorKey("left", "color-preset")] = new() { Value = 5 }, [ProfileGroups.MonitorKey("right", "brightness")] = new() { Value = 30 }, ["audio/old/volume"] = new() { Value = 40 } },
+    BrightnessMappings = new() { ["right"] = new() { Enabled = true, Offset = 3 } }
+};
+ProfileUpdates.Merge(offlineProfile,
+    new Dictionary<string,SavedValue> { [ProfileGroups.MonitorKey("left", "brightness")] = new() { Value = 70 }, ["audio/new/volume"] = new() { Value = 60 } },
+    new Dictionary<string,MonitorDescriptor> { ["left"] = new() { ModelId = "HWV1234", ModelName = "Driver model", DisplayName = "M1", Brand = "Huawei" } },
+    new Dictionary<string,BrightnessMapping> { ["left"] = new() { Enabled = true, Offset = 1 } });
+Check(offlineProfile.Values[ProfileGroups.MonitorKey("left", "brightness")].Value == 70 && offlineProfile.Values[ProfileGroups.MonitorKey("right", "brightness")].Value == 30 && offlineProfile.Values[ProfileGroups.MonitorKey("left", "color-preset")].Value == 5, "Update merges online values and preserves disconnected or temporarily unavailable monitor controls.");
+Check(offlineProfile.Monitors["left"].ModelName == "Custom model" && offlineProfile.Monitors["left"].DisplayName == "左屏" && offlineProfile.Monitors["right"].DisplayName == "右屏" && offlineProfile.BrightnessMappings["right"].Offset == 3, "Updating a scene retains custom metadata and offline brightness mapping.");
+Check(!offlineProfile.Values.ContainsKey("audio/old/volume") && offlineProfile.Values.ContainsKey("audio/new/volume"), "Only current default audio is captured, without retaining stale routes.");
+var offlineState = new UserState { Profiles = new() { offlineProfile } }; ProfileGroups.Normalize(offlineState);
+var offlineExport = ProfileBundles.Export(offlineState, offlineState.Profiles, "Offline export");
+Check(offlineExport.Groups[0].Profiles[0].Monitors.Count == 2 && offlineExport.Groups[0].Profiles[0].Monitors.Any(m => m.DisplayName == "右屏" && m.Values["brightness"] == 30), "Export includes retained offline displays after a partial update.");
+Console.WriteLine("PASS: offline-preserving profile updates, custom metadata and export of disconnected displays.");
 Console.WriteLine("PASS: cross-group order and wrapping, targeted group deletion and default-group protection.");
 Console.WriteLine("PASS: batch scenes, readable metadata, grouping, offline imports, combined filters and union choices.");
 Console.WriteLine("PASS: VCP discovery, enum/range guards, gamma byte packing, safe profiles, portable imports and brightness mapping.");

@@ -35,6 +35,7 @@ public sealed partial class MainWindow
         var invalid = new ControlProfile { Name = "Legacy preset", Values = new() { [key] = new() { Value = 5 } } };
         await ApplyProfileAsync(invalid);
         if (secondPreset.Value != 5 || Status.Message.Contains("Unsupported option")) throw new InvalidOperationException("Legacy invalid preset was sent to the device.");
+        RenderMonitorControls(generation); // mirrors the device refresh after a language change
         Navigation.SelectedItem = Navigation.MenuItems[0]; DisplayMode.SelectedIndex = 1;
         var sections = ((Border)CombinedRows.Children[1]).Child as StackPanel;
         foreach (var expander in sections!.Children.OfType<Expander>()) expander.IsExpanded = true;
