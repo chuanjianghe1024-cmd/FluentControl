@@ -30,8 +30,9 @@ public partial class App : Application
             var main = new MainWindow();
             window = main;
             window.Closed += (_, _) => { instance?.ReleaseMutex(); instance?.Dispose(); instance = null; };
-            if (!main.TryStartInBackground()) window.Activate();
-            StartupLog.Write("Main window activated");
+            var background = main.TryStartInBackground();
+            if (!background) window.Activate();
+            StartupLog.Write(background ? "Main window started in tray" : "Main window activated");
         }
         catch (Exception ex)
         {

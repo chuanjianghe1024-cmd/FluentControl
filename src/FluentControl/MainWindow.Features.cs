@@ -94,7 +94,7 @@ public sealed partial class MainWindow
             if (closed) return;
             switch (id)
             {
-                case 1: AppWindow.Show(); Activate(); ShellIntegration.Focus(WinRT.Interop.WindowNative.GetWindowHandle(this)); break;
+                case 1: AppWindow.Show(); Activate(); ShellIntegration.Focus(WinRT.Interop.WindowNative.GetWindowHandle(this)); StartupLog.Write("Main window activated"); break;
                 case 2: await SwitchProfileAsync(-1); break;
                 case 3: await SwitchProfileAsync(1); break;
                 case 4: if (shell?.TrayAvailable == true) AppWindow.Hide(); break;
