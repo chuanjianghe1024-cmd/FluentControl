@@ -1,5 +1,10 @@
 name: Windows build
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    paths-ignore: ['web/**', '.github/workflows/web.yml']
+  pull_request:
+    paths-ignore: ['web/**', '.github/workflows/web.yml']
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:

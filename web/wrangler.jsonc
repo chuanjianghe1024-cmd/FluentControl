@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fluentcontrol-community",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-08",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "binding": "ASSETS", "directory": ".open-next/assets" },
+  "observability": { "enabled": true },
+  "vars": { "APP_URL": "https://fctrl.app", "NEXT_TELEMETRY_DISABLED": "1" }
+  // After provisioning: add hyperdrive: [{ binding: "HYPERDRIVE", id: "your-id" }].
+  // Disable Hyperdrive query caching: sessions and withdrawal checks need fresh reads.
+  // Add routes: [{ pattern: "fctrl.app", custom_domain: true }] when ready to publish.
+  // OAuth secrets and database credentials belong in Worker Secrets, never vars.
+}

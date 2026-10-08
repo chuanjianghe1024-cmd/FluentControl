@@ -1,0 +1,59 @@
+name: Website build
+on:
+  push:
+    paths: ['web/**', '.github/workflows/web.yml', 'src/FluentControl/Services/VcpCatalog.cs']
+  pull_request:
+    paths: ['web/**', '.github/workflows/web.yml', 'src/FluentControl/Services/VcpCatalog.cs']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fluentcontrol_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fluentcontrol_test
+      NEXT_TELEMETRY_DISABLED: '1'
+      PLAYWRIGHT_CHANNEL: chrome
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Apply PostgreSQL migrations and verify repeatability
+        run: |
+          npm run db:migrate
+          npm run db:migrate
+      - run: npm run typecheck
+      - name: Verify sharing schema, permissions, search and versions against PostgreSQL
+        run: npm test
+      - name: Build the single full-stack Worker
+        run: npm run cf:build
+      - name: Verify Worker bundle without deploying
+        run: npx wrangler deploy --dry-run
+      - name: Check runner Chrome for UI checks
+        run: google-chrome --version
+      - name: Verify pages and authenticated sharing flow
+        run: npm run test:browser
+      - name: Upload UI verification screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FluentControl-website-preview
+          path: web/test-results/
+          if-no-files-found: ignore
