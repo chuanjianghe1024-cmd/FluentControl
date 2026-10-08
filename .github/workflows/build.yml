@@ -14,11 +14,12 @@ jobs:
         run: dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
       - name: Publish application folder
         run: dotnet publish src/FluentControl/FluentControl.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -o publish
-      - name: Inspect XAML deployment
+      - name: Verify application XAML resources are published
         shell: pwsh
         run: |
-          Get-ChildItem publish -Recurse -Include *.xbf,*.pri,*.xaml | Select-Object FullName,Length | Format-Table -AutoSize
-          Get-ChildItem src/FluentControl/obj -Recurse -Include App.g.i.cs,MainWindow.g.i.cs | ForEach-Object { Get-Content $_.FullName }
+          $appResources = @('publish/resources.pri', 'publish/FluentControl.pri') | Where-Object { Test-Path $_ }
+          if (-not $appResources) { throw 'Application PRI is missing from publish output; the main window cannot load.' }
+          Get-Item $appResources | Select-Object Name,Length | Format-Table -AutoSize
       - name: Verify published application opens a window
         shell: pwsh
         run: ./scripts/Test-Startup.ps1
