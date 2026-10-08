@@ -23,7 +23,7 @@ internal static class PanelDiagnostics
             var before = panel.AppWindow.Position;
             presenter.IsAlwaysOnTop = true; panel.ShowPanel();
             await DragGripAsync(panel, false, 37, 23);
-            if (panel.AppWindow.Position.X != before.X + 37 || panel.AppWindow.Position.Y != before.Y + 23) throw new InvalidOperationException("Move gesture did not move the panel.");
+            if (panel.AppWindow.Position.X != before.X + 37 || panel.AppWindow.Position.Y != before.Y + 23) throw new InvalidOperationException($"Move gesture did not move the panel: before={before.X},{before.Y}; after={panel.AppWindow.Position.X},{panel.AppWindow.Position.Y}");
             var original = ShellIntegration.ClientSize(panel.Handle);
             await DragGripAsync(panel, true, 60, 45);
             var resized = ShellIntegration.ClientSize(panel.Handle);

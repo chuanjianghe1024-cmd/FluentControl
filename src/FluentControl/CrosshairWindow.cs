@@ -10,7 +10,7 @@ internal sealed class CrosshairWindow : Window
 {
     internal CrosshairWindow(MonitorDevice monitor)
     {
-        Title = "FluentControl Crosshair";
+        Title = Strings.AppName + " · " + Strings.T("软件准星", "Software crosshair");
         SystemBackdrop = new TransparentBackdrop();
         var root = new Grid { Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
         var color = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 40, 235, 180));

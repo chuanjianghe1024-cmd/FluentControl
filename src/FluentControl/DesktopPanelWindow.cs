@@ -52,9 +52,9 @@ internal sealed class DesktopPanelWindow : Window
         body.RowDefinitions.Add(new() { Height = GridLength.Auto });
         var header = new Grid { ColumnSpacing = 4, MinHeight = 32 };
         foreach (var width in new[] { new GridLength(28), new GridLength(1, GridUnitType.Star), new GridLength(28), new GridLength(28) }) header.ColumnDefinitions.Add(new() { Width = width });
-        var previous = SmallButton("‹"); previous.Click += (_, _) => switchProfile(-1); header.Children.Add(previous);
+        var previous = SmallButton("‹"); previous.Click += (_, _) => { if (active) switchProfile(-1); }; header.Children.Add(previous);
         Grid.SetColumn(profileName, 1); header.Children.Add(profileName);
-        var next = SmallButton("›"); next.Click += (_, _) => switchProfile(1); Grid.SetColumn(next, 2); header.Children.Add(next);
+        var next = SmallButton("›"); next.Click += (_, _) => { if (active) switchProfile(1); }; Grid.SetColumn(next, 2); header.Children.Add(next);
         body.Children.Add(header);
         var scroll = new ScrollViewer { Content = rows, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, HorizontalContentAlignment = HorizontalAlignment.Stretch, MinHeight = 32 };
         Grid.SetRow(scroll, 1); body.Children.Add(scroll);
@@ -74,18 +74,33 @@ internal sealed class DesktopPanelWindow : Window
         AppWindow.Move(new PointInt32(settings.DesktopX ?? work.X + work.Width - 380, settings.DesktopY ?? work.Y + 60));
         SetUnlocked(false);
     }
-    private static Thumb Grip(string glyph, bool resize) => new()
+    private static Thumb Grip(string glyph, bool resize) => new PanelGrip(resize)
     {
         Width = 28, Height = 28,
-        Template = (ControlTemplate)XamlReader.Load("<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' TargetType='Thumb'><Grid Background='Transparent'><FontIcon Glyph='" + glyph + "' FontSize='12' Opacity='0.75' /></Grid></ControlTemplate>")
+        Template = (ControlTemplate)XamlReader.Load("<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' TargetType='Thumb'><Grid Background='Transparent'>" + (resize ? "<Path Data='M2,14 L14,2 M7,14 L14,7 M12,14 L14,12' Width='16' Height='16' Stroke='{ThemeResource TextFillColorSecondaryBrush}' StrokeThickness='1.4'/>" : "<FontIcon Glyph='" + glyph + "' FontSize='12' Opacity='0.75' />") + "</Grid></ControlTemplate>")
     };
+    private sealed class PanelGrip : Thumb
+    {
+        private Microsoft.UI.Input.InputSystemCursor? cursor;
+        internal PanelGrip(bool resize)
+        {
+            Loaded += (_, _) => { cursor = Microsoft.UI.Input.InputSystemCursor.Create(resize ? Microsoft.UI.Input.InputSystemCursorShape.SizeNorthwestSoutheast : Microsoft.UI.Input.InputSystemCursorShape.SizeAll); ProtectedCursor = cursor; };
+            Unloaded += (_, _) => { ProtectedCursor = null; cursor?.Dispose(); cursor = null; };
+        }
+    }
     private void ConfigureGrip(Thumb grip, bool resize)
     {
-        grip.DragStarted += (_, _) => { moving = true; pointerStart = ShellIntegration.PointerPosition(); positionStart = AppWindow.Position; sizeStart = ShellIntegration.ClientSize(hwnd); };
+        grip.AddHandler(UIElement.PointerPressedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler((_, e) =>
+        {
+            if (!e.GetCurrentPoint(grip).Properties.IsLeftButtonPressed) return;
+            moving = true; pointerStart = ShellIntegration.PointerPosition(); positionStart = AppWindow.Position; sizeStart = ShellIntegration.ClientSize(hwnd);
+            if (Environment.GetCommandLineArgs().Contains("--ui-test")) StartupLog.Write($"Grip pressed resize={resize} pointer={pointerStart.X},{pointerStart.Y} position={positionStart.X},{positionStart.Y}");
+        }), true);
         grip.DragDelta += (_, _) =>
         {
             var now = ShellIntegration.PointerPosition();
             ApplyGeometryDelta(resize, now.X - pointerStart.X, now.Y - pointerStart.Y);
+            if (Environment.GetCommandLineArgs().Contains("--ui-test")) StartupLog.Write($"Grip delta resize={resize} delta={now.X - pointerStart.X},{now.Y - pointerStart.Y}");
         };
         grip.DragCompleted += (_, _) => { moving = false; ClampPosition(); SaveGeometry(resize); };
     }
@@ -121,7 +136,7 @@ internal sealed class DesktopPanelWindow : Window
     {
         if (closing) return;
         active = value; shield.Visibility = value ? Visibility.Collapsed : Visibility.Visible; body.IsHitTestVisible = value;
-        ShellIntegration.ToolWindow(hwnd, !value);
+        ShellIntegration.ToolWindow(hwnd, false); // Activation must remain available to the native pointer capture used by the grips.
         hint.Text = value ? Strings.T("已解锁 · Esc 锁定", "Unlocked · Esc to lock") : Strings.T("双击解锁", "Double-click to unlock");
         if (value) { Activate(); (body.Children[0] as Grid)?.Children.OfType<Button>().FirstOrDefault()?.Focus(FocusState.Programmatic); }
     }
