@@ -74,20 +74,11 @@ internal sealed class DesktopPanelWindow : Window
         AppWindow.Move(new PointInt32(settings.DesktopX ?? work.X + work.Width - 380, settings.DesktopY ?? work.Y + 60));
         SetUnlocked(false);
     }
-    private static Thumb Grip(string glyph, bool resize) => new PanelGrip(resize)
+    private static Thumb Grip(string glyph, bool resize) => new()
     {
         Width = 28, Height = 28,
         Template = (ControlTemplate)XamlReader.Load("<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' TargetType='Thumb'><Grid Background='Transparent'>" + (resize ? "<Path Data='M2,14 L14,2 M7,14 L14,7 M12,14 L14,12' Width='16' Height='16' Stroke='{ThemeResource TextFillColorSecondaryBrush}' StrokeThickness='1.4'/>" : "<FontIcon Glyph='" + glyph + "' FontSize='12' Opacity='0.75' />") + "</Grid></ControlTemplate>")
     };
-    private sealed class PanelGrip : Thumb
-    {
-        private Microsoft.UI.Input.InputSystemCursor? cursor;
-        internal PanelGrip(bool resize)
-        {
-            Loaded += (_, _) => { cursor = Microsoft.UI.Input.InputSystemCursor.Create(resize ? Microsoft.UI.Input.InputSystemCursorShape.SizeNorthwestSoutheast : Microsoft.UI.Input.InputSystemCursorShape.SizeAll); ProtectedCursor = cursor; };
-            Unloaded += (_, _) => { ProtectedCursor = null; cursor?.Dispose(); cursor = null; };
-        }
-    }
     private void ConfigureGrip(Thumb grip, bool resize)
     {
         grip.AddHandler(UIElement.PointerPressedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler((_, e) =>
