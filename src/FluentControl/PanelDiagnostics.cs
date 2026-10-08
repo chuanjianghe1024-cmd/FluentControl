@@ -55,6 +55,10 @@ internal static class PanelDiagnostics
             // Expose the upper left part of the panel, then test real single/double clicks.
             background.AppWindow.Move(new Windows.Graphics.PointInt32(panel.AppWindow.Position.X + panel.AppWindow.Size.Width / 2, panel.AppWindow.Position.Y));
             var click = new Point { X = 24, Y = 50 }; ClientToScreen(panel.Handle, ref click);
+            var hit = WindowFromPoint(click); var hitRoot = GetAncestor(hit, 2);
+            var hitClass = new System.Text.StringBuilder(128); GetClassName(hitRoot, hitClass, hitClass.Capacity);
+            StartupLog.Write($"Locked panel hit: target={panel.Handle}, hit={hit}, root={hitRoot}, class={hitClass}");
+            if (hitRoot != panel.Handle) throw new InvalidOperationException("The locked panel is hidden behind another window or wallpaper.");
             await ClickAsync(click, false);
             if (panel.IsUnlocked || IsAbove(panel.Handle, backgroundHandle)) throw new InvalidOperationException("A single click raised the locked panel.");
             await ClickAsync(click, true);
@@ -80,6 +84,9 @@ internal static class PanelDiagnostics
             await Task.Delay(250);
         });
     }
+    [DllImport("user32.dll")] private static extern nint WindowFromPoint(Point point);
+    [DllImport("user32.dll")] private static extern nint GetAncestor(nint hwnd, uint flags);
+    [DllImport("user32.dll", EntryPoint="GetClassNameW", CharSet=CharSet.Unicode)] private static extern int GetClassName(nint hwnd, System.Text.StringBuilder text, int length);
     [DllImport("user32.dll")] private static extern nint GetTopWindow(nint hwnd);
     [DllImport("user32.dll")] private static extern nint GetWindow(nint hwnd, uint command);
     [DllImport("user32.dll")] private static extern nint SendMessage(nint hwnd, uint message, nuint wp, nint lp);

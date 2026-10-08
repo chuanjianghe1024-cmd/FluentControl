@@ -341,6 +341,10 @@ public sealed partial class MainWindow : Window
         try
         {
             if (MonitorRows.Children.Count != 2 || CombinedRows.Children.Count < 3) throw new InvalidOperationException("Monitor controls not rendered.");
+            if (monitorPlaceholderCount == 0) throw new InvalidOperationException("Unsupported capability placeholders are missing.");
+            state.Settings.HideUnavailableMonitorControls = true; RenderMonitorControls(generation);
+            if (monitorPlaceholderCount != 0) throw new InvalidOperationException("Unsupported filter did not hide placeholders.");
+            state.Settings.HideUnavailableMonitorControls = false; RenderMonitorControls(generation);
             DisplayMode.SelectedIndex = 0;
             DisplayMode.SelectedIndex = 1;
             if (CombinedRows.Visibility != Visibility.Visible) throw new InvalidOperationException("Combined controls not visible.");

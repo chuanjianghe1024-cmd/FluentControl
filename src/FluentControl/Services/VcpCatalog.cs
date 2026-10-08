@@ -93,7 +93,7 @@ public static class VcpCatalog
         0xD6 => value switch { 1 => T("开启","On"), 2 => T("待机","Standby"), 3 => T("休眠","Suspend"), 4 or 5 => T("关闭","Off"), _ => $"0x{value:X2}" },
         0xCA => value switch { 1 => T("禁用 OSD，保留按键事件","Disable OSD; keep button events"), 2 => T("启用 OSD","Enable OSD"), 3 => T("禁用 OSD 与按键事件","Disable OSD and button events"), _ => $"0x{value:X2}" },
         0xCC => value switch { 1 => "繁體中文", 2 => "English", 3 => "Français", 4 => "Deutsch", 5 => "Italiano", 6 => "日本語", 7 => "한국어", 8 => "Português", 9 => "Русский", 10 => "Español", 13 => "简体中文", _ => $"0x{value:X2}" },
-        0xDC => value switch { 0 => T("标准","Standard"), 1 => T("办公","Office"), 2 => T("混合","Mixed"), 3 => T("电影","Movie"), 4 => T("游戏","Game"), 5 => T("修图","Photo"), 6 => "sRGB", 7 => "Adobe RGB", _ => $"0x{value:X2}" },
+        0xDC => value switch { 0 => T("标准","Standard"), 1 => T("办公","Office"), 2 => T("混合","Mixed"), 3 => T("电影","Movie"), 4 => T("用户自定义","User defined"), 5 => T("游戏","Game"), 6 => T("运动","Sports"), 7 => T("专业","Professional"), 8 => T("标准（中等功耗）","Standard (medium power)"), 9 => T("标准（低功耗）","Standard (low power)"), 10 => T("演示","Demo"), 0xF0 => T("动态对比度","Dynamic contrast"), _ => $"0x{value:X2}" },
         _ => $"0x{value:X2}"
     };
     public static ControlOption[] GammaOptions(byte[] values)

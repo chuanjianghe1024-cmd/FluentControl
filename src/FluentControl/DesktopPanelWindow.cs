@@ -30,6 +30,8 @@ internal sealed class DesktopPanelWindow : Window
     private PointInt32 pointerStart, positionStart, lastPointer;
     private readonly DispatcherTimer gestureTimer = new() { Interval = TimeSpan.FromMilliseconds(16) };
     private bool resizing;
+    private long previousPress;
+    private PointInt32 previousPressPoint;
     private SizeInt32 sizeStart;
     internal bool HasPendingChanges => pendingChanges > 0;
     internal bool IsUnlocked => active;
@@ -77,6 +79,16 @@ internal sealed class DesktopPanelWindow : Window
             ApplyGeometryDelta(resizing, now.X - pointerStart.X, now.Y - pointerStart.Y);
         };
         shield.DoubleTapped += (_, e) => { e.Handled = true; SetUnlocked(true); };
+        shield.PointerPressed += (_, e) =>
+        {
+            if (!e.GetCurrentPoint(shield).Properties.IsLeftButtonPressed || active) return;
+            var now = Environment.TickCount64; var point = ShellIntegration.PointerPosition();
+            // WinUI can cancel its double-tap recognizer on a no-activate window.
+            if (previousPress > 0 && now - previousPress <= ShellIntegration.DoubleClickMilliseconds &&
+                Math.Abs(point.X - previousPressPoint.X) <= 4 * Scale && Math.Abs(point.Y - previousPressPoint.Y) <= 4 * Scale)
+            { previousPress = 0; e.Handled = true; SetUnlocked(true); }
+            else { previousPress = now; previousPressPoint = point; }
+        };
         root.KeyDown += (_, e) => { if (e.Key == VirtualKey.Escape) { CompleteGesture(); SetUnlocked(false); e.Handled = true; } };
         Activated += (_, e) => { if (e.WindowActivationState == WindowActivationState.Deactivated && !moving) SetUnlocked(false); };
         AppWindow.Changed += (_, e) => { if (e.DidPositionChange && !closing && !moving) { positionTimer.Stop(); positionTimer.Start(); } };

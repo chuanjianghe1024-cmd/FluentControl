@@ -103,6 +103,8 @@ internal sealed class ShellIntegration : IDisposable
     [DllImport("user32.dll")] private static extern bool GetClientRect(nint hwnd, out Rect rect);
     internal static void Drag(nint hwnd) { ReleaseCapture(); SendMessage(hwnd, 0xa1, 2, 0); }
     internal static bool PrimaryButtonPressed() => (GetAsyncKeyState(GetSystemMetrics(23) == 0 ? 1 : 2) & 0x8000) != 0;
+    internal static uint DoubleClickMilliseconds => GetDoubleClickTime();
+    [DllImport("user32.dll")] private static extern uint GetDoubleClickTime();
     [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int key);
     [DllImport("user32.dll")] private static extern int GetSystemMetrics(int index);
 

@@ -6,6 +6,7 @@ namespace FluentControl;
 
 public sealed partial class MainWindow
 {
+    private int monitorPlaceholderCount;
     private readonly List<Action> monitorSynchronizers = new();
     private void HideUnavailable_Click(object sender, RoutedEventArgs e)
     {
@@ -15,7 +16,7 @@ public sealed partial class MainWindow
     private void RenderMonitorControls(int version)
     {
         foreach (var sync in monitorSynchronizers) refreshRows.Remove(sync);
-        monitorSynchronizers.Clear();
+        monitorSynchronizers.Clear(); monitorPlaceholderCount = 0;
         var start = refreshRows.Count;
         MonitorRows.Children.Clear(); CombinedRows.Children.Clear();
         foreach (var display in displayDevices) MonitorRows.Children.Add(CreateMonitorCard(display, version));
@@ -76,7 +77,10 @@ public sealed partial class MainWindow
         var definition = feature.Definition;
         var title = (showDevice ? device.DisplayName + " · " : "") + definition.Name;
         if (feature.Channel is not ControlChannel channel)
+        {
+            monitorPlaceholderCount++;
             return SettingsRow(title, $"VCP 0x{definition.Code:X2} · " + (feature.Reason.Length > 0 ? feature.Reason : T("只读", "Read only")), new TextBlock { Text = feature.Information.Length > 0 ? feature.Information : "—", Opacity = .6, VerticalAlignment = VerticalAlignment.Center });
+        }
         if (!channel.IsAction)
         {
             var row = CreateRow(channel, version);
