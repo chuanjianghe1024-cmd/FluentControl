@@ -1,6 +1,6 @@
-import { chromium } from "playwright";
+import { chromium, type Browser } from "playwright";
 import { spawn } from "node:child_process";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 import { Pool } from "pg";
 import { publication } from "../tests/fixtures";
@@ -16,8 +16,9 @@ const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "star
   env: { ...process.env, APP_URL: base, AUTH_SECRET: "browser-test-only-secret-not-for-production-use" }, stdio: ["ignore", "pipe", "pipe"]
 });
 let logs = ""; server.stdout.on("data", d => { logs += d; }); server.stderr.on("data", d => { logs += d; });
-const browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH, args: ["--no-sandbox"] });
+let browser: Browser | undefined;
 try {
+  browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH, args: ["--no-sandbox"] });
   for (let i = 0; i < 80; i++) {
     try { if ((await fetch(base)).ok) break; } catch {}
     if (i === 79) throw new Error("Next.js preview did not start: " + logs);
@@ -30,6 +31,8 @@ try {
     await pool.query('INSERT INTO sessions("userId",expires,"sessionToken") VALUES($1,$2,$3)', [userId, new Date(Date.now()+600000), sessionToken]);
   }
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  context.setDefaultTimeout(15000);
+  context.setDefaultNavigationTimeout(15000);
   const page = await context.newPage(); const pageErrors: string[] = [];
   page.on("pageerror", error => pageErrors.push(error.message));
   await page.goto(base, { waitUntil: "networkidle" });
@@ -47,6 +50,7 @@ try {
     await context.addCookies([{ name: "authjs.session-token", value: sessionToken, url: base, httpOnly: true, sameSite: "Lax" }]);
     await page.goto(`${base}/publish`, { waitUntil: "networkidle" });
     assert.ok(page.url().endsWith("/publish"), "Database-backed session did not authenticate");
+    assert.equal(await page.locator('input[type="file"]').count(), 1, "Publish form missing: " + await page.locator("body").innerText());
     await page.locator('input[type="file"]').setInputFiles({ name: "分享包.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(publication().bundle)) });
     await page.getByLabel("配置包名称", { exact: true }).fill("浏览器发布测试");
     await page.screenshot({ path: `${output}/upload.png`, fullPage: true });
@@ -62,13 +66,20 @@ try {
     await page.getByLabel("可见范围").selectOption("draft");
     await page.getByRole("button", { name: "保存新版本", exact: true }).click();
     await page.waitForURL(new RegExp(`/profiles/${id}$`));
-    assert.equal((await page.request.get(`${base}/api/v2/profiles/${id}?revision=1`)).status(), 404);
+    assert.equal((await fetch(`${base}/api/v2/profiles/${id}?revision=1`)).status, 404, "Withdrawn versions must not be available anonymously");
     console.log("PASS: authenticated browser upload, preview, raw download, CSRF and withdrawal using real PostgreSQL.");
   }
   assert.deepEqual(pageErrors, []);
   console.log("PASS: desktop/mobile layout and login page; no browser errors or horizontal overflow.");
+} catch (error) {
+  console.error("Preview server diagnostics:\n" + logs);
+  for (const [i, page] of (browser?.contexts().flatMap(context => context.pages()) ?? []).entries()) {
+    await page.screenshot({ path: `${output}/failure-${i}.png`, fullPage: true }).catch(() => {});
+    await writeFile(`${output}/failure-${i}.html`, await page.content()).catch(() => {});
+  }
+  throw error;
 } finally {
-  await browser.close(); server.kill("SIGTERM");
+  await browser?.close(); server.kill("SIGTERM");
   if (pool) {
     if (userId) { await pool.query("DELETE FROM bundles WHERE owner_id=$1", [userId]); await pool.query("DELETE FROM users WHERE id=$1", [userId]); }
     await pool.end();

@@ -2,6 +2,8 @@ bin/
 obj/
 .vs/
 publish/
+!web/src/app/publish/
+!web/src/app/publish/**
 *.user
 artifacts/
 .wix/
