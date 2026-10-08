@@ -193,7 +193,7 @@ public sealed partial class MainWindow
         {
             await WaitForWritesAsync();
             foreach (var mapping in profile.BrightnessMappings.Values) mapping.Validate();
-            if (!await ConfirmProfileInputAsync(profile)) return;
+            if (!await ConfirmProfileInputAsync(profile)) { RefreshProfiles(); return; }
             await gate.WaitAsync();
             try
             {
@@ -205,6 +205,7 @@ public sealed partial class MainWindow
                     foreach (var entry in profile.Values.OrderBy(x => available.TryGetValue(x.Key, out var c) ? c.ApplyOrder : 50))
                     {
                         if (!available.TryGetValue(entry.Key, out var channel)) { missing++; continue; }
+                        if (channel.PropertyKey == "input" && channel.Value == entry.Value.Value) continue;
                         var failures = ControlOperations.Apply(new[] { channel }, entry.Value.Value);
                         errors.AddRange(failures);
                         if (failures.Count > 0) continue;

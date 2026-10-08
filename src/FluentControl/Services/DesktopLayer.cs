@@ -29,10 +29,10 @@ internal sealed class DesktopLayer : IDisposable
             if (item == window || !IsWindowVisible(item)) continue;
             var name = new System.Text.StringBuilder(128); GetClassName(item, name, name.Capacity);
             if (name.ToString() is "Progman" or "WorkerW") { anchor = previous; break; }
-            previous = item;
+            if (((long)GetWindowLongPtr(item, -20) & 8) == 0) previous = item; // never anchor in the topmost band
         }
         placing = true;
-        try { SetWindowPos(window, anchor, 0, 0, 0, 0, 0x13); }
+        try { SetWindowPos(window, -2, 0, 0, 0, 0, 0x13); SetWindowPos(window, anchor, 0, 0, 0, 0, 0x13); }
         finally { placing = false; }
     }
     private nint WindowProc(nint hwnd, uint message, nuint wParam, nint lParam, nuint id, nuint data)
@@ -58,5 +58,6 @@ internal sealed class DesktopLayer : IDisposable
     [DllImport("user32.dll")] private static extern nint GetTopWindow(nint hwnd);
     [DllImport("user32.dll")] private static extern nint GetWindow(nint hwnd, uint command);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(nint hwnd);
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern nint GetWindowLongPtr(nint hwnd, int index);
     [DllImport("user32.dll", EntryPoint = "GetClassNameW", CharSet = CharSet.Unicode)] private static extern int GetClassName(nint hwnd, System.Text.StringBuilder text, int length);
 }

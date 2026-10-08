@@ -16,6 +16,7 @@ internal static class PanelDiagnostics
         var background = new Window { Content = grid, Title = "Transparency test" };
         var presenter = (OverlappedPresenter)panel.AppWindow.Presenter;
         var originalPointer = ShellIntegration.PointerPosition();
+        var hiddenRunnerWindows = new List<nint>();
         try
         {
             if (panel.BackdropAlpha is 0 or 255) throw new InvalidOperationException("Panel tint must be translucent.");
@@ -57,6 +58,13 @@ internal static class PanelDiagnostics
             var click = new Point { X = 24, Y = 50 }; ClientToScreen(panel.Handle, ref click);
             var hit = WindowFromPoint(click); var hitRoot = GetAncestor(hit, 2);
             var hitClass = new System.Text.StringBuilder(128); GetClassName(hitRoot, hitClass, hitClass.Capacity);
+            // The hosted runner's terminal is an ordinary window and correctly
+            // occludes a locked panel. Expose the desktop without promoting the panel.
+            if (hitClass.ToString() is "CASCADIA_HOSTING_WINDOW_CLASS" or "ConsoleWindowClass")
+            {
+                hiddenRunnerWindows.Add(hitRoot); ShowWindow(hitRoot, 0); await Task.Delay(150);
+                hit = WindowFromPoint(click); hitRoot = GetAncestor(hit, 2); hitClass.Clear(); GetClassName(hitRoot, hitClass, hitClass.Capacity);
+            }
             StartupLog.Write($"Locked panel hit: target={panel.Handle}, hit={hit}, root={hitRoot}, class={hitClass}");
             if (hitRoot != panel.Handle) throw new InvalidOperationException("The locked panel is hidden behind another window or wallpaper.");
             await ClickAsync(click, false);
@@ -66,7 +74,12 @@ internal static class PanelDiagnostics
             panel.SetUnlocked(false);
             StartupLog.Write("PASS: locked panel rejects activation/promotion; double-click still unlocks.");
         }
-        finally { mouse_event(4, 0, 0, 0, 0); SetCursorPos(originalPointer.X, originalPointer.Y); presenter.IsAlwaysOnTop = false; background.Close(); }
+        finally
+        {
+            mouse_event(4, 0, 0, 0, 0); SetCursorPos(originalPointer.X, originalPointer.Y);
+            presenter.IsAlwaysOnTop = false; background.Close();
+            foreach (var window in hiddenRunnerWindows) ShowWindow(window, 8);
+        }
     }
     private static bool IsAbove(nint first, nint second)
     {
@@ -85,6 +98,7 @@ internal static class PanelDiagnostics
         });
     }
     [DllImport("user32.dll")] private static extern nint WindowFromPoint(Point point);
+    [DllImport("user32.dll")] private static extern bool ShowWindow(nint hwnd, int command);
     [DllImport("user32.dll")] private static extern nint GetAncestor(nint hwnd, uint flags);
     [DllImport("user32.dll", EntryPoint="GetClassNameW", CharSet=CharSet.Unicode)] private static extern int GetClassName(nint hwnd, System.Text.StringBuilder text, int length);
     [DllImport("user32.dll")] private static extern nint GetTopWindow(nint hwnd);
