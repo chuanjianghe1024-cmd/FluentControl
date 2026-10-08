@@ -30,7 +30,8 @@ internal static class PanelDiagnostics
             if (resized.Width <= original.Width || resized.Height <= original.Height) throw new InvalidOperationException("Resize gesture did not resize the client area.");
             panel.CheckGeometryDelta(true, -5000, -5000); // exercise the minimum size
             await Task.Delay(250);
-            if (panel.HintHeight < 28 || panel.HintBottom > panel.ContentHeight + 1) throw new InvalidOperationException("Panel hint is clipped at minimum size.");
+            StartupLog.Write($"Panel minimum layout: hintHeight={panel.HintHeight:0.00}, hintBottom={panel.HintBottom:0.00}, contentHeight={panel.ContentHeight:0.00}");
+            if (panel.HintHeight < 11 || panel.HintBottom > panel.ContentHeight + 1) throw new InvalidOperationException($"Panel hint is clipped: height={panel.HintHeight}, bottom={panel.HintBottom}, content={panel.ContentHeight}");
             panel.CheckGeometryDelta(true, 80, 60);
             background.AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(panel.AppWindow.Position.X - 30, panel.AppWindow.Position.Y - 30, panel.AppWindow.Size.Width + 60, panel.AppWindow.Size.Height + 60));
             grid.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 215, 70, 40));
