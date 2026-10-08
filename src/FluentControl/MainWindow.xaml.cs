@@ -143,7 +143,7 @@ public sealed partial class MainWindow : Window
         catch (Exception ex)
         {
             StartupLog.Write("Refresh failed: " + ex);
-            if (!closed) ShowStatus(ex.Message, InfoBarSeverity.Error);
+            if (!closed) ShowStatus(ex.Message, InfoBarSeverity.Error, page);
         }
         finally { refreshing = false; RefreshButton.IsEnabled = true; gate.Release(); }
     }
@@ -209,9 +209,15 @@ public sealed partial class MainWindow : Window
         grid.Children.Add(new FontIcon { Glyph = channel.Glyph, FontSize = 20, VerticalAlignment = VerticalAlignment.Center });
         var labels = new StackPanel { Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
         labels.Children.Add(new TextBlock { Text = (group is null ? "" : T("统一", "Linked ")) + Channel(channel), TextTrimming = TextTrimming.CharacterEllipsis, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
-        var detail = new TextBlock { Text = channel.Detail, FontSize = 12, Opacity = .7, TextWrapping = TextWrapping.Wrap, Visibility = channel.Detail.Length == 0 ? Visibility.Collapsed : Visibility.Visible };
+        var detailText = channel.PropertyKey switch
+        {
+            "mouse-speed" => T("慢 1 — 快 20 · Windows 系统速度", "Slow 1 — Fast 20 · Windows pointer speed"),
+            "pointer-size" => T("小 1 — 大 15 · 保留指针颜色与主题", "Small 1 — Large 15 · Keeps pointer color and theme"),
+            _ => channel.Detail
+        };
+        var detail = new TextBlock { Text = detailText, FontSize = 12, Opacity = .7, TextWrapping = TextWrapping.Wrap, Visibility = detailText.Length == 0 ? Visibility.Collapsed : Visibility.Visible };
         labels.Children.Add(detail);
-        ToolTipService.SetToolTip(labels, channel.Name + "\n" + channel.Detail);
+        ToolTipService.SetToolTip(labels, Channel(channel) + "\n" + detailText);
         Grid.SetColumn(labels, 1); grid.Children.Add(labels);
         var slider = new Slider { Minimum = channel.Minimum, Maximum = channel.Maximum, StepFrequency = 1, Value = channel.Value, VerticalAlignment = VerticalAlignment.Center, MinWidth = 70 };
         AutomationProperties.SetName(slider, channel.Name + " " + channel.Detail);
@@ -257,7 +263,7 @@ public sealed partial class MainWindow : Window
                 finally { gate.Release(); }
             }
             catch (OperationCanceledException) { }
-            catch (Exception ex) { if (!closed && version == generation) ShowStatus(ex.Message, InfoBarSeverity.Error); }
+            catch (Exception ex) { if (!closed && version == generation) ShowStatus(ex.Message, InfoBarSeverity.Error, page); }
             finally
             {
                 if (ReferenceEquals(pending, request)) { pending = null; if (!closed && version == generation) SyncRow(); }
@@ -267,12 +273,13 @@ public sealed partial class MainWindow : Window
         if (channel.WriteMute is not null)
         {
             var toggle = new ToggleButton { Content = new FontIcon { Glyph = "\uE74F", FontSize = 16 }, IsChecked = channel.IsMuted, VerticalAlignment = VerticalAlignment.Center };
-            AutomationProperties.SetName(toggle, channel.Name + " 静音");
+            AutomationProperties.SetName(toggle, channel.Name + T(" 静音", " mute"));
             ToolTipService.SetToolTip(toggle, T("静音 / 取消静音", "Mute / unmute"));
             refreshRows.Add(() => toggle.IsChecked = channel.IsMuted);
             toggle.Click += async (_, _) =>
             {
                 var target = toggle.IsChecked == true;
+                var page = notificationContext;
                 toggle.IsEnabled = false;
                 await gate.WaitAsync();
                 try
@@ -280,9 +287,9 @@ public sealed partial class MainWindow : Window
                     if (version != generation || closed) return;
                     await Task.Run(() => channel.WriteMute(target));
                     channel.IsMuted = target; MarkProfileModified();
-                    if (!closed) ShowStatus(target ? T("设备已静音", "Device muted") : T("设备已取消静音", "Device unmuted"), InfoBarSeverity.Success);
+                    if (!closed) ShowStatus(target ? T("设备已静音", "Device muted") : T("设备已取消静音", "Device unmuted"), InfoBarSeverity.Success, page);
                 }
-                catch (Exception ex) { if (!closed) { toggle.IsChecked = channel.IsMuted; ShowStatus(ex.Message, InfoBarSeverity.Error); } }
+                catch (Exception ex) { if (!closed) { toggle.IsChecked = channel.IsMuted; ShowStatus(ex.Message, InfoBarSeverity.Error, page); } }
                 finally { gate.Release(); toggle.IsEnabled = true; }
             };
             Grid.SetColumn(toggle, 4); grid.Children.Add(toggle);

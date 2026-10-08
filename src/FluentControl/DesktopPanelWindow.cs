@@ -21,7 +21,8 @@ internal sealed class DesktopPanelWindow : Window
     private readonly DispatcherTimer positionTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
     private readonly nint hwnd;
     private bool active, closing;
-    private int rowGeneration;
+    private int rowGeneration, pendingChanges;
+    internal bool HasPendingChanges => pendingChanges > 0;
     internal bool IsUnlocked => active;
     internal int RowCount { get; private set; }
     internal DesktopPanelWindow(AppSettings settings, Action<int> switchProfile, Action<int, int> savePosition)
@@ -124,6 +125,7 @@ internal sealed class DesktopPanelWindow : Window
                     if (updating || !active) return;
                     var value = e.NewValue;
                     pending?.Cancel(); var request = new CancellationTokenSource(); pending = request;
+                    pendingChanges++;
                     number.Text = Math.Round(value) + first.Unit;
                     try
                     {
@@ -135,6 +137,7 @@ internal sealed class DesktopPanelWindow : Window
                     {
                         if (ReferenceEquals(pending, request)) { pending = null; if (!closing && version == rowGeneration) Update(); }
                         request.Dispose();
+                        pendingChanges--;
                     }
                 };
             }

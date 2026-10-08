@@ -54,6 +54,12 @@ public sealed partial class MainWindow
     private void ShutdownFeatures()
     {
         statusTimer.Stop(); pendingStateTimer.Stop();
+        if (desktopPanel is not null)
+        {
+            state.Settings.DesktopX = desktopPanel.AppWindow.Position.X;
+            state.Settings.DesktopY = desktopPanel.AppWindow.Position.Y;
+            SaveState();
+        }
         desktopPanel?.Close(); desktopPanel = null; crosshair?.Close(); crosshair = null;
         shell?.Dispose(); shell = null;
     }
@@ -171,7 +177,7 @@ public sealed partial class MainWindow
     }
     private async Task WaitForWritesAsync()
     {
-        while (pendingWrites > 0 && !closed) await Task.Delay(25);
+        while ((pendingWrites > 0 || desktopPanel?.HasPendingChanges == true) && !closed) await Task.Delay(25);
     }
     private async Task ApplyProfileAsync(ControlProfile profile)
     {
@@ -299,6 +305,7 @@ public sealed partial class MainWindow
             var selected = DesktopCandidates().Where(x => state.Settings.DesktopRows.Contains(x.Key)).Take(state.Settings.DesktopMaxRows).ToList();
             desktopPanel.UpdateRows(selected, state.Settings, async (targets, value) =>
             {
+                var page = notificationContext;
                 pendingWrites++;
                 await gate.WaitAsync();
                 try
@@ -307,9 +314,9 @@ public sealed partial class MainWindow
                     var errors = await Task.Run(() => ControlOperations.Apply(targets, value));
                     if (closed) return;
                     MarkProfileModified(); SynchronizeValues();
-                    if (errors.Count > 0) ShowStatus(string.Join("; ", errors), InfoBarSeverity.Error);
+                    if (errors.Count > 0) ShowStatus(string.Join("; ", errors), InfoBarSeverity.Error, page);
                 }
-                catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error); }
+                catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error, page); }
                 finally { gate.Release(); pendingWrites--; }
             });
             UpdateDesktopProfile(); desktopPanel.ShowPanel();

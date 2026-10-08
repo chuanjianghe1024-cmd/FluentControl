@@ -5,17 +5,21 @@ namespace FluentControl;
 
 internal sealed class TransparentBackdrop : SystemBackdrop
 {
-    private CompositionColorBrush? brush;
+    private Windows.UI.Composition.Compositor? compositor;
+    private Windows.UI.Composition.CompositionColorBrush? brush;
     protected override void OnTargetConnected(ICompositionSupportsSystemBackdrop target, XamlRoot root)
     {
         base.OnTargetConnected(target, root);
-        brush = Microsoft.UI.Xaml.Media.CompositionTarget.GetCompositorForCurrentThread().CreateColorBrush(Microsoft.UI.Colors.Transparent);
+        Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread().EnsureSystemDispatcherQueue();
+        compositor = new Windows.UI.Composition.Compositor();
+        brush = compositor.CreateColorBrush(Microsoft.UI.Colors.Transparent);
         target.SystemBackdrop = brush;
     }
     protected override void OnTargetDisconnected(ICompositionSupportsSystemBackdrop target)
     {
         target.SystemBackdrop = null;
         brush?.Dispose(); brush = null;
+        compositor?.Dispose(); compositor = null;
         base.OnTargetDisconnected(target);
     }
 }
