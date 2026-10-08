@@ -109,9 +109,9 @@ public sealed partial class MainWindow : Window
                 var m = new List<MonitorDevice>();
                 var mouse = new List<ControlChannel>();
                 if (uiTest) return (a: UiTestData.Audio(), m: UiTestData.Monitors(), mouse: UiTestData.Mouse(), errors);
-                try { audio = new AudioService(); a = audio.Enumerate(); } catch (Exception ex) { errors.Add("音频：" + ex.Message); }
-                try { monitors = new MonitorService(); m = monitors.Enumerate(); } catch (Exception ex) { errors.Add("显示器：" + ex.Message); }
-                try { mouse = MouseService.Enumerate(); } catch (Exception ex) { errors.Add("鼠标：" + ex.Message); }
+                try { audio = new AudioService(); a = audio.Enumerate(); } catch (Exception ex) { errors.Add(T("音频：", "Audio: ") + ex.Message); }
+                try { monitors = new MonitorService(); m = monitors.Enumerate(); } catch (Exception ex) { errors.Add(T("显示器：", "Display: ") + ex.Message); }
+                try { mouse = MouseService.Enumerate(); } catch (Exception ex) { errors.Add(T("鼠标：", "Mouse: ") + ex.Message); }
                 return (a, m, mouse, errors);
             });
             if (closed) return;
@@ -121,7 +121,7 @@ public sealed partial class MainWindow : Window
             {
                 var device = displayDevices[i];
                 try { device.Preference = preferences?.GetOrAdd(device.Id) ?? new() { Label = "M" + (i + 1) }; }
-                catch (Exception ex) { device.Preference = new() { Label = "M" + (i + 1) }; result.errors.Add("名称保存失败：" + ex.Message); }
+                catch (Exception ex) { device.Preference = new() { Label = "M" + (i + 1) }; result.errors.Add(T("名称保存失败：", "Cannot save name: ") + ex.Message); }
                 MonitorRows.Children.Add(CreateMonitorCard(device, version));
             }
             RenderCombined(version);
@@ -129,11 +129,11 @@ public sealed partial class MainWindow : Window
                 (channel.IsDefaultAudio ? AudioRows : OtherAudioRows).Children.Add(CreateRow(channel, version));
             if (AudioRows.Children.Count == 0) AudioRows.Children.Add(Empty(T("没有可控制的默认音频设备。可展开其他设备，或检查 Windows 声音设置。", "No controllable default audio devices. Expand other devices or check Windows sound settings.")));
             var otherCount = result.a.Count(x => !x.IsDefaultAudio);
-            OtherAudioExpander.Header = T($"其他音频设备 · {otherCount}", $"Other audio devices · {otherCount}");
+            OtherAudioExpander.Header = F("其他音频设备 · {0}", "Other audio devices · {0}", otherCount);
             OtherAudioExpander.Visibility = otherCount == 0 ? Visibility.Collapsed : Visibility.Visible;
             foreach (var channel in result.mouse) MouseRows.Children.Add(CreateRow(channel, version));
             if (MouseRows.Children.Count == 0) MouseRows.Children.Add(Empty(T("无法读取鼠标设置，请使用下方 Windows 设置入口。", "Cannot read mouse settings. Open Windows Settings below.")));
-            MonitorSummary.Text = T($"{displayDevices.Count} 台显示器 · M 编号为本应用标记", $"{displayDevices.Count} displays · M numbers are FluentControl labels");
+            MonitorSummary.Text = F("{0} 台显示器 · M 编号为本应用标记", "{0} displays · M numbers are app labels", displayDevices.Count);
             if (displayDevices.Count == 0) MonitorRows.Children.Add(Empty(T("没有检测到显示器。", "No displays detected.")));
             IdentifyButton.IsEnabled = displayDevices.Count > 0;
             BuildSettings(); RefreshDesktopPanel(); RefreshCrosshair();
@@ -172,7 +172,7 @@ public sealed partial class MainWindow : Window
                 preferences!.Rename(device.Id, input.Text);
                 title.Text = MonitorTitle(device);
                 BuildSettings(); RefreshDesktopPanel();
-                ShowStatus(T($"已保存名称：{device.DisplayName}", $"Name saved: {device.DisplayName}"), InfoBarSeverity.Success);
+                ShowStatus(F("已保存名称：{0}", "Name saved: {0}", device.DisplayName), InfoBarSeverity.Success);
             }
             catch (Exception ex) { ShowStatus(T("名称未保存：", "Name not saved: ") + ex.Message, InfoBarSeverity.Error); }
         };
@@ -193,7 +193,7 @@ public sealed partial class MainWindow : Window
             var first = targets[0];
             var options = first.Options?.Where(x => targets.All(c => c.Options?.Any(o => o.Value == x.Value) == true)).ToArray();
             if (options is { Length: 0 }) continue;
-            var aggregate = new ControlChannel { Name = first.Name, Detail = T($"{targets.Count} / {displayDevices.Count} 台支持", $"{targets.Count} / {displayDevices.Count} supported"), PropertyKey = key, Glyph = first.Glyph, Value = targets.Average(x => x.Value), Options = options, Write = _ => { } };
+            var aggregate = new ControlChannel { Name = first.Name, Detail = F("{0} / {1} 台支持", "{0} / {1} supported", targets.Count, displayDevices.Count), PropertyKey = key, Glyph = first.Glyph, Value = targets.Average(x => x.Value), Options = options, Write = _ => { } };
             CombinedRows.Children.Add(CreateRow(aggregate, version, targets));
         }
         if (CombinedRows.Children.Count == 1) CombinedRows.Children.Add(Empty(T("暂时没有可以一起调节的显示器属性。", "No display controls are available for linked adjustment.")));
@@ -258,7 +258,7 @@ public sealed partial class MainWindow : Window
                     if (ReferenceEquals(pending, request)) pending = null;
                     MarkProfileModified(); SynchronizeValues();
                     if (!request.IsCancellationRequested)
-                        ShowStatus(errors.Count == 0 ? T($"已更新{Channel(channel)}", $"{Channel(channel)} updated") : string.Join("；", errors), errors.Count == 0 ? InfoBarSeverity.Success : InfoBarSeverity.Error, page);
+                        ShowStatus(errors.Count == 0 ? F("已更新{0}", "{0} updated", Channel(channel)) : string.Join("；", errors), errors.Count == 0 ? InfoBarSeverity.Success : InfoBarSeverity.Error, page);
                 }
                 finally { gate.Release(); }
             }

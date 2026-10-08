@@ -10,6 +10,15 @@ static ControlChannel Channel(string name, double initial, Action<double> write,
     Name = name, Detail = "", Glyph = "", Value = initial, Write = write, Read = read
 };
 
+Strings.ValidateCatalog();
+Check(Strings.SupportedLanguages.Count == 8, "Eight supported locales.");
+Check(Strings.ResolveLanguage("zh-HK") == "zh-TW" && Strings.ResolveLanguage("es-MX") == "es-ES", "Regional language fallback.");
+foreach (var locale in Strings.SupportedLanguages)
+{
+    Strings.SetLanguage(locale);
+    Check(!Strings.F("已更新{0}", "{0} updated", "TEST").Contains("{0}"), "Translated format placeholders.");
+    Check(!string.IsNullOrWhiteSpace(Strings.AppName), "Localized application title.");
+}
 var sent = new List<double>();
 var first = Channel("M1", 20, x => sent.Add(x));
 var failed = Channel("M2", 40, _ => throw new IOException("disconnected"));
@@ -33,10 +42,12 @@ try
     Check(store.State.Settings.CloseToTray && !store.State.Settings.DesktopPanelEnabled, "Safe settings defaults.");
     store.State.Profiles.Add(new ControlProfile { Id = "one", Name = "Reading", Values = new() { ["monitor/A/brightness"] = new SavedValue { Value = 42 } } });
     store.State.Profiles.Add(new ControlProfile { Id = "two", Name = "Gaming" });
-    store.State.Settings.Language = "en-US"; store.State.Settings.DesktopMaxRows = 3;
+    store.State.Settings.Language = "ja-JP"; store.State.Settings.DesktopMaxRows = 3;
+    store.State.Settings.DesktopOpacity = 25; store.State.Settings.DesktopWidth = 480; store.State.Settings.DesktopHeight = 250;
     store.State.Settings.DesktopRows = new() { "monitor/all/brightness" }; store.Save();
     var restored = new UserStateStore(statePath);
-    Check(restored.State.Settings.Language == "en-US" && restored.State.Settings.DesktopMaxRows == 3, "Settings round trip.");
+    Check(restored.State.Settings.Language == "ja-JP" && restored.State.Settings.DesktopMaxRows == 3, "Settings round trip.");
+    Check(restored.State.Settings.DesktopOpacity == 25 && restored.State.Settings.DesktopWidth == 480 && restored.State.Settings.DesktopHeight == 250, "Panel appearance and geometry round trip.");
     Check(restored.State.Profiles[0].Values["monitor/A/brightness"].Value == 42, "Profile values round trip.");
     Check(UserStateStore.NextIndex(restored.State.Profiles, "one", -1) == 1, "Previous profile wraps.");
     Check(UserStateStore.NextIndex(restored.State.Profiles, "two", 1) == 0, "Next profile wraps.");

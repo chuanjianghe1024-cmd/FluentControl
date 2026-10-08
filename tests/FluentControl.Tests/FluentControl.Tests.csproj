@@ -6,6 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="../../src/FluentControl/Services/Locales.json" LogicalName="FluentControl.Locales.json" />
+    <Compile Include="../../src/FluentControl/Services/Strings.cs" Link="Strings.cs" />
+
     <Compile Include="../../src/FluentControl/Services/UserState.cs" Link="UserState.cs" />
     <Compile Include="../../src/FluentControl/Services/ControlChannel.cs" Link="ControlChannel.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorPreferences.cs" Link="MonitorPreferences.cs" />

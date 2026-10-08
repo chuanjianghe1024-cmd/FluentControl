@@ -16,6 +16,8 @@
     <ApplicationIcon>Assets/FluentControl.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Services/Locales.json" LogicalName="FluentControl.Locales.json" />
+
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
     <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>

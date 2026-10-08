@@ -26,6 +26,7 @@ internal sealed class ShellIntegration : IDisposable
         };
         TrayAvailable = ShellNotifyIcon(0, ref icon);
     }
+    internal void UpdateLanguage() { icon.Tip = Strings.AppName; if (TrayAvailable) ShellNotifyIcon(1, ref icon); }
     internal List<string> ConfigureHotkeys(bool enabled)
     {
         foreach (var id in hotkeys) UnregisterHotKey(window, id);
@@ -69,7 +70,7 @@ internal sealed class ShellIntegration : IDisposable
             AppendMenu(menu, 0, 2, Strings.T("上一个配置", "Previous profile"));
             AppendMenu(menu, 0, 3, Strings.T("下一个配置", "Next profile"));
             AppendMenu(menu, 0x800, 0, "");
-            AppendMenu(menu, 0, 6, Strings.T("退出 FluentControl", "Exit FluentControl"));
+            AppendMenu(menu, 0, 6, Strings.T("退出聚合控制", "Exit Fluent Control"));
             GetCursorPos(out var point); SetForegroundWindow(window);
             var chosen = TrackPopupMenu(menu, 0x102, point.X, point.Y, 0, window, 0);
             PostMessage(window, 0, 0, 0);
@@ -96,6 +97,10 @@ internal sealed class ShellIntegration : IDisposable
         SetWindowLongPtr(hwnd, -20, (nint)style);
     }
     [DllImport("user32.dll", EntryPoint = "GetDpiForWindow")] internal static extern uint Dpi(nint hwnd);
+    internal static Windows.Graphics.PointInt32 PointerPosition() { GetCursorPos(out var p); return new(p.X, p.Y); }
+    internal static Windows.Graphics.SizeInt32 ClientSize(nint hwnd) { GetClientRect(hwnd, out var r); return new(r.Right - r.Left, r.Bottom - r.Top); }
+    [StructLayout(LayoutKind.Sequential)] private struct Rect { public int Left, Top, Right, Bottom; }
+    [DllImport("user32.dll")] private static extern bool GetClientRect(nint hwnd, out Rect rect);
     internal static void Drag(nint hwnd) { ReleaseCapture(); SendMessage(hwnd, 0xa1, 2, 0); }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

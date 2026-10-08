@@ -108,6 +108,8 @@ public sealed partial class MainWindow
     }
     private void LocalizeUi()
     {
+        Navigation.PaneTitle = AppName;
+        shell?.UpdateLanguage();
         ((NavigationViewItem)Navigation.MenuItems[0]).Content = T("显示器", "Displays");
         ((NavigationViewItem)Navigation.MenuItems[1]).Content = T("声音与麦克风", "Audio");
         ((NavigationViewItem)Navigation.MenuItems[2]).Content = T("鼠标与指针", "Mouse & pointer");
@@ -131,11 +133,12 @@ public sealed partial class MainWindow
     {
         var tag = Navigation.SelectedItem == Navigation.SettingsItem ? "settings" : (Navigation.SelectedItem as NavigationViewItem)?.Tag as string ?? "monitors";
         PageTitle.Text = tag switch { "audio" => T("声音与麦克风", "Audio"), "mouse" => T("鼠标与指针", "Mouse & pointer"), "settings" => T("设置", "Settings"), _ => T("显示器", "Displays") };
+        Title = AppName + " · " + PageTitle.Text;
         PageDescription.Text = tag switch
         {
             "audio" => T("常用设备在前，其他设备按需展开。", "Your default devices first. Expand the rest when needed."),
             "mouse" => T("找到适合自己的移动速度与指针大小。", "Tune movement speed and pointer size."),
-            "settings" => T("按自己的习惯使用 FluentControl。", "Make FluentControl work your way."),
+            "settings" => T("按自己的习惯使用聚合控制。", "Make Fluent Control work your way."),
             _ => T("单独微调，或让所有屏幕一起变化。", "Tune each display, or adjust them together.")
         };
     }
@@ -212,8 +215,8 @@ public sealed partial class MainWindow
                 if (closed) return;
                 state.SelectedProfileId = profile.Id; profileDirty = result.errors.Count > 0 || result.missing > 0;
                 SaveState(); RefreshProfiles(); SynchronizeValues();
-                var message = T($"配置「{profile.Name}」：已更新 {result.applied} 项", $"Profile '{profile.Name}': {result.applied} controls applied");
-                if (result.missing > 0) message += T($"，跳过 {result.missing} 个未连接控制项", $"; {result.missing} unavailable controls skipped");
+                var message = F("配置「{0}」：已更新 {1} 项", "Profile '{0}': {1} controls applied", profile.Name, result.applied);
+                if (result.missing > 0) message += F("，跳过 {0} 个未连接控制项", "; {0} unavailable controls skipped", result.missing);
                 if (result.errors.Count > 0) message += " · " + string.Join("; ", result.errors);
                 ShowStatus(message, result.errors.Count > 0 || result.missing > 0 ? InfoBarSeverity.Warning : InfoBarSeverity.Success, page);
             }
@@ -297,9 +300,9 @@ public sealed partial class MainWindow
         try
         {
             if (!state.Settings.DesktopPanelEnabled || closed) { desktopPanel?.Close(); desktopPanel = null; return; }
-            desktopPanel ??= new DesktopPanelWindow(state.Settings, delta => _ = SwitchProfileAsync(delta), (x, y) =>
+            desktopPanel ??= new DesktopPanelWindow(state.Settings, delta => _ = SwitchProfileAsync(delta), () =>
             {
-                state.Settings.DesktopX = x; state.Settings.DesktopY = y; pendingStateTimer.Stop(); pendingStateTimer.Start();
+                pendingStateTimer.Stop(); pendingStateTimer.Start();
             });
             var version = generation;
             var selected = DesktopCandidates().Where(x => state.Settings.DesktopRows.Contains(x.Key)).Take(state.Settings.DesktopMaxRows).ToList();
@@ -345,13 +348,15 @@ public sealed partial class MainWindow
             SettingsPanel.Children.Add(SettingsRow(title, description, toggle));
         }
         Heading(T("常规", "General"));
-        var languages = new ComboBox { ItemsSource = new[] { T("跟随系统", "System default"), "简体中文", "English" }, SelectedIndex = state.Settings.Language switch { "zh-CN" => 1, "en-US" => 2, _ => 0 } };
+        var languageChoices = LanguageOptions();
+        var languages = new ComboBox { ItemsSource = languageChoices, DisplayMemberPath = "Name", SelectedItem = languageChoices.FirstOrDefault(x => x.Code == state.Settings.Language) ?? languageChoices[0], MinWidth = 170 };
         languages.SelectionChanged += async (_, _) =>
         {
-            state.Settings.Language = languages.SelectedIndex switch { 1 => "zh-CN", 2 => "en-US", _ => "auto" };
+            if (languages.SelectedItem is not LanguageOption selectedLanguage) return;
+            state.Settings.Language = selectedLanguage.Code;
             SetLanguage(state.Settings.Language); SaveState(); LocalizeUi(); BuildSettings(); await RefreshAsync();
         };
-        SettingsPanel.Children.Add(SettingsRow(T("语言", "Language"), T("界面支持简体中文和英文", "Simplified Chinese and English"), languages));
+        SettingsPanel.Children.Add(SettingsRow(T("语言", "Language"), T("标题、导航、托盘和提示统一切换", "Updates titles, navigation, tray menus and messages"), languages));
         Toggle(T("关闭窗口后留在托盘", "Keep running in the tray"), T("从托盘菜单可彻底退出", "Use the tray menu to exit completely"), state.Settings.CloseToTray, value => { state.Settings.CloseToTray = value; SaveState(); });
         bool startup;
         try { startup = !uiTest && StartupService.IsEnabled(); } catch { startup = false; }
@@ -369,7 +374,7 @@ public sealed partial class MainWindow
         if (hotkeyProblems.Count > 0) SettingsPanel.Children.Add(Empty(T("以下快捷键未注册：", "Unavailable shortcuts: ") + string.Join(", ", hotkeyProblems)));
         if (shell?.TrayAvailable != true) SettingsPanel.Children.Add(Empty(T("托盘不可用，关闭按钮将退出应用。", "Tray unavailable. Closing the window exits the app.")));
         Heading(T("桌面控制面板", "Desktop controls"));
-        Toggle(T("显示桌面面板", "Show desktop panel"), T("透明背景 · 双击解锁 · 失去焦点自动锁定 · Esc 锁定", "Transparent · Double-click to unlock · Locks on focus loss or Esc"), state.Settings.DesktopPanelEnabled, value => { state.Settings.DesktopPanelEnabled = value; SaveState(); RefreshDesktopPanel(); });
+        Toggle(T("显示桌面面板", "Show desktop panel"), T("半透明背景 · 双击解锁 · 拖动右上角移动，右下角缩放", "Translucent · Double-click to unlock · Drag top-right to move, bottom-right to resize"), state.Settings.DesktopPanelEnabled, value => { state.Settings.DesktopPanelEnabled = value; SaveState(); RefreshDesktopPanel(); });
         Toggle(T("显示器一起控制", "Link display controls"), T("关闭后可选择每台显示器的独立控制项", "Turn off to choose controls for individual displays"), state.Settings.GroupDesktopMonitors, value =>
         {
             var old = state.Settings.DesktopRows.ToArray(); state.Settings.GroupDesktopMonitors = value;
@@ -377,6 +382,12 @@ public sealed partial class MainWindow
             SaveState(); BuildSettings(); RefreshDesktopPanel();
         });
         Toggle(T("使用浅色文字", "Light text"), T("按桌面壁纸明暗选择文字颜色", "Choose text contrast for your wallpaper"), state.Settings.DesktopLightText, value => { state.Settings.DesktopLightText = value; SaveState(); RefreshDesktopPanel(); });
+        var opacity = new Slider { Minimum = 10, Maximum = 85, StepFrequency = 5, Value = state.Settings.DesktopOpacity, Width = 170 };
+        opacity.ValueChanged += (_, e) => { state.Settings.DesktopOpacity = e.NewValue; SaveState(); RefreshDesktopPanel(); };
+        SettingsPanel.Children.Add(SettingsRow(T("背景不透明度", "Background opacity"), T("数值越低越通透，文字保持清晰", "Lower values reveal more of the desktop; text stays opaque"), opacity));
+        var resetSize = new Button { Content = T("恢复自动尺寸", "Reset to automatic size") };
+        resetSize.Click += (_, _) => { state.Settings.DesktopWidth = 340; state.Settings.DesktopHeight = null; SaveState(); RefreshDesktopPanel(); };
+        SettingsPanel.Children.Add(SettingsRow(T("面板尺寸", "Panel size"), T("拖动后记住宽高；空间不足时控制行可滚动", "Remembers resized dimensions; control rows scroll when space is limited"), resetSize));
         var maximum = new NumberBox { Minimum = 1, Maximum = 16, Value = state.Settings.DesktopMaxRows, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact, Width = 100 };
         maximum.ValueChanged += (_, e) => { if (double.IsNaN(e.NewValue)) return; state.Settings.DesktopMaxRows = (int)Math.Clamp(e.NewValue, 1, 16); SaveState(); RefreshDesktopPanel(); };
         SettingsPanel.Children.Add(SettingsRow(T("最多显示行数", "Maximum rows"), T("按下方顺序显示已勾选的控制项", "Selected rows appear in the order below"), maximum));
@@ -398,7 +409,7 @@ public sealed partial class MainWindow
         var target = new ComboBox { ItemsSource = displayDevices, DisplayMemberPath = "DisplayName", SelectedItem = displayDevices.FirstOrDefault(x => x.Id == state.Settings.CrosshairMonitorId) ?? displayDevices.FirstOrDefault(x => x.IsPrimary) ?? displayDevices.FirstOrDefault() };
         target.SelectionChanged += (_, _) => { if (target.SelectedItem is MonitorDevice d) { state.Settings.CrosshairMonitorId = d.Id; SaveState(); RefreshCrosshair(); } };
         SettingsPanel.Children.Add(SettingsRow(T("显示屏幕", "Target display"), "", target));
-        var exit = new Button { Content = T("退出 FluentControl", "Exit FluentControl") }; exit.Click += (_, _) => ShellCommand(6); SettingsPanel.Children.Add(exit);
+        var exit = new Button { Content = T("退出聚合控制", "Exit Fluent Control") }; exit.Click += (_, _) => ShellCommand(6); SettingsPanel.Children.Add(exit);
     }
     private static Border SettingsRow(string title, string description, FrameworkElement control)
     {
@@ -462,6 +473,13 @@ public sealed partial class MainWindow
             if (PageTitle.Text != "Settings") throw new InvalidOperationException("English language not applied.");
             SetLanguage("zh-CN"); LocalizeUi();
             if (PageTitle.Text != "设置") throw new InvalidOperationException("Chinese language not applied.");
+            ValidateCatalog();
+            foreach (var language in SupportedLanguages)
+            {
+                SetLanguage(language); LocalizeUi(); BuildSettings();
+                if (!Title.Contains(AppName) || Navigation.PaneTitle != AppName || PageTitle.Text != T("设置", "Settings")) throw new InvalidOperationException("Title or menu language failed: " + language);
+            }
+            SetLanguage("zh-CN"); LocalizeUi();
             var profile = new ControlProfile { Name = "UI test profile", Values = CaptureProfile() };
             state.Profiles.Add(profile);
             var brightness = displayDevices[0].Channels.First(x => x.PropertyKey == "brightness");
@@ -478,6 +496,13 @@ public sealed partial class MainWindow
             if (!desktopPanel.IsUnlocked) throw new InvalidOperationException("Desktop panel cannot unlock.");
             desktopPanel.SetUnlocked(false);
             if (desktopPanel.IsUnlocked) throw new InvalidOperationException("Desktop panel cannot lock.");
+            await PanelDiagnostics.VerifyAsync(desktopPanel);
+            var savedWidth = state.Settings.DesktopWidth;
+            var savedHeight = state.Settings.DesktopHeight;
+            SaveState();
+            desktopPanel.Close(); desktopPanel = null;
+            RefreshDesktopPanel();
+            if (desktopPanel is null || savedWidth != state.Settings.DesktopWidth || savedHeight != state.Settings.DesktopHeight) throw new InvalidOperationException("Panel size not restored.");
             if (crosshair is null) throw new InvalidOperationException("Crosshair failed to initialize.");
             StartupLog.Write("Tray available: " + (shell?.TrayAvailable == true));
             if (shell is not null)
@@ -486,7 +511,7 @@ public sealed partial class MainWindow
                 if (errors.Count > 0) throw new InvalidOperationException("Hotkey registration failed: " + string.Join(",", errors));
             }
             AppWindow.Hide(); AppWindow.Show(); Activate();
-            StartupLog.Write("Feature checks passed: transient status, languages, profiles, transparent desktop panel, lock, crosshair, tray lifecycle and hotkeys");
+            StartupLog.Write("Feature checks passed: transient status, languages, profiles, desktop alpha pixels, movement, resizing, unclipped footer, lock, crosshair, tray lifecycle and hotkeys");
         }
         finally
         {

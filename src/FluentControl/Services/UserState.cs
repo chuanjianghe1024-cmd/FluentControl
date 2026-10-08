@@ -10,6 +10,9 @@ public sealed class AppSettings
     public bool GroupDesktopMonitors { get; set; } = true;
     public int DesktopMaxRows { get; set; } = 6;
     public bool DesktopLightText { get; set; } = true;
+    public double DesktopOpacity { get; set; } = 30;
+    public double DesktopWidth { get; set; } = 340;
+    public double? DesktopHeight { get; set; }
     public int? DesktopX { get; set; }
     public int? DesktopY { get; set; }
     public List<string> DesktopRows { get; set; } = new() { "monitor/all/brightness", "monitor/all/contrast" };
@@ -44,6 +47,9 @@ public sealed class UserStateStore
         State.Settings ??= new(); State.Profiles ??= new();
         State.Settings.DesktopRows ??= new();
         State.Settings.DesktopMaxRows = Math.Clamp(State.Settings.DesktopMaxRows, 1, 16);
+        State.Settings.DesktopOpacity = double.IsFinite(State.Settings.DesktopOpacity) ? Math.Clamp(State.Settings.DesktopOpacity, 10, 85) : 30;
+        State.Settings.DesktopWidth = double.IsFinite(State.Settings.DesktopWidth) ? Math.Clamp(State.Settings.DesktopWidth, 280, 900) : 340;
+        if (State.Settings.DesktopHeight is double h) State.Settings.DesktopHeight = double.IsFinite(h) ? Math.Clamp(h, 144, 1000) : null;
     }
     public void Save()
     {
