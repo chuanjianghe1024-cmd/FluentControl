@@ -1,0 +1,20 @@
+name: Windows build
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build WinUI application
+        run: dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
+      - name: Publish application folder
+        run: dotnet publish src/FluentControl/FluentControl.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -o publish
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FluentControl-win-x64
+          path: publish/
