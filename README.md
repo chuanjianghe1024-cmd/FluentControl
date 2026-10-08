@@ -30,7 +30,9 @@ dotnet publish src/FluentControl/FluentControl.csproj -c Release -r win-x64 --se
 
 ## 当前验证边界
 
-源代码由 Linux 环境生成，已做 XML、结构检查，尚未完成 Windows 编译和硬件实测。仓库创建后需查看 Windows CI，构建通过后再进行下列实测。不要把这版称为已测试发行版。
+Windows CI 已通过上一版编译和打包。本版新增发布程序的窗口启动测试；结果以对应提交的 Actions 为准，音频与显示器控制仍需在真实硬件验证。
+
+如果启动失败，程序会尽可能弹出错误并写入 `%LOCALAPPDATA%\FluentControl\Logs\startup.log`。请提供此日志；如果没有生成日志，说明失败可能发生在托管应用初始化之前。下载后请先完整解压所有文件，再运行 `FluentControl.exe`。
 
 1. 音量/麦克风滑块与 Windows 声音设置数值同步；静音切换正确。
 2. 对照显示器 OSD 检查背光亮度；HDR、ECO 模式可能限制设置。

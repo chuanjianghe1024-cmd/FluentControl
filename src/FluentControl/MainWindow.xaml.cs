@@ -20,9 +20,14 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         Title = "FluentControl";
-        SystemBackdrop = new MicaBackdrop();
+        try { SystemBackdrop = new MicaBackdrop(); }
+        catch (Exception ex) { StartupLog.Write("Mica unavailable: " + ex); }
         AppWindow.Resize(new Windows.Graphics.SizeInt32(900, 740));
-        Root.Loaded += async (_, _) => await RefreshAsync();
+        Root.Loaded += async (_, _) =>
+        {
+            StartupLog.Write("Main window content loaded");
+            await RefreshAsync();
+        };
         Closed += async (_, _) =>
         {
             closed = true;
