@@ -22,7 +22,7 @@ internal sealed class DesktopPanelWindow : Window
     private readonly DispatcherTimer positionTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
     private readonly TransparentBackdrop backdrop = new();
     private readonly nint hwnd;
-    private readonly Thumb dragGrip, resizeGrip;
+    private readonly FrameworkElement dragGrip, resizeGrip;
     private AppSettings settings;
     private bool active, closing, moving;
     private int rowGeneration, pendingChanges;
@@ -74,26 +74,33 @@ internal sealed class DesktopPanelWindow : Window
         AppWindow.Move(new PointInt32(settings.DesktopX ?? work.X + work.Width - 380, settings.DesktopY ?? work.Y + 60));
         SetUnlocked(false);
     }
-    private static Thumb Grip(string glyph, bool resize) => new()
+    private static FrameworkElement Grip(string glyph, bool resize) => (FrameworkElement)XamlReader.Load(
+        "<Grid xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' Width='28' Height='28' Background='Transparent'>" +
+        (resize ? "<Path Data='M2,14 L14,2 M7,14 L14,7 M12,14 L14,12' Width='16' Height='16' Stroke='{ThemeResource TextFillColorSecondaryBrush}' StrokeThickness='1.4'/>" : "<FontIcon Glyph='" + glyph + "' FontSize='12' Opacity='0.75' />") + "</Grid>");
+    private void ConfigureGrip(FrameworkElement grip, bool resize)
     {
-        Width = 28, Height = 28,
-        Template = (ControlTemplate)XamlReader.Load("<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' TargetType='Thumb'><Grid Background='Transparent'>" + (resize ? "<Path Data='M2,14 L14,2 M7,14 L14,7 M12,14 L14,12' Width='16' Height='16' Stroke='{ThemeResource TextFillColorSecondaryBrush}' StrokeThickness='1.4'/>" : "<FontIcon Glyph='" + glyph + "' FontSize='12' Opacity='0.75' />") + "</Grid></ControlTemplate>")
-    };
-    private void ConfigureGrip(Thumb grip, bool resize)
-    {
+        void Complete()
+        {
+            if (!moving) return;
+            moving = false; ClampPosition(); SaveGeometry(resize);
+        }
         grip.AddHandler(UIElement.PointerPressedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler((_, e) =>
         {
             if (!e.GetCurrentPoint(grip).Properties.IsLeftButtonPressed) return;
-            moving = true; pointerStart = ShellIntegration.PointerPosition(); positionStart = AppWindow.Position; sizeStart = ShellIntegration.ClientSize(hwnd);
-            if (Environment.GetCommandLineArgs().Contains("--ui-test")) StartupLog.Write($"Grip pressed resize={resize} pointer={pointerStart.X},{pointerStart.Y} position={positionStart.X},{positionStart.Y}");
+            pointerStart = ShellIntegration.PointerPosition(); positionStart = AppWindow.Position; sizeStart = ShellIntegration.ClientSize(hwnd);
+            moving = grip.CapturePointer(e.Pointer); e.Handled = true;
+            if (Environment.GetCommandLineArgs().Contains("--ui-test")) StartupLog.Write($"Grip pressed resize={resize} captured={moving} pointer={pointerStart.X},{pointerStart.Y}");
         }), true);
-        grip.DragDelta += (_, _) =>
+        grip.AddHandler(UIElement.PointerMovedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler((_, e) =>
         {
+            if (!moving) return;
             var now = ShellIntegration.PointerPosition();
-            ApplyGeometryDelta(resize, now.X - pointerStart.X, now.Y - pointerStart.Y);
+            ApplyGeometryDelta(resize, now.X - pointerStart.X, now.Y - pointerStart.Y); e.Handled = true;
             if (Environment.GetCommandLineArgs().Contains("--ui-test")) StartupLog.Write($"Grip delta resize={resize} delta={now.X - pointerStart.X},{now.Y - pointerStart.Y}");
-        };
-        grip.DragCompleted += (_, _) => { moving = false; ClampPosition(); SaveGeometry(resize); };
+        }), true);
+        grip.AddHandler(UIElement.PointerReleasedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler((_, e) => { Complete(); grip.ReleasePointerCapture(e.Pointer); e.Handled = true; }), true);
+        grip.PointerCaptureLost += (_, _) => Complete();
+        grip.PointerCanceled += (_, _) => Complete();
     }
     private void ApplyGeometryDelta(bool resize, int x, int y)
     {
