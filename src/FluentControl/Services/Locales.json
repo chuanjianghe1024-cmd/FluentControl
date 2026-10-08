@@ -310,7 +310,10 @@
     "Adjust all connected displays together. Commands are sent only to displays supporting the feature or option.": "所有已連接的螢幕一起調節；僅向支援該功能或選項的螢幕傳送命令。",
     "Link all displays": "所有螢幕一起控制",
     "Link different models too. Turn off to control each display separately": "不同型號也一起調節；關閉後每台螢幕單獨控制",
-    "Across models · {0} linked displays": "跨型號 · {0} 台連動"
+    "Across models · {0} linked displays": "跨型號 · {0} 台連動",
+    "All": "整體",
+    "Monitor controls": "顯示器控制",
+    "Limits automatic height; scroll to see additional controls": "限制自動高度，超出的控制項可捲動查看"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -623,7 +626,10 @@
     "Adjust all connected displays together. Commands are sent only to displays supporting the feature or option.": "接続中のすべての画面をまとめて調整します。機能や選択肢に対応する画面にのみコマンドを送信します。",
     "Link all displays": "すべての画面を連動",
     "Link different models too. Turn off to control each display separately": "異なるモデルも連動します。オフにすると各画面を個別に操作します。",
-    "Across models · {0} linked displays": "モデルを問わず {0} 台を連動"
+    "Across models · {0} linked displays": "モデルを問わず {0} 台を連動",
+    "All": "すべて",
+    "Monitor controls": "モニター操作",
+    "Limits automatic height; scroll to see additional controls": "自動サイズの高さを制限します。残りの項目はスクロールで表示します"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -936,7 +942,10 @@
     "Adjust all connected displays together. Commands are sent only to displays supporting the feature or option.": "연결된 모든 화면을 함께 조절합니다. 해당 기능이나 옵션을 지원하는 화면에만 명령을 보냅니다.",
     "Link all displays": "모든 화면 연동",
     "Link different models too. Turn off to control each display separately": "다른 모델도 함께 조절합니다. 끄면 각 화면을 개별 제어합니다.",
-    "Across models · {0} linked displays": "모델에 관계없이 {0}대 연동"
+    "Across models · {0} linked displays": "모델에 관계없이 {0}대 연동",
+    "All": "전체",
+    "Monitor controls": "모니터 제어",
+    "Limits automatic height; scroll to see additional controls": "자동 높이를 제한합니다. 나머지 항목은 스크롤하여 확인하세요"
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -1249,7 +1258,10 @@
     "Adjust all connected displays together. Commands are sent only to displays supporting the feature or option.": "Alle verbundenen Anzeigen gemeinsam einstellen. Befehle werden nur an Anzeigen gesendet, die die Funktion oder Option unterstützen.",
     "Link all displays": "Alle Anzeigen koppeln",
     "Link different models too. Turn off to control each display separately": "Auch unterschiedliche Modelle koppeln. Ausschalten, um jede Anzeige einzeln zu steuern.",
-    "Across models · {0} linked displays": "Modellübergreifend · {0} Anzeigen gekoppelt"
+    "Across models · {0} linked displays": "Modellübergreifend · {0} Anzeigen gekoppelt",
+    "All": "Alle",
+    "Monitor controls": "Monitorsteuerung",
+    "Limits automatic height; scroll to see additional controls": "Begrenzt die automatische Höhe; weitere Regler sind durch Scrollen erreichbar"
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -1562,7 +1574,10 @@
     "Adjust all connected displays together. Commands are sent only to displays supporting the feature or option.": "Réglez ensemble tous les écrans connectés. Les commandes sont envoyées uniquement aux écrans prenant en charge la fonction ou l’option.",
     "Link all displays": "Lier tous les écrans",
     "Link different models too. Turn off to control each display separately": "Lier aussi les modèles différents. Désactivez pour régler chaque écran séparément.",
-    "Across models · {0} linked displays": "Tous modèles · {0} écrans liés"
+    "Across models · {0} linked displays": "Tous modèles · {0} écrans liés",
+    "All": "Tous",
+    "Monitor controls": "Commandes des écrans",
+    "Limits automatic height; scroll to see additional controls": "Limite la hauteur automatique ; faites défiler pour voir les autres commandes"
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -1875,6 +1890,9 @@
     "Adjust all connected displays together. Commands are sent only to displays supporting the feature or option.": "Ajusta juntas todas las pantallas conectadas. Los comandos solo se envían a las pantallas compatibles con la función u opción.",
     "Link all displays": "Vincular todas las pantallas",
     "Link different models too. Turn off to control each display separately": "Vincula también modelos distintos. Desactiva para controlar cada pantalla por separado.",
-    "Across models · {0} linked displays": "Entre modelos · {0} pantallas vinculadas"
+    "Across models · {0} linked displays": "Entre modelos · {0} pantallas vinculadas",
+    "All": "Todas",
+    "Monitor controls": "Controles de monitores",
+    "Limits automatic height; scroll to see additional controls": "Limita la altura automática; desplázate para ver más controles"
   }
 }

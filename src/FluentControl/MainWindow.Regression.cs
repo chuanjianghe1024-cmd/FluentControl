@@ -149,6 +149,52 @@ public sealed partial class MainWindow
             SynchronizeValues(); desktopPanel!.SetUnlocked(false);
         }
         StartupLog.Write("PASS: migrated desktop selections, two cross-model linked sliders and partial-feature targets.");
+        await CheckDesktopModeSwitchAsync();
+    }
+    private async Task CheckDesktopModeSwitchAsync()
+    {
+        var originalRows = state.Settings.DesktopRows.ToList();
+        var originalLimit = state.Settings.DesktopMaxRows;
+        var channels = displayDevices.SelectMany(d => d.Channels).Where(c => c.PropertyKey is "brightness" or "contrast").ToArray();
+        var saved = channels.ToDictionary(c => c, c => c.Value);
+        async Task ClickMode()
+        {
+            var button = Descendants<Button>(desktopPanel!.Content).Single(b => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(b) == "desktop-monitor-mode");
+            ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)).Invoke();
+            await Task.Delay(100); await WaitForWritesAsync();
+        }
+        try
+        {
+            state.Settings.DesktopMaxRows = 1;
+            RefreshDesktopPanel(); desktopPanel!.SetUnlocked(true);
+            await ClickMode();
+            if (state.Settings.GroupDesktopMonitors || desktopPanel.RowCount != 4 || !desktopPanel.IsUnlocked)
+                throw new InvalidOperationException("Individual desktop mode lost M2 or truncated selected controls at the visible row limit.");
+            var first = displayDevices[0].Channels.First(c => c.PropertyKey == "brightness");
+            var second = displayDevices[1].Channels.First(c => c.PropertyKey == "brightness");
+            var firstValue = first.Value;
+            await SetTestSliderAsync(desktopPanel.Content, "desktop-monitor/" + Uri.EscapeDataString(displayDevices[1].Id) + "/brightness", 28);
+            if (second.Value != 28 || first.Value != firstValue) throw new InvalidOperationException("M2 individual desktop slider was not isolated.");
+            state.Settings.DesktopRows.Add("monitor/offline-screen/brightness");
+            await ClickMode();
+            if (!state.Settings.GroupDesktopMonitors || desktopPanel.RowCount != 2) throw new InvalidOperationException("Overall desktop mode did not collapse to one row per feature.");
+            await SetTestSliderAsync(desktopPanel.Content, "desktop-monitor/all/brightness", 41);
+            if (first.Value != 41 || second.Value != 41) throw new InvalidOperationException("Desktop mode toggle did not restore cross-model control.");
+            await ClickMode();
+            if (!state.Settings.DesktopRows.Contains("monitor/offline-screen/brightness")) throw new InvalidOperationException("Offline desktop selection was lost on mode switch.");
+            var mode = Descendants<ComboBox>(SettingsPanel).Single(c => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(c) == "setting-desktop-mode");
+            mode.SelectedIndex = 1; await Task.Delay(100);
+            if (!state.Settings.GroupDesktopMonitors || desktopPanel.RowCount != 2) throw new InvalidOperationException("Settings and desktop mode were not synchronized.");
+        }
+        finally
+        {
+            foreach (var entry in saved) ControlOperations.Apply(new[] { entry.Key }, entry.Value);
+            state.Settings.GroupDesktopMonitors = true; state.Settings.DesktopRows = originalRows;
+            state.Settings.DesktopIndividualRows = state.Settings.DesktopLinkedRows = null;
+            state.Settings.DesktopMaxRows = originalLimit;
+            RefreshDesktopPanel(); SynchronizeValues();
+        }
+        StartupLog.Write("PASS: desktop mode button and settings synchronized; M2 remains available beyond row limit; individual isolation and offline selections preserved.");
     }
     private async Task CheckPanelTextSwitchAsync()
     {

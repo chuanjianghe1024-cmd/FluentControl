@@ -14,7 +14,7 @@
             Message="FluentControl 需要 Windows 10 2004 或更高版本的 64 位系统。" />
     <Icon Id="AppIcon" SourceFile="$(var.PublishDir)\Assets\FluentControl.ico" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/chuanjianghe1024-cmd/FluentControl" />
+    <Property Id="ARPURLINFOABOUT" Value="https://fctrl.app" />
     <Property Id="ARPNOMODIFY" Value="1" />
     <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="请从开始菜单打开 FluentControl（聚合控制）。原有配置会自动保留。" />
 

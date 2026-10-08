@@ -16,6 +16,8 @@ public sealed class AppSettings
     public int? DesktopX { get; set; }
     public int? DesktopY { get; set; }
     public List<string> DesktopRows { get; set; } = new() { "monitor/all/brightness", "monitor/all/contrast" };
+    public List<string>? DesktopIndividualRows { get; set; }
+    public List<string>? DesktopLinkedRows { get; set; }
     public bool CrosshairEnabled { get; set; }
     public bool HideUnavailableMonitorControls { get; set; }
     public string CrosshairMonitorId { get; set; } = "";

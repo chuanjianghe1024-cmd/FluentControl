@@ -339,7 +339,8 @@ public sealed partial class MainWindow
                 var supported = devices.Where(d => d.Channels.Any(c => c.PropertyKey == key)).ToArray();
                 var names = string.Join(" + ", supported.Select(d => d.DisplayName));
                 if (supported.Length < devices.Length) names = F("仅 {0}", "Only {0}", names);
-                result.Add(new() { Key = "monitor/all/" + key, Name = names + " · " + Channel(targets[0]), Detail = SupportSummary(key, devices), Group = "monitor/all", Targets = targets, Linked = true });
+                var label = supported.Length < devices.Length ? names : T("整体", "All");
+                result.Add(new() { Key = "monitor/all/" + key, Name = label + " · " + Channel(targets[0]), Detail = SupportSummary(key, devices), Group = "monitor/all", Targets = targets, Linked = true });
             }
         }
         else foreach (var display in displayDevices) foreach (var c in display.Channels.Where(x => !x.IsAction && !x.RequiresConfirmation))
@@ -355,6 +356,17 @@ public sealed partial class MainWindow
         }
         return result;
     }
+    private async Task SetDesktopMonitorModeAsync(bool linked)
+    {
+        await WaitForWritesAsync();
+        if (closed || state.Settings.GroupDesktopMonitors == linked) return;
+        var unlocked = desktopPanel?.IsUnlocked == true;
+        var individualKeys = displayDevices.SelectMany(d => d.Channels.Where(c => !c.IsAction && !c.RequiresConfirmation)
+            .Select(c => $"monitor/{Uri.EscapeDataString(d.Id)}/{c.PropertyKey}"));
+        MonitorLinking.ChangeDesktopMode(state.Settings, linked, individualKeys);
+        SaveState(); BuildSettings(); RefreshDesktopPanel();
+        if (unlocked) desktopPanel?.SetUnlocked(true);
+    }
     private void RefreshDesktopPanel()
     {
         try
@@ -364,13 +376,13 @@ public sealed partial class MainWindow
             // invalidate theme resources during layout. Recreate with its final theme.
             if (desktopPanel is not null && desktopPanel.UsesLightText != state.Settings.DesktopLightText)
             { desktopPanel.Close(); desktopPanel = null; }
-            desktopPanel ??= new DesktopPanelWindow(state.Settings, delta => _ = SwitchDesktopGroupAsync(delta), delta => _ = SwitchDesktopProfileAsync(delta), () =>
+            desktopPanel ??= new DesktopPanelWindow(state.Settings, delta => _ = SwitchDesktopGroupAsync(delta), delta => _ = SwitchDesktopProfileAsync(delta), linked => _ = SetDesktopMonitorModeAsync(linked), () =>
             {
                 pendingStateTimer.Stop(); pendingStateTimer.Start();
             });
             var version = generation;
-            var selected = DesktopCandidates().Where(x => state.Settings.DesktopRows.Contains(x.Key)).Take(state.Settings.DesktopMaxRows).ToList();
-            desktopPanel.UpdateRows(selected, state.Settings, async (targets, value) =>
+            var selected = DesktopCandidates().Where(x => state.Settings.DesktopRows.Contains(x.Key)).ToList();
+            desktopPanel.UpdateRows(selected, state.Settings, async (targets, value, linked) =>
             {
                 var page = notificationContext;
                 pendingWrites++;
@@ -378,7 +390,7 @@ public sealed partial class MainWindow
                 try
                 {
                     if (closed || version != generation) return;
-                    var errors = await Task.Run(() => ControlOperations.Apply(targets, value, state.Settings.GroupDesktopMonitors));
+                    var errors = await Task.Run(() => ControlOperations.Apply(targets, value, linked));
                     if (closed) return;
                     MarkProfileModified(); SynchronizeValues();
                     if (errors.Count > 0) ShowStatus(string.Join("; ", errors), InfoBarSeverity.Error, page);
@@ -434,6 +446,7 @@ public sealed partial class MainWindow
         });
         var startupSettings = new HyperlinkButton { Content = T("Windows 启动应用设置", "Windows Startup Apps"), Tag = "ms-settings:startupapps" };
         startupSettings.Click += OpenSettings_Click; SettingsPanel.Children.Add(startupSettings);
+        SettingsPanel.Children.Add(new HyperlinkButton { Content = "fctrl.app", NavigateUri = new Uri("https://fctrl.app") });
         Heading(T("全局快捷键", "Global shortcuts"));
         Toggle(T("启用快捷键", "Enable shortcuts"), T("若组合已被占用，会显示冲突而不抢占", "Conflicts are reported without taking over other shortcuts"), state.Settings.HotkeysEnabled, value =>
         {
@@ -444,12 +457,10 @@ public sealed partial class MainWindow
         if (shell?.TrayAvailable != true) SettingsPanel.Children.Add(Empty(T("托盘不可用，关闭按钮将退出应用。", "Tray unavailable. Closing the window exits the app.")));
         Heading(T("桌面控制面板", "Desktop controls"));
         Toggle(T("显示桌面面板", "Show desktop panel"), T("半透明背景 · 双击解锁 · 拖动右上角移动，右下角缩放", "Translucent · Double-click to unlock · Drag top-right to move, bottom-right to resize"), state.Settings.DesktopPanelEnabled, value => { state.Settings.DesktopPanelEnabled = value; SaveState(); RefreshDesktopPanel(); });
-        Toggle(T("所有显示器一起控制", "Link all displays"), T("不同型号也一起调节；关闭后每台屏幕单独控制", "Link different models too. Turn off to control each display separately"), state.Settings.GroupDesktopMonitors, value =>
-        {
-            var old = state.Settings.DesktopRows.ToArray(); state.Settings.GroupDesktopMonitors = value;
-            state.Settings.DesktopRows = DesktopCandidates().Where(x => old.Contains(x.Key) || (x.Key.StartsWith("monitor/") && old.Any(k => k.StartsWith("monitor/") && k.Split('/').Last() == x.Key.Split('/').Last()))).Select(x => x.Key).ToList();
-            SaveState(); BuildSettings(); RefreshDesktopPanel();
-        });
+        var desktopMode = new ComboBox { ItemsSource = new[] { T("单独控制", "Individual"), T("整体控制", "Overall control") }, SelectedIndex = state.Settings.GroupDesktopMonitors ? 1 : 0, MinWidth = 150 };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(desktopMode, "setting-desktop-mode");
+        desktopMode.SelectionChanged += async (_, _) => { if (desktopMode.SelectedIndex >= 0) await SetDesktopMonitorModeAsync(desktopMode.SelectedIndex == 1); };
+        SettingsPanel.Children.Add(SettingsRow(T("显示器控制", "Monitor controls"), T("不同型号也一起调节；关闭后每台屏幕单独控制", "Link different models too. Turn off to control each display separately"), desktopMode));
         Toggle(T("使用浅色文字", "Light text"), T("按桌面壁纸明暗选择文字颜色", "Choose text contrast for your wallpaper"), state.Settings.DesktopLightText, value => { state.Settings.DesktopLightText = value; SaveState(); RefreshDesktopPanel(); });
         var opacity = new Slider { Minimum = 10, Maximum = 85, StepFrequency = 5, Value = state.Settings.DesktopOpacity, Width = 170 };
         opacity.ValueChanged += (_, e) => { state.Settings.DesktopOpacity = e.NewValue; SaveState(); RefreshDesktopPanel(); };
@@ -459,7 +470,7 @@ public sealed partial class MainWindow
         SettingsPanel.Children.Add(SettingsRow(T("面板尺寸", "Panel size"), T("拖动后记住宽高；空间不足时控制行可滚动", "Remembers resized dimensions; control rows scroll when space is limited"), resetSize));
         var maximum = new NumberBox { Minimum = 1, Maximum = 16, Value = state.Settings.DesktopMaxRows, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact, Width = 100 };
         maximum.ValueChanged += (_, e) => { if (double.IsNaN(e.NewValue)) return; state.Settings.DesktopMaxRows = (int)Math.Clamp(e.NewValue, 1, 16); SaveState(); RefreshDesktopPanel(); };
-        SettingsPanel.Children.Add(SettingsRow(T("最多显示行数", "Maximum rows"), T("按下方顺序显示已勾选的控制项", "Selected rows appear in the order below"), maximum));
+        SettingsPanel.Children.Add(SettingsRow(T("最多显示行数", "Maximum rows"), T("限制自动高度，超出的控制项可滚动查看", "Limits automatic height; scroll to see additional controls"), maximum));
         var choices = new StackPanel { Spacing = 3, Padding = new Thickness(16) };
         foreach (var row in DesktopCandidates())
         {
@@ -563,7 +574,7 @@ public sealed partial class MainWindow
             var persisted = new UserStateStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentControl", "test-user-state.json"));
             if (!persisted.State.Profiles.Any(x => x.Id == profile.Id)) throw new InvalidOperationException("Profile not persisted.");
             state.Settings = new AppSettings { DesktopPanelEnabled = true, CrosshairEnabled = true,
-                DesktopRows = new() { "monitor/model/TST0001/brightness", "monitor/model/TST0002/brightness", "monitor/device/offline/contrast" } };
+                DesktopRows = new() { "monitor/model/TST0001/brightness", "monitor/model/TST0002/brightness", "monitor/device/offline/contrast", "monitor/ui-test-monitor-0/contrast" } };
             RefreshDesktopPanel(); RefreshCrosshair();
             await Task.Delay(250);
             if (desktopPanel is null || desktopPanel.RowCount != 2 || desktopPanel.IsUnlocked) throw new InvalidOperationException("Desktop panel did not start locked with two rows.");

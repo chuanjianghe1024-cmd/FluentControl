@@ -12,6 +12,14 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: Validate release scripts
+        shell: pwsh
+        run: |
+          Get-ChildItem scripts/*.ps1 | ForEach-Object {
+            $tokens = $null; $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors)
+            if ($errors.Count) { throw ($errors | Out-String) }
+          }
       - name: Test device control logic and native mouse settings
         run: dotnet run --project tests/FluentControl.Tests -c Release -- --native
       - name: Build WinUI application
@@ -48,6 +56,7 @@ jobs:
             artifacts/msi-logs/
             artifacts/obj/**/size-report.json
             artifacts/obj/**/payload.json
+            artifacts/obj/**/signatures.json
           if-no-files-found: ignore
       - name: Upload startup diagnostics
         if: always()

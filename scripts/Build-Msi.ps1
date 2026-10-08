@@ -1,12 +1,20 @@
 param(
     [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '0.3.0',
     [string]$PublishDirectory = 'publish',
-    [string]$OutputDirectory = 'artifacts/installer'
+    [string]$OutputDirectory = 'artifacts/installer',
+    [string]$CertificateThumbprint,
+    [uri]$TimestampUrl,
+    [switch]$MachineStore,
+    [string]$SignToolPath,
+    [switch]$RequireSigned
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 Push-Location $root
 try {
+    if ($RequireSigned -and -not $CertificateThumbprint) { throw 'A signed release requires -CertificateThumbprint and -TimestampUrl. No unsigned fallback is allowed.' }
+    if ($CertificateThumbprint -and -not $TimestampUrl) { throw 'Provide your certificate provider RFC 3161 -TimestampUrl.' }
+    $signing = @{ CertificateThumbprint = $CertificateThumbprint; TimestampUrl = $TimestampUrl; MachineStore = $MachineStore; SignToolPath = $SignToolPath }
     $versionParts = $Version.Split('.') | ForEach-Object { [int]$_ }
     if ($versionParts[0] -gt 255 -or $versionParts[1] -gt 255 -or $versionParts[2] -gt 65535) {
         throw 'MSI version must fit major.minor.build (255.255.65535).'
@@ -20,6 +28,10 @@ try {
     if ($runtime.runtimeOptions.framework -or $runtime.runtimeOptions.frameworks) { throw 'The MSI payload must contain its .NET runtime.' }
     if ((Test-Path "$publish/PresentationFramework.dll") -or (Test-Path "$publish/System.Windows.Forms.dll")) {
         throw 'Unused WindowsDesktop runtime detected. Use the WASAPI-only audio package and a clean publish folder.'
+    }
+    # Sign our own binaries BEFORE hashing/packaging them. Never replace vendor signatures.
+    if ($CertificateThumbprint) {
+        & "$PSScriptRoot/Sign-Artifacts.ps1" -Path @("$publish/FluentControl.exe", "$publish/FluentControl.dll") @signing
     }
     # Never blanket-delete DLLs/resources from publish. Exclude only debug symbols.
     $files = @(Get-ChildItem $publish -File -Recurse | Where-Object { $_.Extension -notin @('.pdb', '.dbg') } | Sort-Object FullName)
@@ -98,6 +110,12 @@ try {
     $msi = Join-Path $output "FluentControl-$Version-x64.msi"
     dotnet tool run wix build installer/Package.wxs installer/Interface.wxs $payload -arch x64 -culture zh-CN -loc installer/Strings.zh-cn.wxl -ext WixToolset.UI.wixext -d "ProductVersion=$Version" -d "PublishDir=$publish" -pdbtype none -intermediatefolder $work -o $msi
     if ($LASTEXITCODE -ne 0) { throw 'MSI compilation/validation failed.' }
+    if ($CertificateThumbprint) { & "$PSScriptRoot/Sign-Artifacts.ps1" -Path $msi @signing }
+    $signatures = @(@("$publish/FluentControl.exe", "$publish/FluentControl.dll", $msi) | ForEach-Object {
+        $signature = Get-AuthenticodeSignature -LiteralPath $_
+        [ordered]@{ file = [IO.Path]::GetFileName($_); status = [string]$signature.Status; publisher = $signature.SignerCertificate.Subject; timestamped = [bool]$signature.TimeStamperCertificate }
+    })
+    $signatures | ConvertTo-Json | Set-Content (Join-Path $work 'signatures.json') -Encoding utf8
     $size = (Get-Item $msi).Length
     $uncompressed = ($files | Measure-Object Length -Sum).Sum
     $report = [ordered]@{ version = $Version; msi = [IO.Path]::GetFileName($msi); bytes = $size; mib = [Math]::Round($size / 1MB, 2); payloadBytes = $uncompressed; files = $files.Count; sha256 = (Get-FileHash $msi -Algorithm SHA256).Hash }
@@ -106,6 +124,8 @@ try {
     $files | Sort-Object Length -Descending | Select-Object -First 15 Name,Length | Format-Table -AutoSize
     if ($env:GITHUB_STEP_SUMMARY) {
         "### FluentControl $Version MSI`n`n- Single offline MSI: **$($report.mib) MiB** ($size bytes)`n- Installed payload: $([Math]::Round($uncompressed / 1MB, 2)) MiB / $($files.Count) files`n- SHA-256: ``$($report.sha256)```n" | Add-Content $env:GITHUB_STEP_SUMMARY
+        "- Website: https://fctrl.app`n- Authenticode: **$($signatures[-1].status)**. An unsigned build may show Unknown Publisher / SmartScreen warnings.`n" | Add-Content $env:GITHUB_STEP_SUMMARY
     }
+    Write-Host ('SIGNATURE_RESULT ' + ($signatures | ConvertTo-Json -Compress))
 }
 finally { Pop-Location }

@@ -15,11 +15,13 @@ internal sealed class DesktopPanelWindow : Window
     private readonly Grid body = new() { Margin = new Thickness(10), RowSpacing = 6 };
     private readonly StackPanel rows = new();
     private readonly Grid header = new() { ColumnSpacing = 4, RowSpacing = 2 };
+    private readonly Grid footer = new() { ColumnSpacing = 6, Margin = new Thickness(0, 0, 24, 0) };
+    private readonly Button monitorMode = new() { FontSize = 11, MinHeight = 28, Padding = new Thickness(7, 2, 7, 2), VerticalAlignment = VerticalAlignment.Center, Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
     private readonly TextBlock groupName = new() { FontSize = 12, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly Button previousGroup = SmallButton("‹"), nextGroup = SmallButton("›"), previousProfile = SmallButton("‹"), nextProfile = SmallButton("›");
     private const double MinimumHeight = 168;
     private readonly Grid shield = new() { Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
-    private readonly TextBlock hint = new() { FontSize = 11, LineHeight = 15, TextWrapping = TextWrapping.Wrap, MinHeight = 30, Margin = new Thickness(0, 0, 24, 0), VerticalAlignment = VerticalAlignment.Center };
+    private readonly TextBlock hint = new() { FontSize = 11, LineHeight = 15, TextWrapping = TextWrapping.Wrap, MinHeight = 30, VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock profileName = new() { FontSize = 12, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly List<Action> sync = new();
     private readonly Action changed;
@@ -46,7 +48,7 @@ internal sealed class DesktopPanelWindow : Window
     internal double ContentHeight => root.ActualHeight;
     internal byte BackdropAlpha => backdrop.TintColor.A;
     internal nint Handle => hwnd;
-    internal DesktopPanelWindow(AppSettings settings, Action<int> switchGroup, Action<int> switchProfile, Action changed)
+    internal DesktopPanelWindow(AppSettings settings, Action<int> switchGroup, Action<int> switchProfile, Action<bool> setMonitorMode, Action changed)
     {
         this.settings = settings; this.changed = changed;
         root.RequestedTheme = settings.DesktopLightText ? ElementTheme.Dark : ElementTheme.Light;
@@ -80,7 +82,12 @@ internal sealed class DesktopPanelWindow : Window
         body.Children.Add(header);
         var scroll = new ScrollViewer { Content = rows, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, HorizontalContentAlignment = HorizontalAlignment.Stretch, MinHeight = 32 };
         Grid.SetRow(scroll, 1); body.Children.Add(scroll);
-        Grid.SetRow(hint, 2); body.Children.Add(hint);
+        footer.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
+        footer.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
+        footer.Children.Add(hint); Grid.SetColumn(monitorMode, 1); footer.Children.Add(monitorMode);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(monitorMode, "desktop-monitor-mode");
+        monitorMode.Click += (_, _) => { if (active && !closing) setMonitorMode(!this.settings.GroupDesktopMonitors); };
+        Grid.SetRow(footer, 2); body.Children.Add(footer);
         root.Children.Add(body); root.Children.Add(shield);
         dragGrip = Grip("&#xE7C2;", false); dragGrip.HorizontalAlignment = HorizontalAlignment.Right; dragGrip.VerticalAlignment = VerticalAlignment.Top; dragGrip.Margin = new Thickness(0, 10, 10, 0);
         resizeGrip = Grip("&#xE70A;", true); resizeGrip.HorizontalAlignment = HorizontalAlignment.Right; resizeGrip.VerticalAlignment = VerticalAlignment.Bottom;
@@ -173,9 +180,11 @@ internal sealed class DesktopPanelWindow : Window
         hint.Text = value ? Strings.T("已解锁 · Esc 锁定", "Unlocked · Esc to lock") : Strings.T("双击解锁", "Double-click to unlock");
         if (value) { Activate(); (body.Children[0] as Grid)?.Children.OfType<Button>().FirstOrDefault(b => b.IsEnabled)?.Focus(FocusState.Programmatic); }
     }
-    internal void UpdateRows(IReadOnlyList<PanelRow> source, AppSettings settings, Func<IReadOnlyList<ControlChannel>, double, Task> apply)
+    internal void UpdateRows(IReadOnlyList<PanelRow> source, AppSettings settings, Func<IReadOnlyList<ControlChannel>, double, bool, Task> apply)
     {
         this.settings = settings;
+        monitorMode.Content = settings.GroupDesktopMonitors ? Strings.T("整体控制", "Overall control") : Strings.T("单独控制", "Individual");
+        ToolTipService.SetToolTip(monitorMode, settings.GroupDesktopMonitors ? Strings.T("单独控制", "Individual") : Strings.T("整体控制", "Overall control"));
         Title = Strings.AppName + " · " + Strings.T("桌面面板", "Desktop panel");
         ToolTipService.SetToolTip(dragGrip, Strings.T("拖动面板", "Drag panel"));
         ToolTipService.SetToolTip(resizeGrip, Strings.T("拖动以调整大小", "Drag to resize"));
@@ -210,7 +219,7 @@ internal sealed class DesktopPanelWindow : Window
                 picker.SelectionChanged += async (_, _) =>
                 {
                     if (!active || updating || picker.SelectedItem is not ControlOption option) return;
-                    await apply(item.Targets, option.Value); if (!closing && version == rowGeneration) RefreshValues();
+                    await apply(item.Targets, option.Value, item.Linked); if (!closing && version == rowGeneration) RefreshValues();
                 };
             }
             else
@@ -238,7 +247,7 @@ internal sealed class DesktopPanelWindow : Window
                     try
                     {
                         await Task.Delay(150, request.Token);
-                        if (!closing && active && version == rowGeneration) await apply(item.Targets, value);
+                        if (!closing && active && version == rowGeneration) await apply(item.Targets, value, item.Linked);
                     }
                     catch (OperationCanceledException) { }
                     finally
@@ -254,10 +263,11 @@ internal sealed class DesktopPanelWindow : Window
         if (source.Count == 0) rows.Children.Add(new TextBlock { Text = Strings.T("请在设置中选择控制项", "Choose rows in Settings"), FontSize = 12 });
         var width = Math.Clamp(settings.DesktopWidth, 280, 900);
         rows.Measure(new Windows.Foundation.Size(width - 20, double.PositiveInfinity));
-        hint.Measure(new Windows.Foundation.Size(width - 44, double.PositiveInfinity));
+        footer.Measure(new Windows.Foundation.Size(width - 20, double.PositiveInfinity));
         header.Measure(new Windows.Foundation.Size(width - 20, double.PositiveInfinity));
-        var minimum = Math.Max(MinimumHeight, 20 + header.DesiredSize.Height + 12 + 32 + hint.DesiredSize.Height);
-        var automaticHeight = Math.Max(minimum, 20 + header.DesiredSize.Height + 12 + rows.DesiredSize.Height + hint.DesiredSize.Height);
+        var minimum = Math.Max(MinimumHeight, 20 + header.DesiredSize.Height + 12 + 32 + footer.DesiredSize.Height);
+        var visibleRowsHeight = rows.Children.OfType<FrameworkElement>().Take(settings.DesktopMaxRows).Sum(row => row.DesiredSize.Height);
+        var automaticHeight = Math.Max(minimum, 20 + header.DesiredSize.Height + 12 + visibleRowsHeight + footer.DesiredSize.Height);
         var height = Math.Clamp(settings.DesktopHeight ?? automaticHeight, minimum, 1000);
         AppWindow.ResizeClient(new SizeInt32((int)Math.Ceiling(width * Scale), (int)Math.Ceiling(height * Scale)));
         ClampPosition();
