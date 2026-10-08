@@ -53,10 +53,17 @@ internal static class PanelDiagnostics
         var scale = ShellIntegration.Dpi(panel.Handle) / 96d;
         var start = new Point { X = size.Width - (int)((resize ? 14 : 24) * scale), Y = resize ? size.Height - (int)(14 * scale) : (int)(24 * scale) };
         ClientToScreen(panel.Handle, ref start);
-        SetCursorPos(start.X, start.Y); await Task.Delay(100);
+        MovePointer(start.X, start.Y); await Task.Delay(100);
         mouse_event(2, 0, 0, 0, 0); await Task.Delay(100);
-        SetCursorPos(start.X + dx, start.Y + dy); await Task.Delay(160);
+        MovePointer(start.X + dx, start.Y + dy); await Task.Delay(160);
         mouse_event(4, 0, 0, 0, 0); await Task.Delay(160);
+    }
+    private static void MovePointer(int x, int y)
+    {
+        // Inject movement, not just a cursor-position warp: WinUI consumes pointer input.
+        var nx = (uint)Math.Clamp((x - GetSystemMetrics(76) + .5) * 65536 / GetSystemMetrics(78), 0, 65535);
+        var ny = (uint)Math.Clamp((y - GetSystemMetrics(77) + .5) * 65536 / GetSystemMetrics(79), 0, 65535);
+        mouse_event(0xc001, nx, ny, 0, 0);
     }
     private static uint Sample(DesktopPanelWindow panel)
     {
@@ -73,6 +80,7 @@ internal static class PanelDiagnostics
         finally { ReleaseDC(0, dc); }
     }
     [StructLayout(LayoutKind.Sequential)] private struct Point { public int X, Y; }
+    [DllImport("user32.dll")] private static extern int GetSystemMetrics(int index);
     [DllImport("user32.dll")] private static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")] private static extern void mouse_event(uint flags, uint dx, uint dy, uint data, nuint extra);
     [DllImport("user32.dll")] private static extern bool ClientToScreen(nint hwnd, ref Point point);
