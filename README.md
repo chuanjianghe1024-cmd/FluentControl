@@ -65,19 +65,24 @@ dotnet build src/FluentControl/FluentControl.csproj -c Debug -p:Platform=x64
 dotnet run --project src/FluentControl/FluentControl.csproj -p:Platform=x64
 ```
 
-完整离线部署文件夹：
+生成单个离线 MSI（Windows x64）：
 
 ```powershell
-dotnet publish src/FluentControl/FluentControl.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -o publish
+dotnet publish src/FluentControl/FluentControl.csproj -c Release -p:PublishProfile=Installer -p:Platform=x64 -o publish
+./scripts/Build-Msi.ps1 -Version 0.3.0
 ```
 
-运行 publish 中的 FluentControl.exe，必须保留其余依赖文件。GitHub Actions 在 Windows 上构建并上传完整文件夹。
+安装包位于 `artifacts/installer/FluentControl-0.3.0-x64.msi`。双击安装，之后从开始菜单启动；安装在 `%LOCALAPPDATA%\Programs\FluentControl`，无需管理员权限。自带 .NET 和必要的 WinUI 运行库，可离线安装；使用按需 WinAppSDK 组件，排除未用的 AI/ML/Widgets 依赖和调试符号，并采用内嵌 CAB 高压缩。保留 XAML/PRI 与反射支持，不做不安全的 DLL 删除或裁剪。
+
+Actions 每次输出 `FluentControl-MSI-x64`，其中只有一个 MSI；Actions 下载外层仍是 ZIP，解压后双击 MSI 即可。版本为 `0.3.<run_number>`，新版本覆盖升级，拒绝降级；固定安装位置，升级保留开机自启动入口。卸载移除程序和快捷方式，个人配置保留在原有数据目录。原便携版安装前请从托盘退出，安装后原有配置会继续读取；便携版启用过自启动时，请在新版本设置中重新启用一次以更新路径。
+
+CI 会执行真实 MSI 安装、旧版本升级、新安装目录的界面与托盘检查、卸载和配置保留检查；全部通过才上传 MSI。构建摘要包含安装包大小、展开大小及 SHA-256。`scripts/Test-Msi.ps1` 会安装和卸载程序，仅用于一次性测试机器。
 
 ## 当前验证边界
 
 Windows CI 包含控制逻辑与名称保存测试、可恢复的鼠标设置测试、发布资源检查、真实程序启动和模拟设备界面检查，以及提示消失、语言切换、配置读写、八种语言标题/菜单一致性、桌面面板锁定和快捷键注册检查；还通过真实鼠标拖动验证移动/缩放，并切换背景色采样屏幕像素验证半透明，检查最小尺寸下的提示布局。只有全部通过后才上传程序包；结果以对应提交的 Actions 为准。DDC/CI、真实音频路由、多屏识别和自定义指针主题仍需在你的硬件验证。
 
-如果启动失败，程序会尽可能弹出错误并写入 `%LOCALAPPDATA%\FluentControl\Logs\startup.log`。请提供此日志；如果没有生成日志，说明失败可能发生在托管应用初始化之前。下载后请先完整解压所有文件，再运行 `FluentControl.exe`。
+如果启动失败，程序会尽可能弹出错误并写入 `%LOCALAPPDATA%\FluentControl\Logs\startup.log`。请提供此日志；如果没有生成日志，说明失败可能发生在托管应用初始化之前。MSI 版本请安装后从开始菜单运行。
 
 1. 音量/麦克风滑块与 Windows 声音设置数值同步；静音切换正确。
 2. 对照显示器 OSD 检查背光亮度；HDR、ECO 模式可能限制设置。

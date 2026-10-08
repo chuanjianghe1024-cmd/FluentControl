@@ -5,6 +5,8 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      PACKAGE_VERSION: 0.3.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -15,7 +17,7 @@ jobs:
       - name: Build WinUI application
         run: dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
       - name: Publish application folder
-        run: dotnet publish src/FluentControl/FluentControl.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -o publish
+        run: dotnet publish src/FluentControl/FluentControl.csproj -c Release -p:PublishProfile=Installer -p:Platform=x64 -p:Version=$env:PACKAGE_VERSION -o publish
       - name: Verify application XAML resources are published
         shell: pwsh
         run: |
@@ -25,16 +27,28 @@ jobs:
       - name: Verify published application opens a window
         shell: pwsh
         run: ./scripts/Test-Startup.ps1
-      - name: Verify navigation and grouped device panels
+      - name: Build single compressed offline MSI
         shell: pwsh
-        run: ./scripts/Test-Startup.ps1 -UiTest
-      - name: Verify background launch and tray recovery
+        run: ./scripts/Build-Msi.ps1 -Version $env:PACKAGE_VERSION
+      - name: Verify MSI install, upgrade, installed UI, tray and uninstall
         shell: pwsh
-        run: ./scripts/Test-Startup.ps1 -Background
+        run: ./scripts/Test-Msi.ps1 -Version $env:PACKAGE_VERSION
       - uses: actions/upload-artifact@v4
         with:
-          name: FluentControl-win-x64
-          path: publish/
+          name: FluentControl-MSI-x64
+          path: artifacts/installer/*.msi
+          compression-level: 0
+          if-no-files-found: error
+      - name: Upload installer diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FluentControl-installer-logs
+          path: |
+            artifacts/msi-logs/
+            artifacts/obj/**/size-report.json
+            artifacts/obj/**/payload.json
+          if-no-files-found: ignore
       - name: Upload startup diagnostics
         if: always()
         uses: actions/upload-artifact@v4

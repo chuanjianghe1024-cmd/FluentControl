@@ -1,0 +1,48 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="FluentControl" Manufacturer="FluentControl" Version="$(var.ProductVersion)"
+           UpgradeCode="2A0EC0F8-C99E-4B42-A42D-CB4BEE512F79" Scope="perUser"
+           Language="2052" Codepage="936" InstallerVersion="500" Compressed="yes">
+    <MajorUpgrade DowngradeErrorMessage="已安装更新版本的 FluentControl。" Schedule="afterInstallInitialize" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" MaximumUncompressedMediaSize="1024" />
+    <Launch Condition="Installed OR (VersionNT64 AND WindowsBuild &gt;= 19041)"
+            Message="FluentControl 需要 Windows 10 2004 或更高版本的 64 位系统。" />
+    <Icon Id="AppIcon" SourceFile="$(var.PublishDir)\Assets\FluentControl.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/chuanjianghe1024-cmd/FluentControl" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="请从开始菜单打开 FluentControl（聚合控制）。原有配置会自动保留。" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="UserProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="FluentControl" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="StartMenuShortcut" Guid="*">
+        <Shortcut Id="StartMenuEntry" Name="FluentControl" Target="[INSTALLFOLDER]FluentControl.exe"
+                  WorkingDirectory="INSTALLFOLDER" Icon="AppIcon" Description="聚合控制" />
+        <RegistryValue Root="HKCU" Key="Software\FluentControl\Installer" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+    <StandardDirectory Id="StartupFolder" />
+    <!-- The application owns its opt-in startup link. Remove it only on a real
+         uninstall, never while the old MSI is being removed during an upgrade. -->
+    <SetProperty Id="STARTUPCLEANUPDIR" Value="[StartupFolder]" Before="RemoveFiles" Sequence="execute"
+                 Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="InstallationRegistration" Guid="*">
+        <RegistryValue Root="HKCU" Key="Software\FluentControl\Installer" Name="InstallDirectory" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
+        <RemoveFile Id="RemoveStartupShortcut" Name="FluentControl.lnk" Property="STARTUPCLEANUPDIR" On="uninstall" />
+        <RemoveFolder Id="RemoveInstallFolder" On="uninstall" />
+        <RemoveFolder Id="RemoveUserProgramsFolder" Directory="UserProgramsFolder" On="uninstall" />
+      </Component>
+    </DirectoryRef>
+    <Feature Id="Application" Title="FluentControl" Level="1">
+      <ComponentGroupRef Id="ApplicationFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="InstallationRegistration" />
+    </Feature>
+    <UIRef Id="FluentControlUI" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+  </Package>
+</Wix>

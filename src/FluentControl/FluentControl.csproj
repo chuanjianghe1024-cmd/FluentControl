@@ -18,7 +18,10 @@
   <ItemGroup>
     <EmbeddedResource Include="Services/Locales.json" LogicalName="FluentControl.Locales.json" />
 
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
+    <!-- The application uses WinUI/windowing, not the AI/ML/widgets metapackage.
+         Keep the same WinUI component version as WindowsAppSDK 1.8.260921001. -->
+    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="1.8.260803003" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools.MSIX" Version="1.7.260930100" PrivateAssets="all" />
     <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>
   <!-- ApplicationIcon is already indexed by the SDK. Copy the native tray icon
