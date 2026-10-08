@@ -10,6 +10,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: Test device control logic and native mouse settings
+        run: dotnet run --project tests/FluentControl.Tests -c Release -- --native
       - name: Build WinUI application
         run: dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
       - name: Publish application folder
@@ -23,6 +25,9 @@ jobs:
       - name: Verify published application opens a window
         shell: pwsh
         run: ./scripts/Test-Startup.ps1
+      - name: Verify navigation and grouped device panels
+        shell: pwsh
+        run: ./scripts/Test-Startup.ps1 -UiTest
       - uses: actions/upload-artifact@v4
         with:
           name: FluentControl-win-x64

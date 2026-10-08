@@ -2,14 +2,15 @@
 
 Windows 聚合控制中心，使用 WinUI 3 / C# / .NET 8，遵循 Windows 11 Fluent Design。
 
-## 第一版
+## 控制面板
 
-- Mica 背景、系统深浅主题、强调色、原生滑块与入场动画。
-- 每个设备属性占一行：图标、名称、横向滑块、百分比、静音按钮。
-- 枚举活动声音输出和麦克风，调整设备音量并切换静音（不是录音监听，也不是每个应用的音量）。
-- 外接显示器 DDC/CI：亮度、对比度、显示器扬声器音量。只有读取成功的属性才显示。
-- 滑块延迟 150ms 合并请求，后台串行执行，避免阻塞界面。
-- 刷新重新枚举与读取设备；关闭释放显示器句柄和音频设备。
+- 左侧导航：显示器、声音与麦克风、鼠标与指针；使用 WinUI 3 原生控件、Mica 和系统主题。
+- 显示器按设备分组。首次发现时从左到右分配 M1、M2 等应用编号；编号不等同于 Windows 显示设置中的编号。
+- 点击“识别显示器”会在各屏幕中央显示名称 4 秒。支持重命名为左屏、右屏等，名称保存到 `%LOCALAPPDATA%\FluentControl\monitor-names.json`，以显示设备接口 ID 匹配。更换接口或驱动后系统 ID 可能变化，需要重新命名。
+- “单独控制”分别调节每台显示器；“一起控制”将支持的显示器设为相同百分比。亮度、对比度和显示器扬声器音量分别按支持情况提供。初始值不同时显示“不同”；部分写入失败会继续操作其他设备，并保留失败设备原值。
+- 音频默认展示 Windows 默认输出、默认输入和默认通话设备；同一设备兼任多个角色只显示一行。其余活动设备（包括未选中的 Voicemeeter 端点）放入“其他音频设备”折叠面板。更改 Windows 默认设备后点击刷新。
+- 鼠标速度 1–20 档；指针大小 1–15 档。指针大小依赖 Windows 的非公开 `SystemParametersInfo(0x2029)` 兼容接口，失败时恢复原配置并提示使用 Windows 设置入口。保留原指针主题和颜色，实际外观仍需按系统版本与指针主题验证。
+- 滑块延迟 150ms 合并请求，后台串行执行；失败显示原因。支持音频静音、刷新和关闭时释放设备句柄。
 
 ## 构建
 
@@ -30,7 +31,7 @@ dotnet publish src/FluentControl/FluentControl.csproj -c Release -r win-x64 --se
 
 ## 当前验证边界
 
-Windows CI 已通过上一版编译和打包。本版新增发布程序的窗口启动测试；结果以对应提交的 Actions 为准，音频与显示器控制仍需在真实硬件验证。
+Windows CI 包含控制逻辑与名称保存测试、可恢复的鼠标设置测试、发布资源检查、真实程序启动和模拟设备界面检查。只有全部通过后才上传程序包；结果以对应提交的 Actions 为准。DDC/CI、真实音频路由、多屏识别和自定义指针主题仍需在你的硬件验证。
 
 如果启动失败，程序会尽可能弹出错误并写入 `%LOCALAPPDATA%\FluentControl\Logs\startup.log`。请提供此日志；如果没有生成日志，说明失败可能发生在托管应用初始化之前。下载后请先完整解压所有文件，再运行 `FluentControl.exe`。
 
@@ -42,15 +43,12 @@ Windows CI 已通过上一版编译和打包。本版新增发布程序的窗口
 
 当前不支持笔记本内屏 WMI 亮度、实时外部状态同步、自动热插拔、输入源切换、托盘、快捷键、场景保存。输入源及其他离散属性后续使用选择控件，不强行显示为滑块。当前显示器百分比为 VCP 最大值归一化结果，部分 OSD 的标度可能不同。
 
-## 创建仓库并推送
-
-若已安装 GitHub CLI 且登录：
+## 验证
 
 ```powershell
-git init -b main
-git add .
-git commit -m "Initial WinUI aggregate control implementation"
-gh repo create FluentControl --private --source=. --remote=origin --push
+dotnet run --project tests/FluentControl.Tests -c Release
+./scripts/Test-Startup.ps1
+./scripts/Test-Startup.ps1 -UiTest
 ```
 
-默认先私有，确认构建与接口行为后再决定公开和许可证。
+`-UiTest` 会使用不操作硬件的模拟设备来检查所有面板；日常运行直接打开 exe。CI 在一次性 Windows runner 上额外使用 `--native` 验证鼠标读写并恢复原值。
