@@ -40,6 +40,22 @@ try {
     function AssertRetained {
         if ((Get-Content $sentinel -Raw).Trim() -ne $marker) { throw 'User data was removed/changed.' }
     }
+    function AssertProduct([string]$code, [bool]$present, [string]$expectedVersion = '') {
+        # Windows Installer owns registration context/registry-view details.
+        # Query its API instead of assuming a particular ARP registry location.
+        $installer = New-Object -ComObject WindowsInstaller.Installer
+        try {
+            $state = $installer.ProductState($code)
+            if (-not $present) {
+                if ($state -ne -1) { throw "Product remains registered: $code (state $state)." }
+                return
+            }
+            if ($state -ne 5) { throw "Product is not fully installed: $code (state $state)." }
+            if ($installer.ProductInfo($code, 'VersionString') -ne $expectedVersion) { throw 'Installed version is incorrect.' }
+            if ($installer.ProductInfo($code, 'AssignmentType') -ne '0') { throw 'Installation must be per-user.' }
+        }
+        finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($installer) }
+    }
     # The earlier package has the same payload, but a lower MSI version and a
     # different ProductCode, exercising Windows Installer's actual major upgrade.
     & "$PSScriptRoot/Build-Msi.ps1" -Version '0.0.1' -OutputDirectory 'artifacts/upgrade-fixture'
@@ -50,6 +66,7 @@ try {
     if ($oldCode -eq $currentCode) { throw 'Major upgrade packages must have different ProductCodes.' }
     RunMsi "/i `"$old`"" 'install'
     $installed = $oldCode
+    AssertProduct $oldCode $true '0.0.1'
     if (-not (Test-Path "$target/FluentControl.exe")) { throw 'The per-user installation path is incorrect.' }
     if (-not (Test-Path $shortcut)) { throw 'Start-menu shortcut is missing.' }
     $shell = New-Object -ComObject WScript.Shell
@@ -64,9 +81,8 @@ try {
     Write-Host 'PASS: MSI installs per-user and registers the correct start-menu shortcut.'
     RunMsi "/i `"$current`"" 'upgrade'
     $installed = $currentCode
-    $uninstall = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall'
-    if (Test-Path "$uninstall\$oldCode") { throw 'Major upgrade left the old product installed.' }
-    if ((Get-ItemProperty "$uninstall\$currentCode").DisplayVersion -ne $Version) { throw 'Installed version is incorrect.' }
+    AssertProduct $oldCode $false
+    AssertProduct $currentCode $true $Version
     if (-not (Test-Path $startup)) { throw 'Upgrade removed the opt-in startup shortcut.' }
     AssertRetained
     $manifest = Get-Content "artifacts/obj/msi-$Version/payload.json" -Raw | ConvertFrom-Json
@@ -84,7 +100,8 @@ try {
     $saved = @(Get-ChildItem $data -File -Filter '*.json' | ForEach-Object { @{ Path = $_.FullName; Hash = (Get-FileHash $_.FullName).Hash } })
     RunMsi "/x $currentCode" 'uninstall'
     $installed = $null
-    if ((Test-Path "$target/FluentControl.exe") -or (Test-Path $shortcut) -or (Test-Path $startup) -or (Test-Path "$uninstall\$currentCode")) {
+    AssertProduct $currentCode $false
+    if ((Test-Path "$target/FluentControl.exe") -or (Test-Path $shortcut) -or (Test-Path $startup)) {
         throw 'Uninstall left an executable, shortcut or registered product behind.'
     }
     AssertRetained
