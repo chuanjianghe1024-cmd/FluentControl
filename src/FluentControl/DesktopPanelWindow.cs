@@ -22,12 +22,13 @@ internal sealed class DesktopPanelWindow : Window
     private readonly DispatcherTimer positionTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
     private readonly TransparentBackdrop backdrop = new();
     private readonly nint hwnd;
-    private readonly IDisposable sizeLimits;
     private readonly FrameworkElement dragGrip, resizeGrip;
     private AppSettings settings;
     private bool active, closing, moving;
     private int rowGeneration, pendingChanges;
-    private PointInt32 pointerStart, positionStart;
+    private PointInt32 pointerStart, positionStart, lastPointer;
+    private readonly DispatcherTimer gestureTimer = new() { Interval = TimeSpan.FromMilliseconds(16) };
+    private bool resizing;
     private SizeInt32 sizeStart;
     internal bool HasPendingChanges => pendingChanges > 0;
     internal bool IsUnlocked => active;
@@ -46,9 +47,8 @@ internal sealed class DesktopPanelWindow : Window
         AppWindow.IsShownInSwitchers = false;
         if (AppWindow.Presenter is OverlappedPresenter p)
         {
-            p.IsResizable = true; p.SetBorderAndTitleBar(false, false); p.IsMaximizable = false; p.IsMinimizable = false;
+            p.IsResizable = false; p.SetBorderAndTitleBar(false, false); p.IsMaximizable = false; p.IsMinimizable = false;
         }
-        sizeLimits = ShellIntegration.LimitPanelSize(hwnd);
         body.RowDefinitions.Add(new() { Height = GridLength.Auto });
         body.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
         body.RowDefinitions.Add(new() { Height = GridLength.Auto });
@@ -66,12 +66,20 @@ internal sealed class DesktopPanelWindow : Window
         resizeGrip = Grip("&#xE70A;", true); resizeGrip.HorizontalAlignment = HorizontalAlignment.Right; resizeGrip.VerticalAlignment = VerticalAlignment.Bottom;
         root.Children.Add(dragGrip); root.Children.Add(resizeGrip);
         ConfigureGrip(dragGrip, false); ConfigureGrip(resizeGrip, true);
+        gestureTimer.Tick += (_, _) =>
+        {
+            if (!ShellIntegration.PrimaryButtonPressed()) { CompleteGesture(); return; }
+            var now = ShellIntegration.PointerPosition();
+            if (now.X == lastPointer.X && now.Y == lastPointer.Y) return;
+            lastPointer = now;
+            ApplyGeometryDelta(resizing, now.X - pointerStart.X, now.Y - pointerStart.Y);
+        };
         shield.DoubleTapped += (_, e) => { e.Handled = true; SetUnlocked(true); };
-        root.KeyDown += (_, e) => { if (e.Key == VirtualKey.Escape) { SetUnlocked(false); e.Handled = true; } };
+        root.KeyDown += (_, e) => { if (e.Key == VirtualKey.Escape) { CompleteGesture(); SetUnlocked(false); e.Handled = true; } };
         Activated += (_, e) => { if (e.WindowActivationState == WindowActivationState.Deactivated && !moving) SetUnlocked(false); };
         AppWindow.Changed += (_, e) => { if (e.DidPositionChange && !closing && !moving) { positionTimer.Stop(); positionTimer.Start(); } };
         positionTimer.Tick += (_, _) => { positionTimer.Stop(); SaveGeometry(false); };
-        Closed += (_, _) => { closing = true; rowGeneration++; positionTimer.Stop(); sizeLimits.Dispose(); };
+        Closed += (_, _) => { closing = true; rowGeneration++; positionTimer.Stop(); gestureTimer.Stop(); };
         var work = DisplayArea.Primary.WorkArea;
         AppWindow.Move(new PointInt32(settings.DesktopX ?? work.X + work.Width - 380, settings.DesktopY ?? work.Y + 60));
         SetUnlocked(false);
@@ -84,13 +92,20 @@ internal sealed class DesktopPanelWindow : Window
         grip.AddHandler(UIElement.PointerPressedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler((_, e) =>
         {
             if (!e.GetCurrentPoint(grip).Properties.IsLeftButtonPressed) return;
-            e.Handled = true; moving = true;
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                try { ShellIntegration.MoveOrResize(hwnd, resize); }
-                finally { moving = false; ClampPosition(); SaveGeometry(resize); }
-            });
+            e.Handled = true; moving = true; resizing = resize;
+            pointerStart = lastPointer = ShellIntegration.PointerPosition(); positionStart = AppWindow.Position; sizeStart = ShellIntegration.ClientSize(hwnd);
+            // Track only while the primary button is held. Borderless transparent
+            // windows can cancel XAML capture when the pointer leaves a grip.
+            gestureTimer.Start();
         }), true);
+    }
+    private void CompleteGesture()
+    {
+        gestureTimer.Stop();
+        if (!moving || closing) return;
+        var now = ShellIntegration.PointerPosition();
+        ApplyGeometryDelta(resizing, now.X - pointerStart.X, now.Y - pointerStart.Y);
+        moving = false; ClampPosition(); SaveGeometry(resizing);
     }
     private void ApplyGeometryDelta(bool resize, int x, int y)
     {
