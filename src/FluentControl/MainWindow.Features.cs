@@ -95,8 +95,8 @@ public sealed partial class MainWindow
             switch (id)
             {
                 case 1: AppWindow.Show(); Activate(); ShellIntegration.Focus(WinRT.Interop.WindowNative.GetWindowHandle(this)); StartupLog.Write("Main window activated"); break;
-                case 2: await SwitchProfileAsync(-1); break;
-                case 3: await SwitchProfileAsync(1); break;
+                case 2: await SwitchGlobalProfileAsync(-1); break;
+                case 3: await SwitchGlobalProfileAsync(1); break;
                 case 4: if (shell?.TrayAvailable == true) AppWindow.Hide(); break;
                 case 5:
                     state.Settings.DesktopPanelEnabled = !state.Settings.DesktopPanelEnabled;
@@ -115,7 +115,7 @@ public sealed partial class MainWindow
         ((NavigationViewItem)Navigation.MenuItems[2]).Content = T("鼠标与指针", "Mouse & pointer");
         if (Navigation.SettingsItem is NavigationViewItem settingsItem) settingsItem.Content = T("设置", "Settings");
         var index = DisplayMode.SelectedIndex;
-        DisplayMode.Items[0] = T("单独控制", "Individual"); DisplayMode.Items[1] = T("同型号联动", "Link same models"); DisplayMode.SelectedIndex = index;
+        DisplayMode.Items[0] = T("单独控制", "Individual"); DisplayMode.Items[1] = T("整体控制", "Overall control"); DisplayMode.SelectedIndex = index;
         RefreshButton.Content = T("刷新", "Refresh"); IdentifyButton.Content = T("识别显示器", "Identify");
         DefaultAudioTitle.Text = T("Windows 当前默认设备", "Current Windows default devices");
         SoundSettingsLink.Content = T("Windows 声音设置", "Windows sound settings");
@@ -128,7 +128,10 @@ public sealed partial class MainWindow
         ProfileExchangeButton.Content = T("分享 / 导入", "Share / import");
         NightLightLink.Content = T("Windows 夜间模式", "Windows night light");
         GroupPicker.PlaceholderText = T("配置分组", "Profile group");
-        NewGroupButton.Content = T("新建分组", "New group"); EditProfileButton.Content = T("信息 / 标签", "Info / tags"); FilterProfilesButton.Content = T("筛选配置", "Filter profiles");
+        DeleteGroupButton.Text = T("删除分组", "Delete group");
+        ToolTipService.SetToolTip(GroupActionsButton, T("管理分组", "Manage groups"));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(GroupActionsButton, T("管理分组", "Manage groups"));
+        NewGroupButton.Text = T("新建分组", "New group"); EditProfileButton.Content = T("信息 / 标签", "Info / tags"); FilterProfilesButton.Content = T("筛选配置", "Filter profiles");
         ProfilePicker.PlaceholderText = T("选择配置", "Choose a profile");
         SaveProfileButton.Content = T("保存为配置", "Save as profile"); UpdateProfileButton.Content = T("更新", "Update"); DeleteProfileButton.Content = T("删除", "Delete");
         ToolTipService.SetToolTip(PreviousProfileButton, T("上一个配置", "Previous profile")); ToolTipService.SetToolTip(NextProfileButton, T("下一个配置", "Next profile"));
@@ -161,6 +164,7 @@ public sealed partial class MainWindow
         rebuildingProfiles = true;
         GroupPicker.ItemsSource = null; GroupPicker.ItemsSource = state.Groups;
         GroupPicker.SelectedItem = state.Groups.First(x => x.Id == state.SelectedGroupId);
+        DeleteGroupButton.IsEnabled = state.SelectedGroupId != ProfileGroup.LocalId;
         var profiles = VisibleProfiles();
         foreach (var profile in profiles) profile.DisplayLabel = HasProfileFilters && filterAllGroups ? (state.Groups.FirstOrDefault(g => g.Id == profile.GroupId)?.DisplayName ?? "") + " / " + profile.Name : profile.Name;
         ProfilePicker.ItemsSource = null; ProfilePicker.ItemsSource = profiles;
@@ -175,7 +179,25 @@ public sealed partial class MainWindow
     private void UpdateDesktopProfile()
     {
         var name = state.Profiles.FirstOrDefault(x => x.Id == state.SelectedProfileId && x.GroupId == state.SelectedGroupId)?.Name;
-        desktopPanel?.SetProfile((state.Groups.FirstOrDefault(g => g.Id == state.SelectedGroupId)?.DisplayName ?? "") + " · " + (name is null ? T("未选择配置", "No profile selected") : name + (profileDirty ? " *" : "")));
+        var profiles = ProfileGroups.Current(state);
+        desktopPanel?.SetNavigation(state.Groups.FirstOrDefault(g => g.Id == state.SelectedGroupId)?.DisplayName ?? "",
+            profiles.Count == 0 ? T("此分组暂无配置", "No profiles in this group") : name is null ? T("未选择配置", "No profile selected") : name + (profileDirty ? " *" : ""),
+            state.Groups.Count > 1, profiles.Count > 0);
+    }
+    private async Task SwitchDesktopGroupAsync(int delta)
+    {
+        if (closed || refreshing || applyingProfile || state.Groups.Count == 0) return;
+        var current = state.Groups.FindIndex(g => g.Id == state.SelectedGroupId);
+        var group = state.Groups[(Math.Max(0, current) + delta % state.Groups.Count + state.Groups.Count) % state.Groups.Count];
+        await SelectGroupAsync(group.Id);
+    }
+    private Task SwitchDesktopProfileAsync(int delta) => SwitchFromProfilesAsync(ProfileGroups.Current(state), delta);
+    private Task SwitchGlobalProfileAsync(int delta) => SwitchFromProfilesAsync(ProfileGroups.AllOrdered(state), delta);
+    private async Task SwitchFromProfilesAsync(IReadOnlyList<ControlProfile> profiles, int delta)
+    {
+        var index = UserStateStore.NextIndex(profiles, state.SelectedProfileId, delta);
+        if (index < 0) return;
+        await ApplyProfileAsync(profiles[index]);
     }
     private void MarkProfileModified() { profileDirty = true; UpdateDesktopProfile(); }
     private async void ProfilePicker_SelectionChanged(object sender, SelectionChangedEventArgs args)
@@ -309,7 +331,11 @@ public sealed partial class MainWindow
                 foreach (var key in new[] { "brightness", "contrast", "speaker" })
                 {
                     var targets = group.SelectMany(x => x.Channels).Where(x => x.PropertyKey == key).ToArray();
-                    if (targets.Length > 0) result.Add(new() { Key = "monitor/" + group.Key + "/" + key, Name = string.Join(" + ", group.Select(d => d.DisplayName)) + " · " + Channel(targets[0]), Group = group.Key, Targets = targets, Linked = true });
+                    if (targets.Length == 0) continue;
+                    var devices = group.ToArray(); var supported = devices.Where(d => d.Channels.Any(c => c.PropertyKey == key)).ToArray();
+                    var names = string.Join(" + ", supported.Select(d => d.DisplayName));
+                    if (supported.Length < devices.Length) names = F("仅 {0}", "Only {0}", names);
+                    result.Add(new() { Key = "monitor/" + group.Key + "/" + key, Name = names + " · " + Channel(targets[0]), Detail = SupportSummary(key, devices), Group = group.Key, Targets = targets, Linked = true });
                 }
         }
         else foreach (var display in displayDevices) foreach (var c in display.Channels.Where(x => !x.IsAction && !x.RequiresConfirmation))
@@ -334,7 +360,7 @@ public sealed partial class MainWindow
             // invalidate theme resources during layout. Recreate with its final theme.
             if (desktopPanel is not null && desktopPanel.UsesLightText != state.Settings.DesktopLightText)
             { desktopPanel.Close(); desktopPanel = null; }
-            desktopPanel ??= new DesktopPanelWindow(state.Settings, delta => _ = SwitchProfileAsync(delta), () =>
+            desktopPanel ??= new DesktopPanelWindow(state.Settings, delta => _ = SwitchDesktopGroupAsync(delta), delta => _ = SwitchDesktopProfileAsync(delta), () =>
             {
                 pendingStateTimer.Stop(); pendingStateTimer.Start();
             });
@@ -409,7 +435,7 @@ public sealed partial class MainWindow
         {
             state.Settings.HotkeysEnabled = value; hotkeyProblems = shell?.ConfigureHotkeys(value && !uiTest) ?? new(); SaveState(); BuildSettings();
         });
-        SettingsPanel.Children.Add(Empty("Ctrl + Alt + Shift + Space   —   " + T("打开面板", "Open panel") + "\nCtrl + Alt + Shift + ← / →   —   " + T("上一个 / 下一个配置", "Previous / next profile") + "\nCtrl + Alt + Shift + ↓   —   " + T("隐藏主面板", "Hide panel")));
+        SettingsPanel.Children.Add(Empty("Ctrl + Alt + Shift + Space   —   " + T("打开面板", "Open panel") + "\nCtrl + Alt + Shift + ← / →   —   " + T("跨分组：上一个 / 下一个配置", "Across groups: previous / next profile") + "\nCtrl + Alt + Shift + ↓   —   " + T("隐藏主面板", "Hide panel")));
         if (hotkeyProblems.Count > 0) SettingsPanel.Children.Add(Empty(T("以下快捷键未注册：", "Unavailable shortcuts: ") + string.Join(", ", hotkeyProblems)));
         if (shell?.TrayAvailable != true) SettingsPanel.Children.Add(Empty(T("托盘不可用，关闭按钮将退出应用。", "Tray unavailable. Closing the window exits the app.")));
         Heading(T("桌面控制面板", "Desktop controls"));
@@ -537,6 +563,7 @@ public sealed partial class MainWindow
             await Task.Delay(250);
             if (desktopPanel is null || desktopPanel.RowCount != 2 || desktopPanel.IsUnlocked) throw new InvalidOperationException("Desktop panel did not start locked with two rows.");
             await CheckPanelTextSwitchAsync();
+            await CheckDesktopNavigationAsync();
             desktopPanel!.SetUnlocked(true);
             if (!desktopPanel.IsUnlocked) throw new InvalidOperationException("Desktop panel cannot unlock.");
             desktopPanel.SetUnlocked(false);

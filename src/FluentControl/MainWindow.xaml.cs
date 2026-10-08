@@ -159,7 +159,7 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private FrameworkElement CreateMonitorCard(MonitorDevice device, int version)
+    private FrameworkElement CreateMonitorCard(MonitorDevice device, int version, bool overview = false)
     {
         var body = new StackPanel { Spacing = 8, Padding = new Thickness(16) };
         var header = new Grid { ColumnSpacing = 12, Margin = new Thickness(4, 0, 4, 8) };
@@ -168,7 +168,8 @@ public sealed partial class MainWindow : Window
         var text = new StackPanel { Spacing = 4 };
         var title = new TextBlock { Text = MonitorTitle(device), FontSize = 20, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
         text.Children.Add(title);
-        text.Children.Add(new TextBlock { Text = $"{device.Model} · {device.Width} × {device.Height}" + (device.IsPrimary ? T(" · 主显示器", " · Primary") : ""), FontSize = 12, Opacity = .7, TextWrapping = TextWrapping.Wrap });
+        if (overview) text.Children.Add(ModelBadge(SingleModelLabel(device)));
+        text.Children.Add(new TextBlock { Text = $"{device.Model}" + (device.ModelId.Length > 0 ? " · " + device.ModelId : "") + $" · {device.Width} × {device.Height}" + (device.IsPrimary ? T(" · 主显示器", " · Primary") : ""), FontSize = 12, Opacity = .7, TextWrapping = TextWrapping.Wrap });
         header.Children.Add(text);
         var rename = new Button { Content = T("重命名", "Rename"), VerticalAlignment = VerticalAlignment.Center, IsEnabled = preferences is not null };
         AutomationProperties.SetName(rename, T("重命名 ", "Rename ") + device.Preference.Label);
@@ -183,6 +184,7 @@ public sealed partial class MainWindow : Window
                 preferences!.Rename(device.Id, input.Text);
                 RecordMonitorMetadata(true);
                 title.Text = MonitorTitle(device);
+                RenderMonitorControls(generation);
                 BuildSettings(); RefreshDesktopPanel();
                 ShowStatus(F("已保存名称：{0}", "Name saved: {0}", device.DisplayName), InfoBarSeverity.Success);
             }

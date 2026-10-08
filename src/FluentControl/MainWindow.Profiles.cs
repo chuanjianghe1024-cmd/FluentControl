@@ -31,10 +31,20 @@ public sealed partial class MainWindow
         }
         SaveState(); RefreshProfiles();
     }
-    private void GroupPicker_SelectionChanged(object sender, SelectionChangedEventArgs args)
+    private async void GroupPicker_SelectionChanged(object sender, SelectionChangedEventArgs args)
     {
         if (rebuildingProfiles || GroupPicker.SelectedItem is not ProfileGroup group) return;
-        state.SelectedGroupId = group.Id; SaveState(); RefreshProfiles();
+        await SelectGroupAsync(group.Id);
+    }
+    private async Task SelectGroupAsync(string groupId)
+    {
+        if (closed || state.SelectedGroupId == groupId) return;
+        if (refreshing || applyingProfile) { RefreshProfiles(); return; }
+        state.SelectedGroupId = groupId; state.SelectedProfileId = null; profileDirty = true;
+        applicationFilter = modelFilter = brandFilter = "";
+        var first = ProfileGroups.Current(state).FirstOrDefault();
+        SaveState(); RefreshProfiles();
+        if (first is not null) await ApplyProfileAsync(first);
     }
     private async void NewGroup_Click(object sender, RoutedEventArgs e)
     {
@@ -45,7 +55,31 @@ public sealed partial class MainWindow
         {
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
             var group = new ProfileGroup { Name = ProfileGroups.UniqueName(input.Text.Trim(), state.Groups.Select(g => g.DisplayName)) };
-            state.Groups.Add(group); state.SelectedGroupId = group.Id; SaveState(); RefreshProfiles();
+            state.Groups.Add(group); state.SelectedGroupId = group.Id; state.SelectedProfileId = null;
+            applicationFilter = modelFilter = brandFilter = ""; SaveState(); RefreshProfiles();
+        }
+        catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error); }
+    }
+    private async void DeleteGroup_Click(object sender, RoutedEventArgs e)
+    {
+        var group = state.Groups.FirstOrDefault(g => g.Id == state.SelectedGroupId);
+        if (group is null || group.Id == ProfileGroup.LocalId) return;
+        try
+        {
+            var count = state.Profiles.Count(p => p.GroupId == group.Id);
+            var result = await new ContentDialog
+            {
+                Title = T("删除分组", "Delete group"),
+                Content = F("删除分组「{0}」及其中的 {1} 个配置？此操作无法撤销。", "Delete group '{0}' and its {1} profiles? This cannot be undone.", group.DisplayName, count),
+                PrimaryButtonText = T("删除", "Delete"), CloseButtonText = T("取消", "Cancel"), DefaultButton = ContentDialogButton.Close, XamlRoot = Root.XamlRoot
+            }.ShowAsync();
+            if (result != ContentDialogResult.Primary || closed) return;
+            var groups = state.Groups.ToList(); var profiles = state.Profiles.ToList();
+            var selectedGroup = state.SelectedGroupId; var selectedProfile = state.SelectedProfileId;
+            if (!ProfileGroups.Remove(state, group.Id)) return;
+            if (!SaveState()) { state.Groups = groups; state.Profiles = profiles; state.SelectedGroupId = selectedGroup; state.SelectedProfileId = selectedProfile; }
+            else ShowStatus(T("分组已删除。", "Group deleted."), InfoBarSeverity.Success);
+            RefreshProfiles();
         }
         catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error); }
     }

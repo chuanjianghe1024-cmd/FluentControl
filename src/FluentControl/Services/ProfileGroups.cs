@@ -28,6 +28,16 @@ public static class ProfileGroups
         }
         if (!state.Groups.Any(g => g.Id == state.SelectedGroupId)) state.SelectedGroupId = ProfileGroup.LocalId;
     }
+    public static bool Remove(UserState state, string groupId)
+    {
+        if (groupId == ProfileGroup.LocalId || !state.Groups.Any(g => g.Id == groupId)) return false;
+        var removed = state.Profiles.Where(p => p.GroupId == groupId).Select(p => p.Id).ToHashSet();
+        state.Profiles.RemoveAll(p => p.GroupId == groupId); state.Groups.RemoveAll(g => g.Id == groupId);
+        if (state.SelectedGroupId == groupId) state.SelectedGroupId = ProfileGroup.LocalId;
+        if (state.SelectedProfileId is string selected && removed.Contains(selected)) state.SelectedProfileId = null;
+        return true;
+    }
+    public static List<ControlProfile> AllOrdered(UserState state) => state.Groups.SelectMany(g => state.Profiles.Where(p => p.GroupId == g.Id)).ToList();
     public static List<ControlProfile> Current(UserState state) => state.Profiles.Where(x => x.GroupId == state.SelectedGroupId).ToList();
     public static string UniqueName(string name, IEnumerable<string> existing)
     {

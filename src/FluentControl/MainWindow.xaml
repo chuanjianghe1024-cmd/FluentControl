@@ -33,7 +33,17 @@
             <StackPanel Grid.Row="1" Spacing="8">
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="3*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <ComboBox x:Name="GroupPicker" PlaceholderText="配置分组" DisplayMemberPath="DisplayName" HorizontalAlignment="Stretch" SelectionChanged="GroupPicker_SelectionChanged"/>
+                    <Grid ColumnSpacing="4">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <ComboBox x:Name="GroupPicker" PlaceholderText="配置分组" DisplayMemberPath="DisplayName" HorizontalAlignment="Stretch" SelectionChanged="GroupPicker_SelectionChanged"/>
+                        <Button x:Name="GroupActionsButton" Grid.Column="1" Padding="8" AutomationProperties.Name="管理分组">
+                            <FontIcon Glyph="&#xE712;" FontSize="16"/>
+                            <Button.Flyout><MenuFlyout>
+                                <MenuFlyoutItem x:Name="NewGroupButton" Text="新建分组" Click="NewGroup_Click"/>
+                                <MenuFlyoutItem x:Name="DeleteGroupButton" Text="删除分组" Click="DeleteGroup_Click"/>
+                            </MenuFlyout></Button.Flyout>
+                        </Button>
+                    </Grid>
                     <Button x:Name="PreviousProfileButton" Grid.Column="1" Content="‹" Click="PreviousProfile_Click"/>
                     <ComboBox x:Name="ProfilePicker" Grid.Column="2" PlaceholderText="选择配置" DisplayMemberPath="DisplayLabel" HorizontalAlignment="Stretch" SelectionChanged="ProfilePicker_SelectionChanged"/>
                     <Button x:Name="NextProfileButton" Grid.Column="3" Content="›" Click="NextProfile_Click"/>
@@ -43,7 +53,6 @@
                     <Button x:Name="UpdateProfileButton" Content="更新" Click="UpdateProfile_Click"/>
                     <Button x:Name="EditProfileButton" Content="信息 / 标签" Click="EditProfile_Click"/>
                     <Button x:Name="DeleteProfileButton" Content="删除" Click="DeleteProfile_Click"/>
-                    <Button x:Name="NewGroupButton" Content="新建分组" Click="NewGroup_Click"/>
                     <Button x:Name="FilterProfilesButton" Content="筛选配置" Click="FilterProfiles_Click"/>
                 </StackPanel>
                 <TextBlock x:Name="ProfileFilterSummary" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"/>
@@ -55,7 +64,7 @@
                         <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <RadioButtons x:Name="DisplayMode" MaxColumns="2" SelectedIndex="1" SelectionChanged="DisplayMode_SelectionChanged">
-                                <x:String>单独控制</x:String><x:String>同型号联动</x:String>
+                                <x:String>单独控制</x:String><x:String>整体控制</x:String>
                             </RadioButtons>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <CheckBox x:Name="HideUnavailable" Content="隐藏不可设置项" Click="HideUnavailable_Click"/>

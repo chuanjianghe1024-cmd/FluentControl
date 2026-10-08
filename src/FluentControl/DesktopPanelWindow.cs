@@ -14,6 +14,10 @@ internal sealed class DesktopPanelWindow : Window
     private readonly Grid root = new() { Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
     private readonly Grid body = new() { Margin = new Thickness(10), RowSpacing = 6 };
     private readonly StackPanel rows = new();
+    private readonly Grid header = new() { ColumnSpacing = 4, RowSpacing = 2 };
+    private readonly TextBlock groupName = new() { FontSize = 12, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+    private readonly Button previousGroup = SmallButton("‹"), nextGroup = SmallButton("›"), previousProfile = SmallButton("‹"), nextProfile = SmallButton("›");
+    private const double MinimumHeight = 168;
     private readonly Grid shield = new() { Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
     private readonly TextBlock hint = new() { FontSize = 11, LineHeight = 15, TextWrapping = TextWrapping.Wrap, MinHeight = 30, Margin = new Thickness(0, 0, 24, 0), VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock profileName = new() { FontSize = 12, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
@@ -42,7 +46,7 @@ internal sealed class DesktopPanelWindow : Window
     internal double ContentHeight => root.ActualHeight;
     internal byte BackdropAlpha => backdrop.TintColor.A;
     internal nint Handle => hwnd;
-    internal DesktopPanelWindow(AppSettings settings, Action<int> switchProfile, Action changed)
+    internal DesktopPanelWindow(AppSettings settings, Action<int> switchGroup, Action<int> switchProfile, Action changed)
     {
         this.settings = settings; this.changed = changed;
         root.RequestedTheme = settings.DesktopLightText ? ElementTheme.Dark : ElementTheme.Light;
@@ -58,11 +62,21 @@ internal sealed class DesktopPanelWindow : Window
         body.RowDefinitions.Add(new() { Height = GridLength.Auto });
         body.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
         body.RowDefinitions.Add(new() { Height = GridLength.Auto });
-        var header = new Grid { ColumnSpacing = 4, MinHeight = 32 };
+        header.RowDefinitions.Add(new() { Height = new GridLength(30) });
+        header.RowDefinitions.Add(new() { Height = new GridLength(30) });
         foreach (var width in new[] { new GridLength(28), new GridLength(1, GridUnitType.Star), new GridLength(28), new GridLength(28) }) header.ColumnDefinitions.Add(new() { Width = width });
-        var previous = SmallButton("‹"); previous.Click += (_, _) => { if (active) switchProfile(-1); }; header.Children.Add(previous);
-        Grid.SetColumn(profileName, 1); header.Children.Add(profileName);
-        var next = SmallButton("›"); next.Click += (_, _) => { if (active) switchProfile(1); }; Grid.SetColumn(next, 2); header.Children.Add(next);
+        void AddButton(Button button, int row, int column, string id, Action action)
+        {
+            Grid.SetRow(button, row); Grid.SetColumn(button, column);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(button, id);
+            button.Click += (_, _) => { if (active && !closing) action(); }; header.Children.Add(button);
+        }
+        AddButton(previousGroup, 0, 0, "desktop-previous-group", () => switchGroup(-1));
+        AddButton(nextGroup, 0, 2, "desktop-next-group", () => switchGroup(1));
+        AddButton(previousProfile, 1, 0, "desktop-previous-profile", () => switchProfile(-1));
+        AddButton(nextProfile, 1, 2, "desktop-next-profile", () => switchProfile(1));
+        Grid.SetColumn(groupName, 1); header.Children.Add(groupName);
+        Grid.SetRow(profileName, 1); Grid.SetColumn(profileName, 1); header.Children.Add(profileName);
         body.Children.Add(header);
         var scroll = new ScrollViewer { Content = rows, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, HorizontalContentAlignment = HorizontalAlignment.Stretch, MinHeight = 32 };
         Grid.SetRow(scroll, 1); body.Children.Add(scroll);
@@ -128,7 +142,7 @@ internal sealed class DesktopPanelWindow : Window
         if (resize)
         {
             var scale = Scale;
-            AppWindow.ResizeClient(new SizeInt32((int)Math.Clamp(sizeStart.Width + x, 280 * scale, 900 * scale), (int)Math.Clamp(sizeStart.Height + y, 144 * scale, 1000 * scale)));
+            AppWindow.ResizeClient(new SizeInt32((int)Math.Clamp(sizeStart.Width + x, 280 * scale, 900 * scale), (int)Math.Clamp(sizeStart.Height + y, MinimumHeight * scale, 1000 * scale)));
         }
         else AppWindow.Move(new PointInt32(positionStart.X + x, positionStart.Y + y));
     }
@@ -157,7 +171,7 @@ internal sealed class DesktopPanelWindow : Window
         active = value; shield.Visibility = value ? Visibility.Collapsed : Visibility.Visible; body.IsHitTestVisible = value;
         layer.SetLocked(!value);
         hint.Text = value ? Strings.T("已解锁 · Esc 锁定", "Unlocked · Esc to lock") : Strings.T("双击解锁", "Double-click to unlock");
-        if (value) { Activate(); (body.Children[0] as Grid)?.Children.OfType<Button>().FirstOrDefault()?.Focus(FocusState.Programmatic); }
+        if (value) { Activate(); (body.Children[0] as Grid)?.Children.OfType<Button>().FirstOrDefault(b => b.IsEnabled)?.Focus(FocusState.Programmatic); }
     }
     internal void UpdateRows(IReadOnlyList<PanelRow> source, AppSettings settings, Func<IReadOnlyList<ControlChannel>, double, Task> apply)
     {
@@ -180,7 +194,7 @@ internal sealed class DesktopPanelWindow : Window
             row.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
             row.ColumnDefinitions.Add(new() { Width = new GridLength(40) });
             var label = new TextBlock { Text = item.Name, FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
-            ToolTipService.SetToolTip(label, item.Name); row.Children.Add(label);
+            ToolTipService.SetToolTip(label, item.Name + (item.Detail.Length > 0 ? "\n" + item.Detail : "")); row.Children.Add(label);
             var first = item.Targets[0];
             var number = new TextBlock { FontSize = 11, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Right };
             Grid.SetColumn(number, 2); row.Children.Add(number);
@@ -240,12 +254,28 @@ internal sealed class DesktopPanelWindow : Window
         var width = Math.Clamp(settings.DesktopWidth, 280, 900);
         rows.Measure(new Windows.Foundation.Size(width - 20, double.PositiveInfinity));
         hint.Measure(new Windows.Foundation.Size(width - 44, double.PositiveInfinity));
-        var automaticHeight = Math.Max(144, 20 + 32 + 12 + rows.DesiredSize.Height + hint.DesiredSize.Height);
-        var height = Math.Clamp(settings.DesktopHeight ?? automaticHeight, 144, 1000);
+        header.Measure(new Windows.Foundation.Size(width - 20, double.PositiveInfinity));
+        var minimum = Math.Max(MinimumHeight, 20 + header.DesiredSize.Height + 12 + 32 + hint.DesiredSize.Height);
+        var automaticHeight = Math.Max(minimum, 20 + header.DesiredSize.Height + 12 + rows.DesiredSize.Height + hint.DesiredSize.Height);
+        var height = Math.Clamp(settings.DesktopHeight ?? automaticHeight, minimum, 1000);
         AppWindow.ResizeClient(new SizeInt32((int)Math.Ceiling(width * Scale), (int)Math.Ceiling(height * Scale)));
         ClampPosition();
     }
-    internal void SetProfile(string name) { profileName.Text = name; ToolTipService.SetToolTip(profileName, name); }
+    internal void SetNavigation(string group, string profile, bool canSwitchGroup, bool canSwitchProfile)
+    {
+        groupName.Text = Strings.T("分组", "Group") + " · " + group;
+        profileName.Text = Strings.T("配置", "Profile") + " · " + profile;
+        ToolTipService.SetToolTip(groupName, groupName.Text); ToolTipService.SetToolTip(profileName, profileName.Text);
+        void Label(Button button, string text, bool enabled)
+        {
+            button.IsEnabled = enabled; ToolTipService.SetToolTip(button, text);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, text);
+        }
+        Label(previousGroup, Strings.T("上一个分组", "Previous group"), canSwitchGroup);
+        Label(nextGroup, Strings.T("下一个分组", "Next group"), canSwitchGroup);
+        Label(previousProfile, Strings.T("组内上一个配置", "Previous profile in group"), canSwitchProfile);
+        Label(nextProfile, Strings.T("组内下一个配置", "Next profile in group"), canSwitchProfile);
+    }
     internal void RefreshValues() { foreach (var update in sync) update(); }
     internal void ShowPanel() { SetUnlocked(false); AppWindow.Show(false); layer.Lower(); }
     private static Button SmallButton(string content) => new() { Content = content, Width = 28, Height = 28, Padding = new Thickness(0), FontSize = 18, Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), BorderThickness = new Thickness(0) };

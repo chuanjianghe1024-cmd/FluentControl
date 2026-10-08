@@ -105,6 +105,19 @@ duplicateBundle.Groups[0].Profiles[0].Monitors.Add(new() { Slot = "second", Mode
 var duplicateRejected = false;
 try { ProfileBundles.Import(duplicateBundle, new Dictionary<string,string> { ["display-1"] = "same", ["second"] = "same" }, "x", Array.Empty<string>()); } catch (InvalidDataException) { duplicateRejected = true; }
 Check(duplicateRejected, "Duplicate target mappings must not silently overwrite one screen.");
+var grouped = new UserState(); ProfileGroups.Normalize(grouped);
+var importedGroup = new ProfileGroup { Name = "Imported" }; var emptyGroup = new ProfileGroup { Name = "Empty" };
+grouped.Groups.AddRange(new[] { emptyGroup, importedGroup });
+var localScene = new ControlProfile { Name = "Local" }; var importedScene = new ControlProfile { Name = "Imported", GroupId = importedGroup.Id };
+grouped.Profiles.AddRange(new[] { importedScene, localScene });
+Check(ProfileGroups.AllOrdered(grouped).Select(p => p.Id).SequenceEqual(new[] { localScene.Id, importedScene.Id }), "Global navigation follows group order and skips empty groups.");
+var allScenes = ProfileGroups.AllOrdered(grouped);
+Check(allScenes[UserStateStore.NextIndex(allScenes, localScene.Id, -1)].Id == importedScene.Id && allScenes[UserStateStore.NextIndex(allScenes, importedScene.Id, 1)].Id == localScene.Id, "Global next/previous wrap across group boundaries.");
+Check(!ProfileGroups.Remove(grouped, ProfileGroup.LocalId) && grouped.Profiles.Contains(localScene), "Default group and its scenes cannot be deleted as a group.");
+grouped.SelectedGroupId = importedGroup.Id; grouped.SelectedProfileId = importedScene.Id;
+Check(ProfileGroups.Remove(grouped, importedGroup.Id) && grouped.Profiles.Count == 1 && grouped.Profiles[0] == localScene && grouped.SelectedGroupId == ProfileGroup.LocalId && grouped.SelectedProfileId is null, "Group deletion removes only its scenes and resets dangling selections.");
+Check(ProfileGroups.Remove(grouped, emptyGroup.Id) && grouped.Groups.Count == 1, "Empty imported groups can be deleted.");
+Console.WriteLine("PASS: cross-group order and wrapping, targeted group deletion and default-group protection.");
 Console.WriteLine("PASS: batch scenes, readable metadata, grouping, offline imports, combined filters and union choices.");
 Console.WriteLine("PASS: VCP discovery, enum/range guards, gamma byte packing, safe profiles, portable imports and brightness mapping.");
 Directory.CreateDirectory(directory);

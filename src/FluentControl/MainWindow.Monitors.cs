@@ -24,10 +24,11 @@ public sealed partial class MainWindow
         foreach (var group in displayDevices.GroupBy(d => MonitorLinking.GroupKey(d.ModelId, d.Id)))
         {
             var devices = group.ToArray();
-            if (devices.Length == 1) { CombinedRows.Children.Add(CreateMonitorCard(devices[0], version)); continue; }
+            if (devices.Length == 1) { CombinedRows.Children.Add(CreateMonitorCard(devices[0], version, true)); continue; }
             var body = new StackPanel { Spacing = 8, Padding = new Thickness(16) };
             body.Children.Add(new TextBlock { Text = devices[0].Model + " · " + devices[0].ModelId, FontSize = 20, TextWrapping = TextWrapping.Wrap });
-            body.Children.Add(Empty(string.Join(" · ", devices.Select(d => d.DisplayName))));
+            body.Children.Add(ModelBadge(F("同型号 · {0} 台联动", "Same model · {0} linked displays", devices.Length)));
+            body.Children.Add(Empty(string.Join(" · ", devices.Select(MonitorTitle))));
             AddFeatureSections(body, devices, version, true); CombinedRows.Children.Add(Card(body));
         }
         var mappings = new StackPanel { Spacing = 8 };
@@ -57,9 +58,15 @@ public sealed partial class MainWindow
                 else
                 {
                     var first = targets[0];
-                    var options = MonitorLinking.Options(targets);
-                    var aggregate = new ControlChannel { Name = definition.Name, Detail = F("{0} / {1} 台支持", "{0} / {1} supported", targets.Length, devices.Count) + $" · VCP 0x{definition.Code:X2}", Glyph = first.Glyph, PropertyKey = first.PropertyKey, Minimum = first.Minimum, Maximum = first.Maximum, Unit = first.Unit, Options = options, Write = _ => { } };
-                    rows.Children.Add(CreateRow(aggregate, version, targets));
+                    var options = MonitorLinking.Options(targets)?.Select(option =>
+                    {
+                        var supported = devices.Where(d => d.Channels.Any(c => c.PropertyKey == definition.Key && c.Options?.Any(o => o.Value == option.Value) == true)).ToArray();
+                        return supported.Length == devices.Count ? option : new ControlOption(option.Value, option.Label + " · " + F("仅 {0}", "Only {0}", string.Join(", ", supported.Select(MonitorTitle))));
+                    }).ToArray();
+                    var aggregate = new ControlChannel { Name = definition.Name, Detail = SupportSummary(definition.Key, devices) + $" · VCP 0x{definition.Code:X2}", Glyph = first.Glyph, PropertyKey = first.PropertyKey, Minimum = first.Minimum, Maximum = first.Maximum, Unit = first.Unit, Options = options, Write = _ => { } };
+                    var aggregateRow = CreateRow(aggregate, version, targets);
+                    Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(aggregateRow, "linked-" + definition.Key);
+                    rows.Children.Add(aggregateRow);
                 }
             }
             if (category == "color")
@@ -67,13 +74,42 @@ public sealed partial class MainWindow
                     foreach (var channel in device.Channels.Where(x => x.PropertyKey == "temperature"))
                     {
                         if (linked) rows.Children.Add(new TextBlock { Text = device.DisplayName, FontSize = 12 });
-                        rows.Children.Add(CreateRow(channel, version));
+                        rows.Children.Add(WithPartialSupport(CreateRow(channel, version), channel.PropertyKey));
                     }
             if (category == "extensions" && !state.Settings.HideUnavailableMonitorControls)
                 rows.Children.Add(SettingsRow(T("厂商 SDK", "Vendor SDK"), T("硬件准星、FPS、私有游戏功能：预留，尚未接入", "Hardware crosshairs, FPS and private game features: reserved, not connected"), new Button { Content = T("待接入", "Not connected"), IsEnabled = false }));
             if (rows.Children.Count > 0)
                 body.Children.Add(new Expander { Header = VcpCatalog.Category(category), IsExpanded = category == "picture", Content = rows, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
         }
+    }
+    private static Border ModelBadge(string text) => new()
+    {
+        HorizontalAlignment = HorizontalAlignment.Left, CornerRadius = new CornerRadius(5), Padding = new Thickness(8, 4, 8, 4),
+        Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
+        Child = new TextBlock { Text = text, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap }
+    };
+    private string SingleModelLabel(MonitorDevice device) => !ModelIdentity.IsValid(device.ModelId) ? T("型号未识别 · 独立调节", "Unknown model · independent controls") :
+        displayDevices.Count == 1 ? T("单台显示器", "Single display") :
+        displayDevices.Any(d => d.Id != device.Id && d.ModelId != device.ModelId) ? T("不同型号 · 独立调节", "Different model · independent controls") : T("单独控制", "Individual");
+    private string SupportSummary(string key, IReadOnlyList<MonitorDevice> devices)
+    {
+        var supported = devices.Where(d => d.Channels.Any(c => c.PropertyKey == key)).ToArray();
+        var names = string.Join(", ", supported.Select(MonitorTitle));
+        if (supported.Length == devices.Count) return F("全部支持：{0}", "Supported by all: {0}", names);
+        var unavailable = string.Join(", ", devices.Where(d => !supported.Contains(d)).Select(MonitorTitle));
+        return F("仅 {0} 支持（{1}/{2}）；{3} 不支持或当前不可用", "Only {0} supported ({1}/{2}); {3} unsupported or unavailable", names, supported.Length, devices.Count, unavailable);
+    }
+    private string PartialSupport(string key)
+    {
+        var count = displayDevices.Count(d => d.Channels.Any(c => c.PropertyKey == key));
+        return count > 0 && count < displayDevices.Count ? SupportSummary(key, displayDevices) : "";
+    }
+    private FrameworkElement WithPartialSupport(FrameworkElement row, string key)
+    {
+        var support = PartialSupport(key); if (support.Length == 0) return row;
+        var body = new StackPanel { Spacing = 4 }; body.Children.Add(row);
+        body.Children.Add(new TextBlock { Text = support, FontSize = 12, TextWrapping = TextWrapping.Wrap, Opacity = .8, Margin = new Thickness(8, 0, 8, 4) });
+        return body;
     }
     private FrameworkElement FeatureRow(MonitorDevice device, MonitorFeature feature, int version, bool showDevice)
     {
@@ -86,7 +122,7 @@ public sealed partial class MainWindow
         }
         if (!channel.IsAction)
         {
-            var row = CreateRow(channel, version);
+            var row = WithPartialSupport(CreateRow(channel, version), channel.PropertyKey);
             if (!showDevice) return row;
             var panel = new StackPanel { Spacing = 4 };
             panel.Children.Add(new TextBlock { Text = device.DisplayName, FontSize = 12, Margin = new Thickness(8, 4, 0, 0) }); panel.Children.Add(row); return panel;
@@ -104,7 +140,7 @@ public sealed partial class MainWindow
             }
             finally { gate.Release(); run.IsEnabled = true; }
         };
-        return SettingsRow(title, $"VCP 0x{definition.Code:X2}", run);
+        return WithPartialSupport(SettingsRow(title, $"VCP 0x{definition.Code:X2}", run), definition.Key);
     }
     private async Task<bool> ConfirmMonitorChangeAsync(ControlChannel channel, IReadOnlyList<ControlChannel> targets)
     {
