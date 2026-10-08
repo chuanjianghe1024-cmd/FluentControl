@@ -12,6 +12,9 @@ public sealed class MonitorDevice
     public int Width { get; init; }
     public int Height { get; init; }
     public bool IsPrimary { get; init; }
+    public string ModelId { get; init; } = "";
+    public string CapabilitiesText { get; set; } = "";
+    public List<MonitorFeature> Features { get; } = new();
     public MonitorPreference Preference { get; set; } = new();
     public List<ControlChannel> Channels { get; } = new();
     public string DisplayName => Preference.DisplayName;
@@ -58,6 +61,8 @@ public sealed class MonitorService : IDisposable
     [DllImport("dxva2.dll", SetLastError = true)] private static extern bool GetMonitorColorTemperature(nint monitor, out uint temperature);
     [DllImport("dxva2.dll", SetLastError = true)] private static extern bool SetMonitorColorTemperature(nint monitor, uint temperature);
     [DllImport("dxva2.dll")] private static extern bool DestroyPhysicalMonitor(nint monitor);
+    [DllImport("dxva2.dll", SetLastError = true)] private static extern bool GetCapabilitiesStringLength(nint monitor, out uint length);
+    [DllImport("dxva2.dll", CharSet = CharSet.Ansi, SetLastError = true)] private static extern bool CapabilitiesRequestAndCapabilitiesReply(nint monitor, System.Text.StringBuilder text, uint length);
 
     public List<MonitorDevice> Enumerate()
     {
@@ -89,13 +94,18 @@ public sealed class MonitorService : IDisposable
                     {
                         Id = hasIdentity && !string.IsNullOrWhiteSpace(display.Id) ? display.Id.ToUpperInvariant() : $"{info.Device}/{model}/{i}",
                         Model = string.IsNullOrWhiteSpace(model) ? "显示器" : model,
+                        ModelId = ModelIdentity.FromDevicePath(display.Id ?? ""),
                         Connection = info.Device,
                         Left = info.Monitor.Left, Top = info.Monitor.Top,
                         Width = info.Monitor.Right - info.Monitor.Left, Height = info.Monitor.Bottom - info.Monitor.Top,
                         IsPrimary = (info.Flags & 1) != 0
                     };
                     devices.Add(device);
-                    if (physical.Length == 0) continue;
+                    if (physical.Length == 0)
+                    {
+                        device.Features.AddRange(VcpCatalog.All.Select(d => new MonitorFeature { Definition = d, Reason = Strings.T("DDC/CI 不可用", "DDC/CI unavailable") }));
+                        continue;
+                    }
                     if (GetMonitorCapabilities(item.Handle, out var capabilities, out var temperatureFlags) &&
                         (capabilities & 8) != 0 && GetMonitorColorTemperature(item.Handle, out var temperature))
                     {
@@ -116,22 +126,19 @@ public sealed class MonitorService : IDisposable
                             }
                         });
                     }
-                    foreach (var property in new[] { (Code: (byte)0x10, Key: "brightness", Name: "亮度", Icon: "\uE706"), (Code: (byte)0x12, Key: "contrast", Name: "对比度", Icon: "\uE793"), (Code: (byte)0x62, Key: "speaker", Name: "屏幕扬声器", Icon: "\uE767") })
+                    var handle = item.Handle;
+                    if (GetCapabilitiesStringLength(handle, out var length) && length is > 0 and <= 65536)
                     {
-                        var handle = item.Handle;
-                        var code = property.Code;
-                        if (!GetVCPFeatureAndVCPFeatureReply(handle, code, out _, out var current, out var max) || max == 0 || current > max) continue;
-                        device.Channels.Add(new ControlChannel
-                        {
-                            Name = property.Name, DeviceId = device.Id, PropertyKey = property.Key,
-                            Detail = "", Glyph = property.Icon, Value = current * 100d / max,
-                            Write = value =>
-                            {
-                                if (!SetVCPFeature(handle, code, (uint)Math.Round(Math.Clamp(value, 0, 100) * max / 100)))
-                                    throw new Win32Exception(Marshal.GetLastWin32Error(), $"{device.DisplayName}: " + Strings.T("未接受指令，请检查 DDC/CI、HDR 或节能模式。", "Command rejected. Check DDC/CI, HDR or power-saving mode."));
-                            }
-                        });
+                        var buffer = new System.Text.StringBuilder((int)length);
+                        if (CapabilitiesRequestAndCapabilitiesReply(handle, buffer, length)) device.CapabilitiesText = buffer.ToString();
                     }
+                    VcpReply? Read(byte code) => GetVCPFeatureAndVCPFeatureReply(handle, code, out _, out var current, out var maximum) ? new VcpReply(current, maximum) : null;
+                    void Write(byte code, uint value)
+                    {
+                        if (!SetVCPFeature(handle, code, value)) throw new Win32Exception(Marshal.GetLastWin32Error(), device.DisplayName + $" · VCP 0x{code:X2}: " + Strings.T("未接受指令，请检查 DDC/CI、HDR 或节能模式。", "Command rejected. Check DDC/CI, HDR or power-saving mode."));
+                    }
+                    device.Features.AddRange(VcpDiscovery.Discover(device.Id, VcpCapabilities.Parse(device.CapabilitiesText), Read, Write));
+                    device.Channels.AddRange(device.Features.Where(f => f.Channel is not null).Select(f => f.Channel!));
                 }
                 return true;
             }

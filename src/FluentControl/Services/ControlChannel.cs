@@ -11,6 +11,13 @@ public sealed class ControlChannel
     public string PropertyKey { get; init; } = "volume";
     public string DeviceId { get; init; } = "";
     public bool IsDefaultAudio { get; init; }
+    public byte? VcpCode { get; init; }
+    public bool IsAction { get; init; }
+    public bool CanSave { get; init; } = true;
+    public bool RequiresConfirmation { get; init; }
+    public int ApplyOrder { get; init; } = 50;
+    public Func<double, double>? LinkedToDevice { get; set; }
+    public Func<double, double>? DeviceToLinked { get; set; }
     public double Minimum { get; init; }
     public double Maximum { get; init; } = 100;
     public string Unit { get; init; } = "%";
@@ -24,14 +31,17 @@ public sealed class ControlChannel
 public static class ControlOperations
 {
     // A failed monitor must not stop the remaining monitors from receiving a command.
-    public static List<string> Apply(IEnumerable<ControlChannel> channels, double value)
+    public static List<string> Apply(IEnumerable<ControlChannel> channels, double value, bool linked = false)
     {
         var errors = new List<string>();
         foreach (var channel in channels)
         {
             try
             {
-                var target = Math.Clamp(value, channel.Minimum, channel.Maximum);
+                if (!double.IsFinite(value)) throw new ArgumentOutOfRangeException(nameof(value));
+                var target = Math.Clamp(linked ? channel.LinkedToDevice?.Invoke(value) ?? value : value, channel.Minimum, channel.Maximum);
+                if (channel.Options is not null && !channel.Options.Any(x => x.Value == target))
+                    throw new ArgumentOutOfRangeException(nameof(value), "Unsupported option");
                 channel.Write(target);
                 channel.Value = channel.Read?.Invoke() ?? target;
             }
@@ -39,4 +49,5 @@ public static class ControlOperations
         }
         return errors;
     }
+    public static double DisplayValue(ControlChannel channel, bool linked) => linked ? channel.DeviceToLinked?.Invoke(channel.Value) ?? channel.Value : channel.Value;
 }

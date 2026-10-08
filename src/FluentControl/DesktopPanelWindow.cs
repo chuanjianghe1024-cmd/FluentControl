@@ -22,6 +22,7 @@ internal sealed class DesktopPanelWindow : Window
     private readonly DispatcherTimer positionTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
     private readonly TransparentBackdrop backdrop = new();
     private readonly nint hwnd;
+    private readonly DesktopLayer layer;
     private readonly FrameworkElement dragGrip, resizeGrip;
     private AppSettings settings;
     private bool active, closing, moving;
@@ -44,6 +45,7 @@ internal sealed class DesktopPanelWindow : Window
         SystemBackdrop = backdrop;
         Content = root;
         hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        layer = new DesktopLayer(hwnd);
         AppWindow.IsShownInSwitchers = false;
         if (AppWindow.Presenter is OverlappedPresenter p)
         {
@@ -79,7 +81,7 @@ internal sealed class DesktopPanelWindow : Window
         Activated += (_, e) => { if (e.WindowActivationState == WindowActivationState.Deactivated && !moving) SetUnlocked(false); };
         AppWindow.Changed += (_, e) => { if (e.DidPositionChange && !closing && !moving) { positionTimer.Stop(); positionTimer.Start(); } };
         positionTimer.Tick += (_, _) => { positionTimer.Stop(); SaveGeometry(false); };
-        Closed += (_, _) => { closing = true; rowGeneration++; positionTimer.Stop(); gestureTimer.Stop(); };
+        Closed += (_, _) => { closing = true; rowGeneration++; positionTimer.Stop(); gestureTimer.Stop(); layer.Dispose(); };
         var work = DisplayArea.Primary.WorkArea;
         AppWindow.Move(new PointInt32(settings.DesktopX ?? work.X + work.Width - 380, settings.DesktopY ?? work.Y + 60));
         SetUnlocked(false);
@@ -139,7 +141,7 @@ internal sealed class DesktopPanelWindow : Window
     {
         if (closing) return;
         active = value; shield.Visibility = value ? Visibility.Collapsed : Visibility.Visible; body.IsHitTestVisible = value;
-        ShellIntegration.ToolWindow(hwnd, false); // Activation must remain available to the native pointer capture used by the grips.
+        layer.SetLocked(!value);
         hint.Text = value ? Strings.T("已解锁 · Esc 锁定", "Unlocked · Esc to lock") : Strings.T("双击解锁", "Double-click to unlock");
         if (value) { Activate(); (body.Children[0] as Grid)?.Children.OfType<Button>().FirstOrDefault()?.Focus(FocusState.Programmatic); }
     }
@@ -191,8 +193,10 @@ internal sealed class DesktopPanelWindow : Window
                 void Update()
                 {
                     if (pending is not null) return;
-                    updating = true; slider.Value = item.Targets.Average(x => x.Value);
-                    number.Text = item.Targets.Max(x => x.Value) - item.Targets.Min(x => x.Value) > .5 ? "≠" : Math.Round(slider.Value) + first.Unit;
+                    updating = true;
+                    var values = item.Targets.Select(x => ControlOperations.DisplayValue(x, item.Linked)).ToArray();
+                    slider.Value = values.Average();
+                    number.Text = values.Max() - values.Min() > .5 ? "≠" : Math.Round(slider.Value) + first.Unit;
                     updating = false;
                 }
                 sync.Add(Update); Update();
@@ -230,6 +234,6 @@ internal sealed class DesktopPanelWindow : Window
     }
     internal void SetProfile(string name) { profileName.Text = name; ToolTipService.SetToolTip(profileName, name); }
     internal void RefreshValues() { foreach (var update in sync) update(); }
-    internal void ShowPanel() { SetUnlocked(false); AppWindow.Show(false); }
+    internal void ShowPanel() { SetUnlocked(false); AppWindow.Show(false); layer.Lower(); }
     private static Button SmallButton(string content) => new() { Content = content, Width = 28, Height = 28, Padding = new Thickness(0), FontSize = 18, Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), BorderThickness = new Thickness(0) };
 }

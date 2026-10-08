@@ -17,6 +17,7 @@ public sealed class AppSettings
     public int? DesktopY { get; set; }
     public List<string> DesktopRows { get; set; } = new() { "monitor/all/brightness", "monitor/all/contrast" };
     public bool CrosshairEnabled { get; set; }
+    public bool HideUnavailableMonitorControls { get; set; }
     public string CrosshairMonitorId { get; set; } = "";
 }
 public sealed class SavedValue
@@ -29,6 +30,7 @@ public sealed class ControlProfile
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Name { get; set; } = "";
     public Dictionary<string, SavedValue> Values { get; set; } = new();
+    public Dictionary<string, BrightnessMapping> BrightnessMappings { get; set; } = new();
 }
 public sealed class UserState
 {
@@ -73,4 +75,5 @@ public sealed class PanelRow
     public required string Name { get; init; }
     public required string Group { get; init; }
     public required IReadOnlyList<ControlChannel> Targets { get; init; }
+    public bool Linked { get; init; }
 }

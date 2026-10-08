@@ -46,7 +46,11 @@
                             <RadioButtons x:Name="DisplayMode" MaxColumns="2" SelectedIndex="1" SelectionChanged="DisplayMode_SelectionChanged">
                                 <x:String>单独控制</x:String><x:String>一起控制</x:String>
                             </RadioButtons>
-                            <Button x:Name="IdentifyButton" Grid.Column="1" Content="识别显示器" Click="Identify_Click" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <CheckBox x:Name="HideUnavailable" Content="隐藏不可设置项" Click="HideUnavailable_Click"/>
+                                <Button x:Name="ProfileExchangeButton" Content="分享 / 导入" Click="ProfileExchange_Click"/>
+                                <Button x:Name="IdentifyButton" Content="识别显示器" Click="Identify_Click"/>
+                            </StackPanel>
                         </Grid>
                         <TextBlock x:Name="MonitorSummary" Text="正在读取显示器…" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                         <StackPanel x:Name="MonitorRows" Spacing="16" Visibility="Collapsed"/>

@@ -13,10 +13,18 @@ internal static class UiTestData
         var result = new List<MonitorDevice>();
         for (var i = 0; i < 2; i++)
         {
-            var device = new MonitorDevice { Id = "ui-test-monitor-" + i, Model = "测试显示器", Connection = "test", Left = i * 1920, Width = 1920, Height = 1080, IsPrimary = i == 0 };
-            device.Channels.Add(Channel("亮度", "brightness", 30 + i * 40));
-            device.Channels.Add(Channel("对比度", "contrast", 60));
-            device.Channels.Add(new ControlChannel { Name = "色温", PropertyKey = "temperature", Value = 3, Minimum = 1, Maximum = 8, Unit = "", Detail = "", Glyph = "\uE753", Options = new[] { new ControlOption(1, "4000 K"), new ControlOption(3, "6500 K") }, Write = _ => { } });
+            var device = new MonitorDevice { Id = "ui-test-monitor-" + i, Model = "测试显示器", ModelId = "TST0001", Connection = "test", Left = i * 1920, Width = 1920, Height = 1080, IsPrimary = i == 0 };
+            var replies = new Dictionary<byte, VcpReply>
+            {
+                [0x10] = new((uint)(30 + i * 40),100), [0x12] = new(60,100), [0x62] = new(35,100),
+                [0x14] = new(5,0), [0x16] = new(50,100), [0x18] = new(50,100), [0x1A] = new(50,100),
+                [0x60] = new(15,0), [0x8D] = new(0x202,0x202), [0xD6] = new(1,0), [0xC9] = new(0x0102,0)
+            };
+            device.CapabilitiesText = "(prot(monitor) vcp(04 10 12 14(05 08) 16 18 1A 60(0F 11) 62 8D D6(01 04) C9 E1) mccs_ver(2.2))";
+            device.Features.AddRange(VcpDiscovery.Discover(device.Id, VcpCapabilities.Parse(device.CapabilitiesText),
+                code => replies.TryGetValue(code, out var reply) ? reply : null,
+                (code, value) => { if (replies.TryGetValue(code, out var reply)) replies[code] = reply with { Current = value }; }));
+            device.Channels.AddRange(device.Features.Where(f => f.Channel is not null).Select(f => f.Channel!));
             result.Add(device);
         }
         return result;

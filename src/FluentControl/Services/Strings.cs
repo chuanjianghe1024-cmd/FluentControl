@@ -50,6 +50,6 @@ internal static class Strings
     internal static string Channel(ControlChannel c) => c.PropertyKey switch
     {
         "brightness" => T("亮度", "Brightness"), "contrast" => T("对比度", "Contrast"), "speaker" => T("屏幕音量", "Monitor volume"),
-        "temperature" => T("色温", "Color temperature"), "mouse-speed" => T("鼠标速度", "Mouse speed"), "pointer-size" => T("指针大小", "Pointer size"), _ => c.Name
+        "temperature" => T("色温", "Color temperature"), "mouse-speed" => T("鼠标速度", "Mouse speed"), "pointer-size" => T("指针大小", "Pointer size"), _ => VcpCatalog.Find(c.PropertyKey)?.Name ?? c.Name
     };
 }

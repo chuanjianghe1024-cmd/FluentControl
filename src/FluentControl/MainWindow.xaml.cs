@@ -122,9 +122,9 @@ public sealed partial class MainWindow : Window
                 var device = displayDevices[i];
                 try { device.Preference = preferences?.GetOrAdd(device.Id) ?? new() { Label = "M" + (i + 1) }; }
                 catch (Exception ex) { device.Preference = new() { Label = "M" + (i + 1) }; result.errors.Add(T("名称保存失败：", "Cannot save name: ") + ex.Message); }
-                MonitorRows.Children.Add(CreateMonitorCard(device, version));
+                BindBrightnessMapping(device);
             }
-            RenderCombined(version);
+            RenderMonitorControls(version);
             foreach (var channel in result.a)
                 (channel.IsDefaultAudio ? AudioRows : OtherAudioRows).Children.Add(CreateRow(channel, version));
             if (AudioRows.Children.Count == 0) AudioRows.Children.Add(Empty(T("没有可控制的默认音频设备。可展开其他设备，或检查 Windows 声音设置。", "No controllable default audio devices. Expand other devices or check Windows sound settings.")));
@@ -177,27 +177,11 @@ public sealed partial class MainWindow : Window
             catch (Exception ex) { ShowStatus(T("名称未保存：", "Name not saved: ") + ex.Message, InfoBarSeverity.Error); }
         };
         Grid.SetColumn(rename, 1); header.Children.Add(rename); body.Children.Add(header);
-        foreach (var channel in device.Channels) body.Children.Add(CreateRow(channel, version));
-        if (device.Channels.Count == 0) body.Children.Add(Empty(T("此屏幕没有可读取的控制项。请检查显示器菜单中的 DDC/CI。", "No readable controls. Check DDC/CI in the monitor menu.")));
+        AddFeatureSections(body, new[] { device }, version, false);
+        body.Children.Add(CreateMappingRow(device));
         return Card(body);
     }
     private static string MonitorTitle(MonitorDevice device) => device.DisplayName == device.Preference.Label ? device.Preference.Label : $"{device.Preference.Label} · {device.DisplayName}";
-
-    private void RenderCombined(int version)
-    {
-        CombinedRows.Children.Add(Empty(T("拖动后，将支持该属性的显示器设为相同百分比；当前数值不同会标记为“不同”。", "Linked sliders apply the same percentage to supported displays. Different values are marked as Mixed.")));
-        foreach (var key in new[] { "brightness", "contrast", "speaker", "temperature" })
-        {
-            var targets = displayDevices.SelectMany(x => x.Channels).Where(x => x.PropertyKey == key).ToList();
-            if (targets.Count == 0) continue;
-            var first = targets[0];
-            var options = first.Options?.Where(x => targets.All(c => c.Options?.Any(o => o.Value == x.Value) == true)).ToArray();
-            if (options is { Length: 0 }) continue;
-            var aggregate = new ControlChannel { Name = first.Name, Detail = F("{0} / {1} 台支持", "{0} / {1} supported", targets.Count, displayDevices.Count), PropertyKey = key, Glyph = first.Glyph, Value = targets.Average(x => x.Value), Options = options, Write = _ => { } };
-            CombinedRows.Children.Add(CreateRow(aggregate, version, targets));
-        }
-        if (CombinedRows.Children.Count == 1) CombinedRows.Children.Add(Empty(T("暂时没有可以一起调节的显示器属性。", "No display controls are available for linked adjustment.")));
-    }
 
     private FrameworkElement CreateRow(ControlChannel channel, int version, IReadOnlyList<ControlChannel>? group = null)
     {
@@ -230,9 +214,10 @@ public sealed partial class MainWindow : Window
         {
             if (pending is not null) return;
             synchronizing = true;
-            var minimum = targets.Min(x => x.Value);
-            var maximum = targets.Max(x => x.Value);
-            slider.Value = targets.Average(x => x.Value);
+            var values = targets.Select(x => ControlOperations.DisplayValue(x, group is not null)).ToArray();
+            var minimum = values.Min();
+            var maximum = values.Max();
+            slider.Value = values.Average();
             number.Text = maximum - minimum > .5 ? T("不同", "Mixed") : Math.Round(slider.Value).ToString(CultureInfo.InvariantCulture) + channel.Unit;
             if (group is not null) detail.Text = channel.Detail + (maximum - minimum > .5 ? $" · {minimum:0}–{maximum:0}%" : "");
             synchronizing = false;
@@ -253,7 +238,7 @@ public sealed partial class MainWindow : Window
                 try
                 {
                     if (version != generation || closed || request.IsCancellationRequested) return;
-                    var errors = await Task.Run(() => ControlOperations.Apply(targets, target));
+                    var errors = await Task.Run(() => ControlOperations.Apply(targets, target, group is not null));
                     if (closed || version != generation) return;
                     if (ReferenceEquals(pending, request)) pending = null;
                     MarkProfileModified(); SynchronizeValues();
@@ -355,7 +340,7 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            if (MonitorRows.Children.Count != 2 || CombinedRows.Children.Count != 4) throw new InvalidOperationException("Monitor controls not rendered.");
+            if (MonitorRows.Children.Count != 2 || CombinedRows.Children.Count < 3) throw new InvalidOperationException("Monitor controls not rendered.");
             DisplayMode.SelectedIndex = 0;
             DisplayMode.SelectedIndex = 1;
             if (CombinedRows.Visibility != Visibility.Visible) throw new InvalidOperationException("Combined controls not visible.");

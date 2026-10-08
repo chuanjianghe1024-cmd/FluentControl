@@ -21,7 +21,7 @@ internal static class PanelDiagnostics
             if (panel.BackdropAlpha is 0 or 255) throw new InvalidOperationException("Panel tint must be translucent.");
             panel.AppWindow.Move(new Windows.Graphics.PointInt32(100, 100));
             var before = panel.AppWindow.Position;
-            presenter.IsAlwaysOnTop = true; panel.ShowPanel();
+            panel.AppWindow.Show(false); panel.SetUnlocked(true); presenter.IsAlwaysOnTop = true;
             await DragGripAsync(panel, false, 37, 23);
             if (panel.AppWindow.Position.X != before.X + 37 || panel.AppWindow.Position.Y != before.Y + 23) throw new InvalidOperationException($"Move gesture did not move the panel: before={before.X},{before.Y}; after={panel.AppWindow.Position.X},{panel.AppWindow.Position.Y}");
             var original = ShellIntegration.ClientSize(panel.Handle);
@@ -35,7 +35,7 @@ internal static class PanelDiagnostics
             panel.CheckGeometryDelta(true, 80, 60);
             background.AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(panel.AppWindow.Position.X - 30, panel.AppWindow.Position.Y - 30, panel.AppWindow.Size.Width + 60, panel.AppWindow.Size.Height + 60));
             grid.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 215, 70, 40));
-            background.Activate(); presenter.IsAlwaysOnTop = true; panel.ShowPanel();
+            background.Activate(); panel.AppWindow.Show(false); panel.SetUnlocked(true); presenter.IsAlwaysOnTop = true;
             await Task.Delay(400); DwmFlush();
             var warm = Sample(panel);
             grid.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 30, 100, 220));
@@ -45,9 +45,45 @@ internal static class PanelDiagnostics
             for (var shift = 0; shift < 24; shift += 8) difference += Math.Abs((int)((warm >> shift) & 255) - (int)((cool >> shift) & 255));
             StartupLog.Write($"Desktop alpha check: warm={warm:X6}, cool={cool:X6}, difference={difference}; hint={panel.HintHeight:0}/{panel.ContentHeight:0}");
             if (difference < 60) throw new InvalidOperationException("Panel is opaque: changing the window behind it did not change its pixels.");
+            presenter.IsAlwaysOnTop = false;
+            panel.SetUnlocked(false); background.Activate();
+            // Attempt the promotion which a child click used to cause.
+            SetWindowPos(panel.Handle, 0, 0, 0, 0, 0, 0x13);
+            await Task.Delay(150);
+            var backgroundHandle = WinRT.Interop.WindowNative.GetWindowHandle(background);
+            if (SendMessage(panel.Handle, 0x21, 0, 0) != 3 || IsAbove(panel.Handle, backgroundHandle)) throw new InvalidOperationException("Locked panel activated or rose above another application.");
+            // Expose the upper left part of the panel, then test real single/double clicks.
+            background.AppWindow.Move(new Windows.Graphics.PointInt32(panel.AppWindow.Position.X + panel.AppWindow.Size.Width / 2, panel.AppWindow.Position.Y));
+            var click = new Point { X = 24, Y = 50 }; ClientToScreen(panel.Handle, ref click);
+            await ClickAsync(click, false);
+            if (panel.IsUnlocked || IsAbove(panel.Handle, backgroundHandle)) throw new InvalidOperationException("A single click raised the locked panel.");
+            await ClickAsync(click, true);
+            if (!panel.IsUnlocked) throw new InvalidOperationException("A locked bottom-layer panel cannot unlock by double-click.");
+            panel.SetUnlocked(false);
+            StartupLog.Write("PASS: locked panel rejects activation/promotion; double-click still unlocks.");
         }
         finally { mouse_event(4, 0, 0, 0, 0); SetCursorPos(originalPointer.X, originalPointer.Y); presenter.IsAlwaysOnTop = false; background.Close(); }
     }
+    private static bool IsAbove(nint first, nint second)
+    {
+        for (var window = GetTopWindow(0); window != 0; window = GetWindow(window, 2))
+        { if (window == first) return true; if (window == second) return false; }
+        throw new InvalidOperationException("Test window missing from Z order.");
+    }
+    private static async Task ClickAsync(Point point, bool twice)
+    {
+        await Task.Run(async () =>
+        {
+            MovePointer(point.X, point.Y); await Task.Delay(100);
+            mouse_event(2,0,0,0,0); mouse_event(4,0,0,0,0);
+            if (twice) { await Task.Delay(100); mouse_event(2,0,0,0,0); mouse_event(4,0,0,0,0); }
+            await Task.Delay(250);
+        });
+    }
+    [DllImport("user32.dll")] private static extern nint GetTopWindow(nint hwnd);
+    [DllImport("user32.dll")] private static extern nint GetWindow(nint hwnd, uint command);
+    [DllImport("user32.dll")] private static extern nint SendMessage(nint hwnd, uint message, nuint wp, nint lp);
+    [DllImport("user32.dll")] private static extern bool SetWindowPos(nint hwnd, nint after, int x, int y, int w, int h, uint flags);
     private static async Task DragGripAsync(DesktopPanelWindow panel, bool resize, int dx, int dy)
     {
         var size = ShellIntegration.ClientSize(panel.Handle);

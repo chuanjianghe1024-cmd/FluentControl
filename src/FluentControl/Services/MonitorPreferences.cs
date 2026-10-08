@@ -5,6 +5,7 @@ public sealed class MonitorPreference
 {
     public string Label { get; set; } = "";
     public string Alias { get; set; } = "";
+    public BrightnessMapping Brightness { get; set; } = new();
     public string DisplayName => string.IsNullOrWhiteSpace(Alias) ? Label : Alias;
 }
 
@@ -43,7 +44,7 @@ public sealed class MonitorPreferences
         catch { entry.Alias = previous; throw; }
     }
 
-    private void Save()
+    public void Save()
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var temporary = path + ".tmp";

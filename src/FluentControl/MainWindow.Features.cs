@@ -122,7 +122,10 @@ public sealed partial class MainWindow
         PointerSettingsLink.Content = T("Windows 指针设置", "Windows pointer settings");
         MouseDescription.Text = T("调整后立即生效。更多指针颜色与样式，可在 Windows 指针设置中选择。", "Changes apply immediately. More pointer colors and styles are available in Windows Settings.");
         SpecialFeatures.Header = T("更多显示功能", "More display features");
-        SpecialFeaturesText.Text = T("色温仅在显示器报告支持时显示。软件准星可在设置中开启；厂商游戏模式、硬件准星与游戏 FPS 暂不支持。", "Color temperature appears when supported by the display. Enable a software crosshair in Settings. Vendor game modes, hardware crosshairs and game FPS are not supported in this version.");
+        SpecialFeaturesText.Text = T("功能按显示器能力与当前模式识别。HDR、预设或转接器可能限制调节；更改硬件模式后请刷新。厂商 SDK、硬件准星与 FPS 已预留，尚未接入。", "Controls depend on display capabilities and current mode. HDR, presets or adapters may restrict adjustments; refresh after changing hardware modes. Vendor SDKs, hardware crosshairs and FPS are reserved for future support.");
+        HideUnavailable.Content = T("隐藏不可设置项", "Hide unavailable controls");
+        HideUnavailable.IsChecked = state.Settings.HideUnavailableMonitorControls;
+        ProfileExchangeButton.Content = T("分享 / 导入", "Share / import");
         NightLightLink.Content = T("Windows 夜间模式", "Windows night light");
         ProfilePicker.PlaceholderText = T("选择配置", "Choose a profile");
         SaveProfileButton.Content = T("保存为配置", "Save as profile"); UpdateProfileButton.Content = T("更新", "Update"); DeleteProfileButton.Content = T("删除", "Delete");
@@ -145,7 +148,7 @@ public sealed partial class MainWindow
     private Dictionary<string, ControlChannel> AllChannels()
     {
         var result = new Dictionary<string, ControlChannel>();
-        foreach (var d in displayDevices) foreach (var c in d.Channels) result[$"monitor/{Uri.EscapeDataString(d.Id)}/{c.PropertyKey}"] = c;
+        foreach (var d in displayDevices) foreach (var c in d.Channels.Where(c => c.CanSave && !c.IsAction)) result[$"monitor/{Uri.EscapeDataString(d.Id)}/{c.PropertyKey}"] = c;
         foreach (var c in audioChannels) result[$"audio/{Uri.EscapeDataString(c.DeviceId)}/{c.PropertyKey}"] = c;
         foreach (var c in mouseChannels) result["mouse/" + c.PropertyKey] = c;
         return result;
@@ -189,6 +192,8 @@ public sealed partial class MainWindow
         try
         {
             await WaitForWritesAsync();
+            foreach (var mapping in profile.BrightnessMappings.Values) mapping.Validate();
+            if (!await ConfirmProfileInputAsync(profile)) return;
             await gate.WaitAsync();
             try
             {
@@ -197,7 +202,7 @@ public sealed partial class MainWindow
                 var result = await Task.Run(() =>
                 {
                     var errors = new List<string>(); var missing = 0; var applied = 0;
-                    foreach (var entry in profile.Values)
+                    foreach (var entry in profile.Values.OrderBy(x => available.TryGetValue(x.Key, out var c) ? c.ApplyOrder : 50))
                     {
                         if (!available.TryGetValue(entry.Key, out var channel)) { missing++; continue; }
                         var failures = ControlOperations.Apply(new[] { channel }, entry.Value.Value);
@@ -213,6 +218,9 @@ public sealed partial class MainWindow
                     return (errors, missing, applied);
                 });
                 if (closed) return;
+                foreach (var device in displayDevices)
+                    if (profile.BrightnessMappings.TryGetValue(device.Id, out var mapping)) { mapping.Validate(); device.Preference.Brightness = mapping.Copy(); BindBrightnessMapping(device); }
+                preferences?.Save();
                 state.SelectedProfileId = profile.Id; profileDirty = result.errors.Count > 0 || result.missing > 0;
                 SaveState(); RefreshProfiles(); SynchronizeValues();
                 var message = F("配置「{0}」：已更新 {1} 项", "Profile '{0}': {1} controls applied", profile.Name, result.applied);
@@ -241,7 +249,7 @@ public sealed partial class MainWindow
             {
                 var name = input.Text.Trim();
                 if (state.Profiles.Any(x => string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase))) { ShowStatus(T("配置名称已存在，可用“更新”覆盖。", "That name exists. Use Update to replace it."), InfoBarSeverity.Warning); return; }
-                var profile = new ControlProfile { Name = name, Values = CaptureProfile() };
+                var profile = new ControlProfile { Name = name, Values = CaptureProfile(), BrightnessMappings = CaptureMappings() };
                 if (profile.Values.Count == 0) { ShowStatus(T("没有可保存的控制项。", "No controls are available to save."), InfoBarSeverity.Warning); return; }
                 state.Profiles.Add(profile); state.SelectedProfileId = profile.Id; profileDirty = false;
                 if (SaveState()) ShowStatus(T("配置已保存。", "Profile saved."), InfoBarSeverity.Success);
@@ -257,7 +265,7 @@ public sealed partial class MainWindow
         await WaitForWritesAsync(); await gate.WaitAsync();
         try
         {
-            profile.Values = CaptureProfile(); profileDirty = false;
+            profile.Values = CaptureProfile(); profile.BrightnessMappings = CaptureMappings(); profileDirty = false;
             if (SaveState()) ShowStatus(T("配置已更新。", "Profile updated."), InfoBarSeverity.Success);
             RefreshProfiles();
         }
@@ -286,10 +294,10 @@ public sealed partial class MainWindow
             foreach (var key in new[] { "brightness", "contrast", "speaker" })
             {
                 var targets = displayDevices.SelectMany(x => x.Channels).Where(x => x.PropertyKey == key).ToArray();
-                if (targets.Length > 0) result.Add(new() { Key = "monitor/all/" + key, Name = Channel(targets[0]), Group = "monitor", Targets = targets });
+                if (targets.Length > 0) result.Add(new() { Key = "monitor/all/" + key, Name = Channel(targets[0]), Group = "monitor", Targets = targets, Linked = true });
             }
         }
-        else foreach (var display in displayDevices) foreach (var c in display.Channels)
+        else foreach (var display in displayDevices) foreach (var c in display.Channels.Where(x => !x.IsAction && !x.RequiresConfirmation))
             result.Add(new() { Key = $"monitor/{Uri.EscapeDataString(display.Id)}/{c.PropertyKey}", Name = display.DisplayName + " · " + Channel(c), Group = display.Id, Targets = new[] { c } });
         foreach (var c in audioChannels.Where(x => x.IsDefaultAudio)) result.Add(new() { Key = $"audio/{Uri.EscapeDataString(c.DeviceId)}/{c.PropertyKey}", Name = c.Name, Group = "audio", Targets = new[] { c } });
         foreach (var c in mouseChannels) result.Add(new() { Key = "mouse/" + c.PropertyKey, Name = Channel(c), Group = "mouse", Targets = new[] { c } });
@@ -314,7 +322,7 @@ public sealed partial class MainWindow
                 try
                 {
                     if (closed || version != generation) return;
-                    var errors = await Task.Run(() => ControlOperations.Apply(targets, value));
+                    var errors = await Task.Run(() => ControlOperations.Apply(targets, value, state.Settings.GroupDesktopMonitors));
                     if (closed) return;
                     MarkProfileModified(); SynchronizeValues();
                     if (errors.Count > 0) ShowStatus(string.Join("; ", errors), InfoBarSeverity.Error, page);
@@ -440,6 +448,7 @@ public sealed partial class MainWindow
         combo.SelectionChanged += async (_, _) =>
         {
             if (syncing || combo.SelectedItem is not ControlOption choice) return;
+            if (targets.Any(x => x.RequiresConfirmation) && !await ConfirmMonitorChangeAsync(channel, targets)) { Update(); return; }
             pendingWrites++; var page = notificationContext;
             await gate.WaitAsync();
             try
@@ -448,12 +457,12 @@ public sealed partial class MainWindow
                 var errors = await Task.Run(() => ControlOperations.Apply(targets, choice.Value));
                 if (closed) return;
                 MarkProfileModified(); SynchronizeValues();
-                ShowStatus(errors.Count == 0 ? T("色温已更新。", "Color temperature updated.") : string.Join("; ", errors), errors.Count == 0 ? InfoBarSeverity.Success : InfoBarSeverity.Error, page);
+                ShowStatus(errors.Count == 0 ? F("已更新{0}", "{0} updated", Channel(channel)) : string.Join("; ", errors), errors.Count == 0 ? InfoBarSeverity.Success : InfoBarSeverity.Error, page);
             }
             catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error, page); }
             finally { pendingWrites--; gate.Release(); }
         };
-        return SettingsRow((group is null ? "" : T("统一", "Linked ")) + Channel(channel), T("较低色温更暖", "Lower temperatures look warmer"), combo);
+        return SettingsRow((group is null ? "" : T("统一", "Linked ")) + Channel(channel), channel.Detail, combo);
     }
     private async Task RunFeatureChecksAsync()
     {
@@ -496,7 +505,9 @@ public sealed partial class MainWindow
             if (!desktopPanel.IsUnlocked) throw new InvalidOperationException("Desktop panel cannot unlock.");
             desktopPanel.SetUnlocked(false);
             if (desktopPanel.IsUnlocked) throw new InvalidOperationException("Desktop panel cannot lock.");
-            await PanelDiagnostics.VerifyAsync(desktopPanel);
+            AppWindow.Hide();
+            try { await PanelDiagnostics.VerifyAsync(desktopPanel); }
+            finally { AppWindow.Show(); Activate(); }
             var savedWidth = state.Settings.DesktopWidth;
             var savedHeight = state.Settings.DesktopHeight;
             SaveState();

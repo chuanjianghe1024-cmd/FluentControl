@@ -34,6 +34,44 @@ ControlOperations.Apply(new[] { readback }, 50);
 Check(readback.Value == 42, "Readback must reflect the device value.");
 
 var directory = Path.Combine(Path.GetTempPath(), "FluentControl-tests-" + Guid.NewGuid());
+var capabilities = VcpCapabilities.Parse("(model(Test) vcp(04 10 12 60(0F 11) 72(05 78 FB 50 64 78 8C) 8D CA(01 02 03) C0 C9 D6(01 04) E1) mccs_ver(2.2))");
+Check(capabilities.HasVcpSection && capabilities.Features[0x60].SequenceEqual(new byte[] { 15, 17 }), "Nested capability lists must preserve input values.");
+Check(!VcpCapabilities.Parse("(vcp(60(0F").HasVcpSection && !VcpCapabilities.Parse("vcp(ZZ)").HasVcpSection, "Malformed capabilities must not authorize writes.");
+var replies = new Dictionary<byte, VcpReply> { [0x10] = new(40, 200), [0x60] = new(15,0), [0x72] = new(0x7800,0), [0x8D] = new(0x0202,0x0202), [0xCA] = new(0x0202,0), [0xC0] = new(42,1), [0xC9] = new(0x0102,0), [0xD6] = new(1,0) };
+var writes = new List<(byte Code, uint Value)>();
+var discovered = VcpDiscovery.Discover("TEST", capabilities, c => replies.TryGetValue(c, out var r) ? r : null, (c,v) => { writes.Add((c,v)); if (replies.TryGetValue(c, out var r)) replies[c] = r with { Current = v }; });
+Check(writes.Count == 0, "Capability discovery must never send write commands, including reset.");
+var bright = discovered.Single(x => x.Definition.Key == "brightness").Channel!;
+Check(bright.Value == 20, "Native brightness normalizes to percent.");
+ControlOperations.Apply(new[] { bright }, 50);
+Check(writes.Last() == ((byte)0x10, 100u) && bright.Value == 50, "Brightness write and readback use the native maximum.");
+var inputChannel = discovered.Single(x => x.Definition.Key == "input").Channel!;
+Check(ControlOperations.Apply(new[] { inputChannel }, 18).Count == 1 && !writes.Any(x => x.Code == 0x60), "Unadvertised input ports must never be sent.");
+ControlOperations.Apply(new[] { discovered.Single(x => x.Definition.Key == "monitor-mute").Channel! }, 1);
+Check(writes.Last() == ((byte)0x8D, 0x0201u), "Mute must preserve screen blanking field.");
+ControlOperations.Apply(new[] { discovered.Single(x => x.Definition.Key == "osd").Channel! }, 1);
+Check(writes.Last() == ((byte)0xCA, 0x0201u), "OSD must preserve the power-button field.");
+var gamma = discovered.Single(x => x.Definition.Key == "gamma").Channel!;
+Check(gamma.Options!.Any(x => x.Value == 0x7800 && x.Label == "2.20") && !gamma.Options.Any(x => x.Value == 5), "Gamma metadata must not be mistaken for writable presets.");
+Check(discovered.Single(x => x.Definition.Key == "usage").Information == "65578 h", "Usage counter must combine high and low words.");
+Check(discovered.Single(x => x.Definition.Key == "factory-reset").Channel is { CanSave: false, IsAction: true } && discovered.Single(x => x.Definition.Key == "power").Channel is { CanSave: false }, "Destructive and power commands excluded from scenes.");
+Check(discovered.Any(x => x.Definition.Code == 0xE1 && x.Channel is null), "Private features remain visible as adapter placeholders.");
+var mapping = new BrightnessMapping { Enabled = true, Minimum = 10, Maximum = 90, Offset = 5, Curve = 2 };
+Check(mapping.ToDevice(50) == 35 && Math.Abs(mapping.ToLinked(35) - 50) < .001, "Per-monitor nonlinear mapping is invertible before clipping.");
+bright.LinkedToDevice = mapping.ToDevice; bright.DeviceToLinked = mapping.ToLinked;
+ControlOperations.Apply(new[] { bright }, 50, true); Check(bright.Value == 35, "Linked writes apply calibration.");
+ControlOperations.Apply(new[] { bright }, 50); Check(bright.Value == 50, "Individual writes bypass calibration.");
+var publicProfile = new SharedMonitorProfile { Name = "Office", Monitors = new() { new() { Slot = "left", ModelId = "DEL1234", Values = new() { ["brightness"] = 40, ["input"] = 15 }, Brightness = mapping } } };
+var sharedJson = ProfileExchange.Serialize(publicProfile);
+Check(ProfileExchange.Parse(sharedJson).Monitors[0].Brightness!.Curve == 2, "Portable model profile round trip.");
+Check(ModelIdentity.FromDevicePath(@"\\?\DISPLAY#DEL1234#SERIAL_AND_MACHINE_DATA#{GUID}") == "DEL1234", "Shared model identity must exclude local instance/serial data.");
+foreach (var bad in new[] { sharedJson.Replace("\"version\": 1", "\"version\": 99"), sharedJson.Replace("\"brightness\"", "\"factory-reset\""), sharedJson.Replace("\"brightness\": 40", "\"brightness\": 101"), sharedJson.Replace("DEL1234", "private-instance") })
+{
+    var rejectedProfile = false; try { ProfileExchange.Parse(bad); } catch { rejectedProfile = true; }
+    Check(rejectedProfile, "Invalid or unsafe shared profiles must be rejected.");
+}
+Check(!ProfileExchange.CanApply(inputChannel, 18) && ProfileExchange.CanApply(inputChannel, 15), "Import must recheck target capabilities.");
+Console.WriteLine("PASS: VCP discovery, enum/range guards, gamma byte packing, safe profiles, portable imports and brightness mapping.");
 Directory.CreateDirectory(directory);
 try
 {
@@ -45,10 +83,13 @@ try
     store.State.Settings.Language = "ja-JP"; store.State.Settings.DesktopMaxRows = 3;
     store.State.Settings.DesktopOpacity = 25; store.State.Settings.DesktopWidth = 480; store.State.Settings.DesktopHeight = 250;
     store.State.Settings.DesktopRows = new() { "monitor/all/brightness" }; store.Save();
+    store.State.Settings.HideUnavailableMonitorControls = true;
+    store.State.Profiles[0].BrightnessMappings["monitor-A"] = mapping.Copy(); store.Save();
     var restored = new UserStateStore(statePath);
     Check(restored.State.Settings.Language == "ja-JP" && restored.State.Settings.DesktopMaxRows == 3, "Settings round trip.");
     Check(restored.State.Settings.DesktopOpacity == 25 && restored.State.Settings.DesktopWidth == 480 && restored.State.Settings.DesktopHeight == 250, "Panel appearance and geometry round trip.");
     Check(restored.State.Profiles[0].Values["monitor/A/brightness"].Value == 42, "Profile values round trip.");
+    Check(restored.State.Settings.HideUnavailableMonitorControls && restored.State.Profiles[0].BrightnessMappings["monitor-A"].Curve == 2, "Filter and scene calibration persistence.");
     Check(UserStateStore.NextIndex(restored.State.Profiles, "one", -1) == 1, "Previous profile wraps.");
     Check(UserStateStore.NextIndex(restored.State.Profiles, "two", 1) == 0, "Next profile wraps.");
     Check(UserStateStore.NextIndex(Array.Empty<ControlProfile>(), null, 1) == -1, "Empty profiles handled.");
