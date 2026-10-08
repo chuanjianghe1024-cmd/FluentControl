@@ -33,6 +33,16 @@ try {
         $hash = [Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($path.ToLowerInvariant().Replace('\', '/')))
         return $prefix + [Convert]::ToHexString($hash).Substring(0, 32)
     }
+    function StableGuid([string]$path) {
+        # Namespaced SHA-256 UUIDv8: the same installed relative path always
+        # identifies the same per-user component, on every build machine.
+        $name = 'FluentControl:per-user:x64:Programs/FluentControl/' + $path.ToLowerInvariant().Replace('\', '/')
+        $hash = [Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($name))
+        [byte[]]$bytes = $hash[0..15]
+        $bytes[7] = ($bytes[7] -band 0x0f) -bor 0x80
+        $bytes[8] = ($bytes[8] -band 0x3f) -bor 0x80
+        return [Guid]::new($bytes).ToString('D')
+    }
     $ns = 'http://wixtoolset.org/schemas/v4/wxs'
     $doc = [Xml.XmlDocument]::new()
     function Element($parent, [string]$name, [hashtable]$attributes) {
@@ -64,7 +74,7 @@ try {
         $componentId = StableId 'C' $relative
         # HKCU keypaths make per-user installation correct; IDs are independent
         # of build paths/version so component identity remains stable on upgrade.
-        $component = Element $directories[$parentPath] 'Component' @{ Id = $componentId; Guid = '*' }
+        $component = Element $directories[$parentPath] 'Component' @{ Id = $componentId; Guid = (StableGuid $relative) }
         $fileId = if ($relative -eq 'FluentControl.exe') { 'ApplicationExe' } else { StableId 'F' $relative }
         [void](Element $component 'File' @{ Id = $fileId; Source = $file.FullName; Name = $file.Name; KeyPath = 'no' })
         [void](Element $component 'RegistryValue' @{ Root = 'HKCU'; Key = 'Software\FluentControl\Installer\Files'; Name = $componentId; Type = 'integer'; Value = '1'; KeyPath = 'yes' })

@@ -4,7 +4,13 @@
            Language="2052" Codepage="936" InstallerVersion="500" Compressed="yes">
     <MajorUpgrade DowngradeErrorMessage="已安装更新版本的 FluentControl。" Schedule="afterInstallInitialize" />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" MaximumUncompressedMediaSize="1024" />
-    <Launch Condition="Installed OR (VersionNT64 AND WindowsBuild &gt;= 19041)"
+    <!-- Windows Installer's legacy WindowsBuild/VersionNT values can be shimmed
+         to Windows 8.1. Read the actual build before checking the app minimum. -->
+    <Property Id="WINDOWSBUILDNUMBER">
+      <RegistrySearch Id="ActualWindowsBuild" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+                      Name="CurrentBuildNumber" Type="raw" Bitness="always64" />
+    </Property>
+    <Launch Condition="Installed OR (VersionNT64 AND WINDOWSBUILDNUMBER &gt;= 19041)"
             Message="FluentControl 需要 Windows 10 2004 或更高版本的 64 位系统。" />
     <Icon Id="AppIcon" SourceFile="$(var.PublishDir)\Assets\FluentControl.ico" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
