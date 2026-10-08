@@ -6,6 +6,8 @@ public partial class App : Application
     public App()
     {
         StartupLog.Write("App constructor");
+        DebugSettings.IsXamlResourceReferenceTracingEnabled = true;
+        DebugSettings.XamlResourceReferenceFailed += (_, e) => StartupLog.Write("XAML resource: " + e.Message);
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
             StartupLog.Write("Unhandled exception: " + e.ExceptionObject);
         UnhandledException += (_, e) => StartupLog.Write("XAML exception: " + e.Exception);
