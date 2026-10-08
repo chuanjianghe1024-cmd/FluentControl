@@ -82,6 +82,7 @@ internal sealed class DesktopPanelWindow : Window
         void Complete()
         {
             if (!moving) return;
+            if (Environment.GetCommandLineArgs().Contains("--ui-test")) StartupLog.Write($"Grip complete resize={resize}");
             moving = false; ClampPosition(); SaveGeometry(resize);
         }
         grip.AddHandler(UIElement.PointerPressedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler((_, e) =>
@@ -93,13 +94,14 @@ internal sealed class DesktopPanelWindow : Window
         }), true);
         grip.AddHandler(UIElement.PointerMovedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler((_, e) =>
         {
+            if (Environment.GetCommandLineArgs().Contains("--ui-test")) StartupLog.Write($"Grip move event moving={moving}");
             if (!moving) return;
             var now = ShellIntegration.PointerPosition();
             ApplyGeometryDelta(resize, now.X - pointerStart.X, now.Y - pointerStart.Y); e.Handled = true;
             if (Environment.GetCommandLineArgs().Contains("--ui-test")) StartupLog.Write($"Grip delta resize={resize} delta={now.X - pointerStart.X},{now.Y - pointerStart.Y}");
         }), true);
         grip.AddHandler(UIElement.PointerReleasedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler((_, e) => { Complete(); grip.ReleasePointerCapture(e.Pointer); e.Handled = true; }), true);
-        grip.PointerCaptureLost += (_, _) => Complete();
+        grip.PointerCaptureLost += (_, _) => { if (Environment.GetCommandLineArgs().Contains("--ui-test")) StartupLog.Write("Grip capture lost"); Complete(); };
         grip.PointerCanceled += (_, _) => Complete();
     }
     private void ApplyGeometryDelta(bool resize, int x, int y)

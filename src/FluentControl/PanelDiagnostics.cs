@@ -55,7 +55,10 @@ internal static class PanelDiagnostics
         ClientToScreen(panel.Handle, ref start);
         MovePointer(start.X, start.Y); await Task.Delay(100);
         mouse_event(2, 0, 0, 0, 0); await Task.Delay(100);
+        StartupLog.Write($"Injected press: key={GetAsyncKeyState(1):X4}");
         MovePointer(start.X + dx, start.Y + dy); await Task.Delay(160);
+        var observed = ShellIntegration.PointerPosition();
+        StartupLog.Write($"Injected move: target={start.X + dx},{start.Y + dy}; observed={observed.X},{observed.Y}; key={GetAsyncKeyState(1):X4}");
         mouse_event(4, 0, 0, 0, 0); await Task.Delay(160);
     }
     private static void MovePointer(int x, int y)
@@ -80,6 +83,7 @@ internal static class PanelDiagnostics
         finally { ReleaseDC(0, dc); }
     }
     [StructLayout(LayoutKind.Sequential)] private struct Point { public int X, Y; }
+    [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int key);
     [DllImport("user32.dll")] private static extern int GetSystemMetrics(int index);
     [DllImport("user32.dll")] private static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")] private static extern void mouse_event(uint flags, uint dx, uint dy, uint data, nuint extra);
