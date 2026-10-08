@@ -17,5 +17,10 @@
     <Compile Include="../../src/FluentControl/Services/VcpCatalog.cs" Link="VcpCatalog.cs" />
     <Compile Include="../../src/FluentControl/Services/VcpDiscovery.cs" Link="VcpDiscovery.cs" />
     <Compile Include="../../src/FluentControl/Services/ProfileExchange.cs" Link="ProfileExchange.cs" />
+    <Compile Include="../../src/FluentControl/Services/ProfileGroups.cs" Link="ProfileGroups.cs" />
+    <Compile Include="../../src/FluentControl/Services/ProfileBundles.cs" Link="ProfileBundles.cs" />
+    <Compile Include="../../src/FluentControl/Services/MonitorLinking.cs" Link="MonitorLinking.cs" />
+    <Compile Include="../../src/FluentControl/Services/StartupService.cs" Link="StartupService.cs" />
+    <Compile Include="../../src/FluentControl/Services/MonitorNames.cs" Link="MonitorNames.cs" />
   </ItemGroup>
 </Project>

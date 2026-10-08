@@ -71,6 +71,41 @@ foreach (var bad in new[] { sharedJson.Replace("\"version\": 1", "\"version\": 9
     Check(rejectedProfile, "Invalid or unsafe shared profiles must be rejected.");
 }
 Check(!ProfileExchange.CanApply(inputChannel, 18) && ProfileExchange.CanApply(inputChannel, 15), "Import must recheck target capabilities.");
+var optionA = new ControlChannel { Name = "A", Detail = "", Glyph = "", Value = 5, Write = _ => { }, Options = new[] { new ControlOption(5, "6500 K"), new ControlOption(8, "9300 K") } };
+var optionB = new ControlChannel { Name = "B", Detail = "", Glyph = "", Value = 5, Write = _ => { }, Options = new[] { new ControlOption(8, "9300 K"), new ControlOption(11, "Custom") } };
+Check(!ProfileExchange.CanApply(optionB, 5), "A readable current preset is not necessarily writable.");
+Check(MonitorLinking.Options(new[] { optionA, optionB })!.Select(o => o.Value).Order().SequenceEqual(new double[] { 5, 8, 11 }), "Linked options use the union.");
+Check(MonitorLinking.GroupKey("HWV1234", "one") == MonitorLinking.GroupKey("HWV1234", "two") && MonitorLinking.GroupKey("DEL1234", "two") != MonitorLinking.GroupKey("HWV1234", "one"), "Only matching models link by default.");
+Check(MonitorLinking.GroupKey("", "one") != MonitorLinking.GroupKey("", "two"), "Unknown models never link accidentally.");
+var batchState = new UserState(); ProfileGroups.Normalize(batchState);
+var sceneA = new ControlProfile { Name = "办公模式", Applications = new() { "Photoshop", "Test Game" }, Monitors = new() { ["private-device-serial"] = new() { ModelId = "HWV1234", ModelName = "MateView 测试", DisplayName = "左屏", Brand = "Huawei" } }, Values = new() { [ProfileGroups.MonitorKey("private-device-serial", "brightness")] = new() { Value = 35 } } };
+var sceneB = new ControlProfile { Name = "夜间", Monitors = sceneA.Monitors, Values = new() { [ProfileGroups.MonitorKey("private-device-serial", "brightness")] = new() { Value = 15 } } };
+batchState.Profiles.AddRange(new[] { sceneA, sceneB });
+var batch = ProfileBundles.Export(batchState, batchState.Profiles, "我的模式", "HWV1234");
+var batchJson = ProfileExchange.SerializeBundle(batch);
+Check(batchJson.Contains("办公模式") && batchJson.Contains("左屏") && !batchJson.Contains("private-device-serial"), "Readable Chinese aliases must travel without private device identifiers.");
+Check(batch.Groups[0].Profiles.Count == 2 && batch.Groups[0].Profiles[1].Monitors[0].Values["brightness"] == 15, "Export includes distinct saved scenes, not a repeated live snapshot.");
+Check(batch.Groups[0].Profiles[0].Monitors[0].ModelName == "MateView 测试" && batch.Groups[0].Profiles[0].Applications.Contains("Photoshop"), "Model names and application tags exported.");
+Check(ProfileGroups.Matches(sceneA, "photo", "mateview", "huawei") && ProfileGroups.Matches(sceneA, brand: "huawei") && !ProfileGroups.Matches(sceneA, "Game", "DEL", "Huawei"), "Any dimension or combined AND filters.");
+sceneA.Monitors["other"] = new() { ModelId = "DEL1234", ModelName = "Dell test", Brand = "Dell" };
+Check(!ProfileGroups.Matches(sceneA, model: "DEL1234", brand: "Huawei"), "Model and brand filters must match the same display.");
+sceneA.Monitors.Remove("other");
+var parsedBatch = ProfileExchange.ParseBundle(batchJson);
+var imported = ProfileBundles.Import(parsedBatch, new Dictionary<string,string>(), "imported-group", new[] { "办公模式" });
+Check(imported.Count == 2 && imported[0].Name == "办公模式 (2)" && imported.All(p => p.GroupId == "imported-group"), "Merges preserve both profiles with unique names.");
+Check(imported[0].Monitors.Keys.Single().StartsWith("unbound:") && imported[0].Monitors.Keys.Single() == imported[1].Monitors.Keys.Single(), "Offline displays retain one stable binding across scenes.");
+Check(imported[0].Monitors.Values.Single().DisplayName == "左屏" && imported[1].Values.Single().Value.Value == 15, "Offline values and aliases are not discarded.");
+var bound = ProfileBundles.Import(parsedBatch, new Dictionary<string,string> { ["display-1"] = "local-target" }, "target-group", Array.Empty<string>());
+Check(bound.All(p => p.Values.Keys.Single() == ProfileGroups.MonitorKey("local-target", "brightness")), "Batch binding applies consistently across scenes.");
+Check(ProfileExchange.ParseBundle(sharedJson).Groups[0].Profiles.Count == 1, "Version 1 files migrate to a bundle.");
+var legacyState = new UserState { Profiles = new() { new() { Name = "旧配置" } } }; ProfileGroups.Normalize(legacyState);
+Check(legacyState.Groups.Single().Id == ProfileGroup.LocalId && ProfileGroups.Current(legacyState).Count == 1, "Old scenes migrate into the local/default group.");
+var duplicateBundle = ProfileExchange.ParseBundle(batchJson);
+duplicateBundle.Groups[0].Profiles[0].Monitors.Add(new() { Slot = "second", ModelId = "HWV1234", Values = new() { ["brightness"] = 50 } });
+var duplicateRejected = false;
+try { ProfileBundles.Import(duplicateBundle, new Dictionary<string,string> { ["display-1"] = "same", ["second"] = "same" }, "x", Array.Empty<string>()); } catch (InvalidDataException) { duplicateRejected = true; }
+Check(duplicateRejected, "Duplicate target mappings must not silently overwrite one screen.");
+Console.WriteLine("PASS: batch scenes, readable metadata, grouping, offline imports, combined filters and union choices.");
 Console.WriteLine("PASS: VCP discovery, enum/range guards, gamma byte packing, safe profiles, portable imports and brightness mapping.");
 Directory.CreateDirectory(directory);
 try
@@ -111,6 +146,19 @@ Console.WriteLine("PASS: linked/individual controls, partial failures, readback 
 
 if (args.Contains("--native"))
 {
+    var shortcut = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "FluentControl-test-" + Guid.NewGuid() + ".lnk");
+    try
+    {
+        StartupService.SetShortcut(shortcut, Environment.ProcessPath!, true);
+        Check(StartupService.ShortcutMatches(shortcut, Environment.ProcessPath!), "Current-user startup shortcut arguments and executable.");
+        StartupService.SetShortcut(shortcut, Environment.ProcessPath!, true);
+        Check(StartupService.ShortcutMatches(shortcut, Environment.ProcessPath!), "Enabling startup twice is idempotent.");
+        StartupService.SetShortcut(shortcut, Environment.ProcessPath!, false);
+        Check(!File.Exists(shortcut), "Disabling removes only the test shortcut.");
+        _ = MonitorNames.ReadActive();
+        Console.WriteLine("PASS: current-user Startup shortcut create/read/replace/delete and DisplayConfig friendly-name query.");
+    }
+    finally { if (File.Exists(shortcut)) File.Delete(shortcut); if (File.Exists(shortcut + ".tmp.lnk")) File.Delete(shortcut + ".tmp.lnk"); }
     var originalSpeed = MouseService.GetSpeed();
     try
     {

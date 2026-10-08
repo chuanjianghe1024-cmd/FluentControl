@@ -115,7 +115,7 @@ public sealed partial class MainWindow
         ((NavigationViewItem)Navigation.MenuItems[2]).Content = T("鼠标与指针", "Mouse & pointer");
         if (Navigation.SettingsItem is NavigationViewItem settingsItem) settingsItem.Content = T("设置", "Settings");
         var index = DisplayMode.SelectedIndex;
-        DisplayMode.Items[0] = T("单独控制", "Individual"); DisplayMode.Items[1] = T("一起控制", "Linked"); DisplayMode.SelectedIndex = index;
+        DisplayMode.Items[0] = T("单独控制", "Individual"); DisplayMode.Items[1] = T("同型号联动", "Link same models"); DisplayMode.SelectedIndex = index;
         RefreshButton.Content = T("刷新", "Refresh"); IdentifyButton.Content = T("识别显示器", "Identify");
         DefaultAudioTitle.Text = T("Windows 当前默认设备", "Current Windows default devices");
         SoundSettingsLink.Content = T("Windows 声音设置", "Windows sound settings");
@@ -127,6 +127,8 @@ public sealed partial class MainWindow
         HideUnavailable.IsChecked = state.Settings.HideUnavailableMonitorControls;
         ProfileExchangeButton.Content = T("分享 / 导入", "Share / import");
         NightLightLink.Content = T("Windows 夜间模式", "Windows night light");
+        GroupPicker.PlaceholderText = T("配置分组", "Profile group");
+        NewGroupButton.Content = T("新建分组", "New group"); EditProfileButton.Content = T("信息 / 标签", "Info / tags"); FilterProfilesButton.Content = T("筛选配置", "Filter profiles");
         ProfilePicker.PlaceholderText = T("选择配置", "Choose a profile");
         SaveProfileButton.Content = T("保存为配置", "Save as profile"); UpdateProfileButton.Content = T("更新", "Update"); DeleteProfileButton.Content = T("删除", "Delete");
         ToolTipService.SetToolTip(PreviousProfileButton, T("上一个配置", "Previous profile")); ToolTipService.SetToolTip(NextProfileButton, T("下一个配置", "Next profile"));
@@ -155,18 +157,25 @@ public sealed partial class MainWindow
     }
     private void RefreshProfiles()
     {
+        ProfileGroups.Normalize(state);
         rebuildingProfiles = true;
-        ProfilePicker.ItemsSource = null; ProfilePicker.ItemsSource = state.Profiles;
-        ProfilePicker.SelectedItem = state.Profiles.FirstOrDefault(x => x.Id == state.SelectedProfileId);
-        UpdateProfileButton.IsEnabled = DeleteProfileButton.IsEnabled = ProfilePicker.SelectedItem is not null;
-        PreviousProfileButton.IsEnabled = NextProfileButton.IsEnabled = state.Profiles.Count > 0;
+        GroupPicker.ItemsSource = null; GroupPicker.ItemsSource = state.Groups;
+        GroupPicker.SelectedItem = state.Groups.First(x => x.Id == state.SelectedGroupId);
+        var profiles = VisibleProfiles();
+        foreach (var profile in profiles) profile.DisplayLabel = HasProfileFilters && filterAllGroups ? (state.Groups.FirstOrDefault(g => g.Id == profile.GroupId)?.DisplayName ?? "") + " / " + profile.Name : profile.Name;
+        ProfilePicker.ItemsSource = null; ProfilePicker.ItemsSource = profiles;
+        ProfilePicker.SelectedItem = profiles.FirstOrDefault(x => x.Id == state.SelectedProfileId);
+        EditProfileButton.IsEnabled = UpdateProfileButton.IsEnabled = DeleteProfileButton.IsEnabled = ProfilePicker.SelectedItem is not null;
+        PreviousProfileButton.IsEnabled = NextProfileButton.IsEnabled = profiles.Count > 0;
         rebuildingProfiles = false;
+        ProfileFilterSummary.Visibility = HasProfileFilters ? Visibility.Visible : Visibility.Collapsed;
+        ProfileFilterSummary.Text = F("筛选结果：{0} 个配置", "Filter results: {0} profiles", profiles.Count);
         UpdateDesktopProfile();
     }
     private void UpdateDesktopProfile()
     {
-        var name = state.Profiles.FirstOrDefault(x => x.Id == state.SelectedProfileId)?.Name;
-        desktopPanel?.SetProfile(name is null ? T("未选择配置", "No profile selected") : name + (profileDirty ? " *" : ""));
+        var name = state.Profiles.FirstOrDefault(x => x.Id == state.SelectedProfileId && x.GroupId == state.SelectedGroupId)?.Name;
+        desktopPanel?.SetProfile((state.Groups.FirstOrDefault(g => g.Id == state.SelectedGroupId)?.DisplayName ?? "") + " · " + (name is null ? T("未选择配置", "No profile selected") : name + (profileDirty ? " *" : "")));
     }
     private void MarkProfileModified() { profileDirty = true; UpdateDesktopProfile(); }
     private async void ProfilePicker_SelectionChanged(object sender, SelectionChangedEventArgs args)
@@ -177,9 +186,10 @@ public sealed partial class MainWindow
     private async void NextProfile_Click(object sender, RoutedEventArgs e) => await SwitchProfileAsync(1);
     private async Task SwitchProfileAsync(int delta)
     {
-        var index = UserStateStore.NextIndex(state.Profiles, state.SelectedProfileId, delta);
+        var profiles = VisibleProfiles();
+        var index = UserStateStore.NextIndex(profiles, state.SelectedProfileId, delta);
         if (index < 0) { ShowStatus(T("请先保存一个配置。", "Save a profile first."), InfoBarSeverity.Informational); return; }
-        await ApplyProfileAsync(state.Profiles[index]);
+        await ApplyProfileAsync(profiles[index]);
     }
     private async Task WaitForWritesAsync()
     {
@@ -205,6 +215,7 @@ public sealed partial class MainWindow
                     foreach (var entry in profile.Values.OrderBy(x => available.TryGetValue(x.Key, out var c) ? c.ApplyOrder : 50))
                     {
                         if (!available.TryGetValue(entry.Key, out var channel)) { missing++; continue; }
+                        if (entry.Key.StartsWith("monitor/") && !ProfileExchange.CanApply(channel, entry.Value.Value)) { missing++; continue; }
                         if (channel.PropertyKey == "input" && channel.Value == entry.Value.Value) continue;
                         var failures = ControlOperations.Apply(new[] { channel }, entry.Value.Value);
                         errors.AddRange(failures);
@@ -222,10 +233,10 @@ public sealed partial class MainWindow
                 foreach (var device in displayDevices)
                     if (profile.BrightnessMappings.TryGetValue(device.Id, out var mapping)) { mapping.Validate(); device.Preference.Brightness = mapping.Copy(); BindBrightnessMapping(device); }
                 preferences?.Save();
-                state.SelectedProfileId = profile.Id; profileDirty = result.errors.Count > 0 || result.missing > 0;
+                state.SelectedGroupId = profile.GroupId; state.SelectedProfileId = profile.Id; profileDirty = result.errors.Count > 0 || result.missing > 0;
                 SaveState(); RefreshProfiles(); SynchronizeValues();
                 var message = F("配置「{0}」：已更新 {1} 项", "Profile '{0}': {1} controls applied", profile.Name, result.applied);
-                if (result.missing > 0) message += F("，跳过 {0} 个未连接控制项", "; {0} unavailable controls skipped", result.missing);
+                if (result.missing > 0) message += F("，跳过 {0} 个未连接或不可设置项", "; {0} unavailable controls skipped", result.missing);
                 if (result.errors.Count > 0) message += " · " + string.Join("; ", result.errors);
                 ShowStatus(message, result.errors.Count > 0 || result.missing > 0 ? InfoBarSeverity.Warning : InfoBarSeverity.Success, page);
             }
@@ -235,12 +246,14 @@ public sealed partial class MainWindow
         finally { applyingProfile = false; }
     }
     private Dictionary<string, SavedValue> CaptureProfile() => AllChannels()
-        .Where(x => !x.Key.StartsWith("audio/") || x.Value.IsDefaultAudio)
+        .Where(x => (!x.Key.StartsWith("audio/") || x.Value.IsDefaultAudio) && (!x.Key.StartsWith("monitor/") || ProfileExchange.CanApply(x.Value, x.Value.Value)))
         .ToDictionary(x => x.Key, x => new SavedValue { Value = x.Value.Value, Muted = x.Value.WriteMute is null ? null : x.Value.IsMuted });
     private async void SaveProfile_Click(object sender, RoutedEventArgs e)
     {
-        var input = new TextBox { PlaceholderText = T("例如：阅读、游戏、夜间", "Reading, gaming, evening…"), MaxLength = 40 };
-        var dialog = new ContentDialog { Title = T("保存当前配置", "Save current controls"), Content = input, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), IsPrimaryButtonEnabled = false, XamlRoot = Root.XamlRoot };
+        var input = new TextBox { Header = T("配置名称", "Profile name"), PlaceholderText = T("例如：阅读、游戏、夜间", "Reading, gaming, evening…"), MaxLength = 80 };
+        var apps = new TextBox { Header = T("适用应用 / 游戏（逗号分隔）", "Apps / games (comma separated)"), MaxLength = 1500 };
+        var contents = new StackPanel { Spacing = 12 }; contents.Children.Add(input); contents.Children.Add(apps);
+        var dialog = new ContentDialog { Title = T("保存当前配置", "Save current controls"), Content = contents, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), IsPrimaryButtonEnabled = false, XamlRoot = Root.XamlRoot };
         input.TextChanged += (_, _) => dialog.IsPrimaryButtonEnabled = !string.IsNullOrWhiteSpace(input.Text);
         try
         {
@@ -249,8 +262,8 @@ public sealed partial class MainWindow
             try
             {
                 var name = input.Text.Trim();
-                if (state.Profiles.Any(x => string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase))) { ShowStatus(T("配置名称已存在，可用“更新”覆盖。", "That name exists. Use Update to replace it."), InfoBarSeverity.Warning); return; }
-                var profile = new ControlProfile { Name = name, Values = CaptureProfile(), BrightnessMappings = CaptureMappings() };
+                if (state.Profiles.Any(x => x.GroupId == state.SelectedGroupId && string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase))) { ShowStatus(T("配置名称已存在，可用“更新”覆盖。", "That name exists. Use Update to replace it."), InfoBarSeverity.Warning); return; }
+                var profile = new ControlProfile { Name = name, GroupId = state.SelectedGroupId, Applications = ParseApplications(apps.Text), Monitors = CaptureMonitorMetadata(), Values = CaptureProfile(), BrightnessMappings = CaptureMappings() };
                 if (profile.Values.Count == 0) { ShowStatus(T("没有可保存的控制项。", "No controls are available to save."), InfoBarSeverity.Warning); return; }
                 state.Profiles.Add(profile); state.SelectedProfileId = profile.Id; profileDirty = false;
                 if (SaveState()) ShowStatus(T("配置已保存。", "Profile saved."), InfoBarSeverity.Success);
@@ -266,7 +279,7 @@ public sealed partial class MainWindow
         await WaitForWritesAsync(); await gate.WaitAsync();
         try
         {
-            profile.Values = CaptureProfile(); profile.BrightnessMappings = CaptureMappings(); profileDirty = false;
+            profile.Values = CaptureProfile(); profile.BrightnessMappings = CaptureMappings(); profile.Monitors = CaptureMonitorMetadata(); profileDirty = false;
             if (SaveState()) ShowStatus(T("配置已更新。", "Profile updated."), InfoBarSeverity.Success);
             RefreshProfiles();
         }
@@ -292,16 +305,24 @@ public sealed partial class MainWindow
         var result = new List<PanelRow>();
         if (state.Settings.GroupDesktopMonitors)
         {
-            foreach (var key in new[] { "brightness", "contrast", "speaker" })
-            {
-                var targets = displayDevices.SelectMany(x => x.Channels).Where(x => x.PropertyKey == key).ToArray();
-                if (targets.Length > 0) result.Add(new() { Key = "monitor/all/" + key, Name = Channel(targets[0]), Group = "monitor", Targets = targets, Linked = true });
-            }
+            foreach (var group in displayDevices.GroupBy(d => MonitorLinking.GroupKey(d.ModelId, d.Id)))
+                foreach (var key in new[] { "brightness", "contrast", "speaker" })
+                {
+                    var targets = group.SelectMany(x => x.Channels).Where(x => x.PropertyKey == key).ToArray();
+                    if (targets.Length > 0) result.Add(new() { Key = "monitor/" + group.Key + "/" + key, Name = string.Join(" + ", group.Select(d => d.DisplayName)) + " · " + Channel(targets[0]), Group = group.Key, Targets = targets, Linked = true });
+                }
         }
         else foreach (var display in displayDevices) foreach (var c in display.Channels.Where(x => !x.IsAction && !x.RequiresConfirmation))
             result.Add(new() { Key = $"monitor/{Uri.EscapeDataString(display.Id)}/{c.PropertyKey}", Name = display.DisplayName + " · " + Channel(c), Group = display.Id, Targets = new[] { c } });
         foreach (var c in audioChannels.Where(x => x.IsDefaultAudio)) result.Add(new() { Key = $"audio/{Uri.EscapeDataString(c.DeviceId)}/{c.PropertyKey}", Name = c.Name, Group = "audio", Targets = new[] { c } });
         foreach (var c in mouseChannels) result.Add(new() { Key = "mouse/" + c.PropertyKey, Name = Channel(c), Group = "mouse", Targets = new[] { c } });
+        var legacy = state.Settings.DesktopRows.Where(k => k.StartsWith("monitor/all/", StringComparison.Ordinal)).ToArray();
+        if (displayDevices.Count > 0 && legacy.Length > 0)
+        {
+            foreach (var item in result.Where(r => r.Key.StartsWith("monitor/") && legacy.Any(k => k.Split('/').Last() == r.Key.Split('/').Last())))
+                if (!state.Settings.DesktopRows.Contains(item.Key)) state.Settings.DesktopRows.Add(item.Key);
+            state.Settings.DesktopRows.RemoveAll(k => legacy.Contains(k)); SaveState();
+        }
         return result;
     }
     private void RefreshDesktopPanel()
@@ -309,6 +330,10 @@ public sealed partial class MainWindow
         try
         {
             if (!state.Settings.DesktopPanelEnabled || closed) { desktopPanel?.Close(); desktopPanel = null; return; }
+            // A live theme change on this transparent secondary WinUI window can
+            // invalidate theme resources during layout. Recreate with its final theme.
+            if (desktopPanel is not null && desktopPanel.UsesLightText != state.Settings.DesktopLightText)
+            { desktopPanel.Close(); desktopPanel = null; }
             desktopPanel ??= new DesktopPanelWindow(state.Settings, delta => _ = SwitchProfileAsync(delta), () =>
             {
                 pendingStateTimer.Stop(); pendingStateTimer.Start();
@@ -349,10 +374,13 @@ public sealed partial class MainWindow
     private void BuildSettings()
     {
         SettingsPanel.Children.Clear();
+        InitializationText.Text = T("正在初始化设备…", "Initializing devices…");
+        InitializationDetail.Text = T("正在读取显示器信息与控制能力，请稍候。", "Reading display information and supported controls. Please wait.");
         void Heading(string text) => SettingsPanel.Children.Add(new TextBlock { Text = text, FontSize = 20, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Margin = new Thickness(0, 8, 0, 0) });
         void Toggle(string title, string description, bool initial, Action<bool> changed)
         {
             var toggle = new ToggleSwitch { IsOn = initial, OnContent = T("开", "On"), OffContent = T("关", "Off") };
+            if (title == T("使用浅色文字", "Light text")) Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(toggle, "setting-light-text");
             toggle.Toggled += (_, _) => changed(toggle.IsOn);
             SettingsPanel.Children.Add(SettingsRow(title, description, toggle));
         }
@@ -369,11 +397,13 @@ public sealed partial class MainWindow
         Toggle(T("关闭窗口后留在托盘", "Keep running in the tray"), T("从托盘菜单可彻底退出", "Use the tray menu to exit completely"), state.Settings.CloseToTray, value => { state.Settings.CloseToTray = value; SaveState(); });
         bool startup;
         try { startup = !uiTest && StartupService.IsEnabled(); } catch { startup = false; }
-        Toggle(T("开机自启动", "Launch at sign-in"), T("登录 Windows 后在托盘运行；移动程序文件夹后请重新启用", "Start in the tray after sign-in. Re-enable after moving the app folder."), startup, value =>
+        Toggle(T("开机自启动", "Launch at sign-in"), T("使用当前用户的启动文件夹，登录后在托盘运行；移动程序后请重新启用", "Uses your Startup folder and starts in the tray. Re-enable after moving the app."), startup, value =>
         {
             try { if (!uiTest) StartupService.SetEnabled(value); }
             catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error); BuildSettings(); }
         });
+        var startupSettings = new HyperlinkButton { Content = T("Windows 启动应用设置", "Windows Startup Apps"), Tag = "ms-settings:startupapps" };
+        startupSettings.Click += OpenSettings_Click; SettingsPanel.Children.Add(startupSettings);
         Heading(T("全局快捷键", "Global shortcuts"));
         Toggle(T("启用快捷键", "Enable shortcuts"), T("若组合已被占用，会显示冲突而不抢占", "Conflicts are reported without taking over other shortcuts"), state.Settings.HotkeysEnabled, value =>
         {
@@ -384,7 +414,7 @@ public sealed partial class MainWindow
         if (shell?.TrayAvailable != true) SettingsPanel.Children.Add(Empty(T("托盘不可用，关闭按钮将退出应用。", "Tray unavailable. Closing the window exits the app.")));
         Heading(T("桌面控制面板", "Desktop controls"));
         Toggle(T("显示桌面面板", "Show desktop panel"), T("半透明背景 · 双击解锁 · 拖动右上角移动，右下角缩放", "Translucent · Double-click to unlock · Drag top-right to move, bottom-right to resize"), state.Settings.DesktopPanelEnabled, value => { state.Settings.DesktopPanelEnabled = value; SaveState(); RefreshDesktopPanel(); });
-        Toggle(T("显示器一起控制", "Link display controls"), T("关闭后可选择每台显示器的独立控制项", "Turn off to choose controls for individual displays"), state.Settings.GroupDesktopMonitors, value =>
+        Toggle(T("同型号显示器一起控制", "Link matching display models"), T("不同型号保持独立；关闭后每台屏幕单独控制", "Different models stay independent. Turn off to control each display separately"), state.Settings.GroupDesktopMonitors, value =>
         {
             var old = state.Settings.DesktopRows.ToArray(); state.Settings.GroupDesktopMonitors = value;
             state.Settings.DesktopRows = DesktopCandidates().Where(x => old.Contains(x.Key) || (x.Key.StartsWith("monitor/") && old.Any(k => k.StartsWith("monitor/") && k.Split('/').Last() == x.Key.Split('/').Last()))).Select(x => x.Key).ToList();
@@ -437,12 +467,14 @@ public sealed partial class MainWindow
     {
         var targets = group ?? new[] { channel };
         var options = channel.Options!;
-        var combo = new ComboBox { ItemsSource = options, DisplayMemberPath = "Label", MinWidth = 150, PlaceholderText = T("不同", "Mixed") };
+        var combo = new ComboBox { ItemsSource = options, DisplayMemberPath = "Label", MinWidth = 150, MaxWidth = 340, PlaceholderText = T("不同", "Mixed") };
         var syncing = false;
         void Update()
         {
             syncing = true;
-            combo.SelectedItem = targets.All(x => x.Value == targets[0].Value) ? options.FirstOrDefault(x => x.Value == targets[0].Value) : null;
+            var same = targets.All(x => x.Value == targets[0].Value);
+            combo.SelectedItem = same ? options.FirstOrDefault(x => x.Value == targets[0].Value) : null;
+            combo.PlaceholderText = same && combo.SelectedItem is null ? F("当前值 0x{0}（不可重放）", "Current 0x{0} (not replayable)", ((uint)targets[0].Value).ToString("X")) : T("不同", "Mixed");
             syncing = false;
         }
         refreshRows.Add(Update); Update();
@@ -455,7 +487,7 @@ public sealed partial class MainWindow
             try
             {
                 if (version != generation || closed) return;
-                var errors = await Task.Run(() => ControlOperations.Apply(targets, choice.Value));
+                var errors = await Task.Run(() => ControlOperations.Apply(targets.Where(c => c.Options?.Any(o => o.Value == choice.Value) == true), choice.Value));
                 if (closed) return;
                 MarkProfileModified(); SynchronizeValues();
                 ShowStatus(errors.Count == 0 ? F("已更新{0}", "{0} updated", Channel(channel)) : string.Join("; ", errors), errors.Count == 0 ? InfoBarSeverity.Success : InfoBarSeverity.Error, page);
@@ -470,6 +502,7 @@ public sealed partial class MainWindow
         if (!uiTest) return;
         var oldProfiles = state.Profiles.ToList(); var oldSelected = state.SelectedProfileId;
         var oldSettings = state.Settings;
+        var oldGroups = state.Groups.ToList(); var oldGroup = state.SelectedGroupId;
         try
         {
             if (!File.Exists(Path.Combine(AppContext.BaseDirectory, "Assets", "FluentControl.ico"))) throw new InvalidOperationException("Icon not published.");
@@ -490,6 +523,7 @@ public sealed partial class MainWindow
                 if (!Title.Contains(AppName) || Navigation.PaneTitle != AppName || PageTitle.Text != T("设置", "Settings")) throw new InvalidOperationException("Title or menu language failed: " + language);
             }
             SetLanguage("zh-CN"); LocalizeUi();
+            await CheckProfilesAndThemeAsync();
             var profile = new ControlProfile { Name = "UI test profile", Values = CaptureProfile() };
             state.Profiles.Add(profile);
             var brightness = displayDevices[0].Channels.First(x => x.PropertyKey == "brightness");
@@ -502,7 +536,8 @@ public sealed partial class MainWindow
             RefreshDesktopPanel(); RefreshCrosshair();
             await Task.Delay(250);
             if (desktopPanel is null || desktopPanel.RowCount != 2 || desktopPanel.IsUnlocked) throw new InvalidOperationException("Desktop panel did not start locked with two rows.");
-            desktopPanel.SetUnlocked(true);
+            await CheckPanelTextSwitchAsync();
+            desktopPanel!.SetUnlocked(true);
             if (!desktopPanel.IsUnlocked) throw new InvalidOperationException("Desktop panel cannot unlock.");
             desktopPanel.SetUnlocked(false);
             if (desktopPanel.IsUnlocked) throw new InvalidOperationException("Desktop panel cannot lock.");
@@ -528,6 +563,7 @@ public sealed partial class MainWindow
         finally
         {
             state.Profiles = oldProfiles; state.SelectedProfileId = oldSelected; state.Settings = oldSettings;
+            state.Groups = oldGroups; state.SelectedGroupId = oldGroup; applicationFilter = modelFilter = brandFilter = "";
             desktopPanel?.Close(); desktopPanel = null; crosshair?.Close(); crosshair = null;
             SetLanguage(state.Settings.Language); SaveState(); LocalizeUi(); BuildSettings(); RefreshProfiles();
             Navigation.SelectedItem = Navigation.MenuItems[0]; DisplayMode.SelectedIndex = 1;

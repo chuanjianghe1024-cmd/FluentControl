@@ -67,6 +67,7 @@ public sealed class MonitorService : IDisposable
     public List<MonitorDevice> Enumerate()
     {
         var devices = new List<MonitorDevice>();
+        var friendlyNames = MonitorNames.ReadActive();
         Exception? callbackError = null;
         MonitorCallback callback = (monitor, _, _, _) =>
         {
@@ -90,6 +91,7 @@ public sealed class MonitorService : IDisposable
                     var hasIdentity = EnumDisplayDevices(info.Device, (uint)i, ref display, 1);
                     var item = physical.Length > 0 ? physical[i] : default;
                     var model = !string.IsNullOrWhiteSpace(item.Description) ? item.Description : display.Description;
+                    if (!string.IsNullOrEmpty(display.Id) && friendlyNames.TryGetValue(display.Id, out var friendly)) model = friendly;
                     var device = new MonitorDevice
                     {
                         Id = hasIdentity && !string.IsNullOrWhiteSpace(display.Id) ? display.Id.ToUpperInvariant() : $"{info.Device}/{model}/{i}",

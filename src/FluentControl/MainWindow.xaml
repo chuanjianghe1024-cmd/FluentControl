@@ -1,7 +1,8 @@
 <Window x:Class="FluentControl.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <NavigationView x:Name="Navigation" PaneTitle="FluentControl" PaneDisplayMode="Left"
+    <Grid x:Name="ShellRoot">
+    <NavigationView Visibility="Collapsed" x:Name="Navigation" PaneTitle="FluentControl" PaneDisplayMode="Left"
                     OpenPaneLength="200" IsBackButtonVisible="Collapsed" IsSettingsVisible="True"
                     IsPaneToggleButtonVisible="False" IsPaneOpen="True" SelectionChanged="Navigation_SelectionChanged">
         <NavigationView.MenuItems>
@@ -29,13 +30,23 @@
                     <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72C;" FontSize="16"/><TextBlock Text="刷新"/></StackPanel>
                 </Button>
             </Grid>
-            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
-                <Button x:Name="PreviousProfileButton" Content="‹" Click="PreviousProfile_Click"/>
-                <ComboBox x:Name="ProfilePicker" Width="210" PlaceholderText="选择配置" DisplayMemberPath="Name" SelectionChanged="ProfilePicker_SelectionChanged"/>
-                <Button x:Name="NextProfileButton" Content="›" Click="NextProfile_Click"/>
-                <Button x:Name="SaveProfileButton" Content="保存为配置" Click="SaveProfile_Click"/>
-                <Button x:Name="UpdateProfileButton" Content="更新" Click="UpdateProfile_Click"/>
-                <Button x:Name="DeleteProfileButton" Content="删除" Click="DeleteProfile_Click"/>
+            <StackPanel Grid.Row="1" Spacing="8">
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="3*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <ComboBox x:Name="GroupPicker" PlaceholderText="配置分组" DisplayMemberPath="DisplayName" HorizontalAlignment="Stretch" SelectionChanged="GroupPicker_SelectionChanged"/>
+                    <Button x:Name="PreviousProfileButton" Grid.Column="1" Content="‹" Click="PreviousProfile_Click"/>
+                    <ComboBox x:Name="ProfilePicker" Grid.Column="2" PlaceholderText="选择配置" DisplayMemberPath="DisplayLabel" HorizontalAlignment="Stretch" SelectionChanged="ProfilePicker_SelectionChanged"/>
+                    <Button x:Name="NextProfileButton" Grid.Column="3" Content="›" Click="NextProfile_Click"/>
+                </Grid>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="SaveProfileButton" Content="保存为配置" Click="SaveProfile_Click"/>
+                    <Button x:Name="UpdateProfileButton" Content="更新" Click="UpdateProfile_Click"/>
+                    <Button x:Name="EditProfileButton" Content="信息 / 标签" Click="EditProfile_Click"/>
+                    <Button x:Name="DeleteProfileButton" Content="删除" Click="DeleteProfile_Click"/>
+                    <Button x:Name="NewGroupButton" Content="新建分组" Click="NewGroup_Click"/>
+                    <Button x:Name="FilterProfilesButton" Content="筛选配置" Click="FilterProfiles_Click"/>
+                </StackPanel>
+                <TextBlock x:Name="ProfileFilterSummary" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"/>
             </StackPanel>
             <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
                 <Grid>
@@ -44,7 +55,7 @@
                         <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <RadioButtons x:Name="DisplayMode" MaxColumns="2" SelectedIndex="1" SelectionChanged="DisplayMode_SelectionChanged">
-                                <x:String>单独控制</x:String><x:String>一起控制</x:String>
+                                <x:String>单独控制</x:String><x:String>同型号联动</x:String>
                             </RadioButtons>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <CheckBox x:Name="HideUnavailable" Content="隐藏不可设置项" Click="HideUnavailable_Click"/>
@@ -81,4 +92,10 @@
             <InfoBar x:Name="Status" Grid.Row="3" IsOpen="False" Visibility="Collapsed" IsClosable="False" Severity="Informational" Message="正在读取设备…"/>
         </Grid>
     </NavigationView>
+    <StackPanel x:Name="InitializationPanel" Spacing="18" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <ProgressRing x:Name="InitializationRing" IsActive="True" Width="48" Height="48"/>
+        <TextBlock x:Name="InitializationText" Text="正在初始化设备…" FontSize="20" HorizontalAlignment="Center"/>
+        <TextBlock x:Name="InitializationDetail" Text="正在读取显示器信息与控制能力，请稍候。" Opacity="0.7" TextWrapping="Wrap" MaxWidth="360" TextAlignment="Center"/>
+    </StackPanel>
+    </Grid>
 </Window>

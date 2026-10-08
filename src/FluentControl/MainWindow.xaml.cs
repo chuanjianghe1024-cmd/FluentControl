@@ -23,12 +23,13 @@ public sealed partial class MainWindow : Window
     private readonly string? preferencesError;
     private List<MonitorDevice> displayDevices = new();
     private int generation;
-    private bool refreshing, closed, initialized;
+    private bool refreshing, closed, initialized, initialLoadCompleted;
     private readonly bool uiTest = Environment.GetCommandLineArgs().Contains("--ui-test");
 
     public MainWindow()
     {
         InitializeComponent();
+        InitializeTitleTheme();
         Title = "FluentControl";
         try { SystemBackdrop = new MicaBackdrop(); }
         catch (Exception ex) { StartupLog.Write("Mica unavailable: " + ex); }
@@ -44,11 +45,11 @@ public sealed partial class MainWindow : Window
         initialized = true;
         Navigation.SelectedItem = Navigation.MenuItems[0];
         identificationTimer.Tick += (_, _) => CloseIdentification();
-        Root.Loaded += async (_, _) =>
+        ShellRoot.Loaded += async (_, _) =>
         {
             LocalizeUi();
             StartupLog.Write("Main window content loaded");
-            await RefreshAsync();
+            if (!initialLoadCompleted) await RefreshAsync();
             FinishLaunch();
             if (uiTest && !closed) await RunUiChecksAsync();
         };
@@ -124,6 +125,7 @@ public sealed partial class MainWindow : Window
                 catch (Exception ex) { device.Preference = new() { Label = "M" + (i + 1) }; result.errors.Add(T("名称保存失败：", "Cannot save name: ") + ex.Message); }
                 BindBrightnessMapping(device);
             }
+            RecordMonitorMetadata();
             RenderMonitorControls(version);
             foreach (var channel in result.a)
                 (channel.IsDefaultAudio ? AudioRows : OtherAudioRows).Children.Add(CreateRow(channel, version));
@@ -145,7 +147,16 @@ public sealed partial class MainWindow : Window
             StartupLog.Write("Refresh failed: " + ex);
             if (!closed) ShowStatus(ex.Message, InfoBarSeverity.Error, page);
         }
-        finally { refreshing = false; RefreshButton.IsEnabled = true; gate.Release(); }
+        finally
+        {
+            refreshing = false; gate.Release();
+            if (!closed)
+            {
+                initialLoadCompleted = true; RefreshButton.IsEnabled = true;
+                Navigation.Visibility = Visibility.Visible;
+                InitializationRing.IsActive = false; InitializationPanel.Visibility = Visibility.Collapsed;
+            }
+        }
     }
 
     private FrameworkElement CreateMonitorCard(MonitorDevice device, int version)
@@ -170,6 +181,7 @@ public sealed partial class MainWindow : Window
             {
                 if (await dialog.ShowAsync() != ContentDialogResult.Primary || closed) return;
                 preferences!.Rename(device.Id, input.Text);
+                RecordMonitorMetadata(true);
                 title.Text = MonitorTitle(device);
                 BuildSettings(); RefreshDesktopPanel();
                 ShowStatus(F("已保存名称：{0}", "Name saved: {0}", device.DisplayName), InfoBarSeverity.Success);

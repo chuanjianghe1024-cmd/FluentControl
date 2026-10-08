@@ -20,8 +20,16 @@ public sealed partial class MainWindow
         var start = refreshRows.Count;
         MonitorRows.Children.Clear(); CombinedRows.Children.Clear();
         foreach (var display in displayDevices) MonitorRows.Children.Add(CreateMonitorCard(display, version));
-        CombinedRows.Children.Add(Empty(T("统一亮度使用每屏的亮度映射；其他滑块按百分比同步。选项只合并共同支持的值，输入源等操作按屏幕单独设置。", "Linked brightness uses each display's mapping; other sliders share percentages. Choices use common values. Inputs and sensitive controls remain per display.")));
-        AddFeatureSections(CombinedRows, displayDevices, version, true);
+        CombinedRows.Children.Add(Empty(T("同型号屏幕默认联动，不同型号独立控制。显示所有可用选项，仅向支持该项的屏幕发送命令。", "Matching models are linked; different models stay independent. All supported choices are shown and sent only to compatible displays.")));
+        foreach (var group in displayDevices.GroupBy(d => MonitorLinking.GroupKey(d.ModelId, d.Id)))
+        {
+            var devices = group.ToArray();
+            if (devices.Length == 1) { CombinedRows.Children.Add(CreateMonitorCard(devices[0], version)); continue; }
+            var body = new StackPanel { Spacing = 8, Padding = new Thickness(16) };
+            body.Children.Add(new TextBlock { Text = devices[0].Model + " · " + devices[0].ModelId, FontSize = 20, TextWrapping = TextWrapping.Wrap });
+            body.Children.Add(Empty(string.Join(" · ", devices.Select(d => d.DisplayName))));
+            AddFeatureSections(body, devices, version, true); CombinedRows.Children.Add(Card(body));
+        }
         var mappings = new StackPanel { Spacing = 8 };
         foreach (var display in displayDevices) mappings.Children.Add(CreateMappingRow(display));
         CombinedRows.Children.Add(new Expander { Header = T("多屏亮度匹配", "Match display brightness"), Content = mappings, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
@@ -49,12 +57,7 @@ public sealed partial class MainWindow
                 else
                 {
                     var first = targets[0];
-                    var options = first.Options?.Where(o => targets.All(c => c.Options?.Any(x => x.Value == o.Value) == true)).ToArray();
-                    if (options is { Length: 0 })
-                    {
-                        foreach (var entry in entries.Where(x => x.Feature.Channel is not null)) rows.Children.Add(FeatureRow(entry.Device, entry.Feature, version, true));
-                        continue;
-                    }
+                    var options = MonitorLinking.Options(targets);
                     var aggregate = new ControlChannel { Name = definition.Name, Detail = F("{0} / {1} 台支持", "{0} / {1} supported", targets.Length, devices.Count) + $" · VCP 0x{definition.Code:X2}", Glyph = first.Glyph, PropertyKey = first.PropertyKey, Minimum = first.Minimum, Maximum = first.Maximum, Unit = first.Unit, Options = options, Write = _ => { } };
                     rows.Children.Add(CreateRow(aggregate, version, targets));
                 }

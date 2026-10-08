@@ -33,6 +33,7 @@ internal sealed class DesktopPanelWindow : Window
     private long previousPress;
     private PointInt32 previousPressPoint;
     private SizeInt32 sizeStart;
+    internal bool UsesLightText => root.RequestedTheme == ElementTheme.Dark;
     internal bool HasPendingChanges => pendingChanges > 0;
     internal bool IsUnlocked => active;
     internal int RowCount { get; private set; }
@@ -44,6 +45,7 @@ internal sealed class DesktopPanelWindow : Window
     internal DesktopPanelWindow(AppSettings settings, Action<int> switchProfile, Action changed)
     {
         this.settings = settings; this.changed = changed;
+        root.RequestedTheme = settings.DesktopLightText ? ElementTheme.Dark : ElementTheme.Light;
         SystemBackdrop = backdrop;
         Content = root;
         hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
@@ -167,7 +169,6 @@ internal sealed class DesktopPanelWindow : Window
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(resizeGrip, Strings.T("拖动以调整大小", "Drag to resize"));
         rowGeneration++; var version = rowGeneration;
         rows.Children.Clear(); sync.Clear(); RowCount = source.Count;
-        root.RequestedTheme = settings.DesktopLightText ? ElementTheme.Dark : ElementTheme.Light;
         var alpha = (byte)Math.Round(Math.Clamp(settings.DesktopOpacity, 10, 85) * 2.55);
         backdrop.TintColor = settings.DesktopLightText ? Windows.UI.Color.FromArgb(alpha, 24, 28, 36) : Windows.UI.Color.FromArgb(alpha, 248, 250, 252);
         string? previousGroup = null;

@@ -29,6 +29,10 @@ public sealed class ControlProfile
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Name { get; set; } = "";
+    public string GroupId { get; set; } = ProfileGroup.LocalId;
+    public Dictionary<string, MonitorDescriptor> Monitors { get; set; } = new();
+    public List<string> Applications { get; set; } = new();
+    [System.Text.Json.Serialization.JsonIgnore] public string DisplayLabel { get; set; } = "";
     public Dictionary<string, SavedValue> Values { get; set; } = new();
     public Dictionary<string, BrightnessMapping> BrightnessMappings { get; set; } = new();
 }
@@ -36,6 +40,9 @@ public sealed class UserState
 {
     public AppSettings Settings { get; set; } = new();
     public List<ControlProfile> Profiles { get; set; } = new();
+    public List<ProfileGroup> Groups { get; set; } = new();
+    public string SelectedGroupId { get; set; } = ProfileGroup.LocalId;
+    public Dictionary<string, MonitorDescriptor> KnownMonitors { get; set; } = new();
     public string? SelectedProfileId { get; set; }
 }
 public sealed class UserStateStore
@@ -47,6 +54,7 @@ public sealed class UserStateStore
         this.path = path;
         State = File.Exists(path) ? JsonSerializer.Deserialize<UserState>(File.ReadAllText(path)) ?? new() : new();
         State.Settings ??= new(); State.Profiles ??= new();
+        ProfileGroups.Normalize(State);
         State.Settings.DesktopRows ??= new();
         State.Settings.DesktopMaxRows = Math.Clamp(State.Settings.DesktopMaxRows, 1, 16);
         State.Settings.DesktopOpacity = double.IsFinite(State.Settings.DesktopOpacity) ? Math.Clamp(State.Settings.DesktopOpacity, 10, 85) : 30;
@@ -57,7 +65,7 @@ public sealed class UserStateStore
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var temporary = path + ".tmp";
-        File.WriteAllText(temporary, JsonSerializer.Serialize(State, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(temporary, JsonSerializer.Serialize(State, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
         File.Move(temporary, path, true);
     }
     public static int NextIndex(IReadOnlyList<ControlProfile> profiles, string? currentId, int delta)

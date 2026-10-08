@@ -1,42 +1,67 @@
 # 型号配置与网站接口
 
-## 已实现的边界
+## 批量配置 v2
 
-分享对象是 `fluentcontrol.monitor-profile` v1 的纯数据。通用功能由 VCP 能力声明和读回探测决定；不会在探测时试写、重置或切换输入。目录之外的码保留为型号适配占位，尚未实现任意厂商私有码的写入。`IMonitorModelAdapter` 为后续受审核的代码适配器预留契约，目前没有加载器或厂商 SDK。
-
-本机配置仍按实例标识保存，保留重命名和每屏映射；共享文件只记录 PnP 厂商/产品型号，例如 `DEL1234`，同型号的两块屏幕由独立 slot 区分。导入时用户明确绑定 slot 到当前屏幕。具体参数仍需在目标屏幕上重新校验，不因型号相同就假定固件/HDR模式完全一致。
+分享文件采用 `fluentcontrol.monitor-bundle` v2，包含多个分组与多套场景；读取兼容旧 `fluentcontrol.monitor-profile` v1。导出来源是**已保存**场景，可以导出全部分组、当前分组，或其中某一型号的全部场景。JSON 使用 UTF-8 可读 Unicode。
 
 ```json
 {
-  "schema": "fluentcontrol.monitor-profile",
-  "version": 1,
-  "name": "办公",
-  "monitors": [
-    {
-      "slot": "display-1",
-      "modelId": "DEL1234",
-      "values": { "brightness": 45, "contrast": 70, "gain-red": 50, "input": 15 },
-      "brightness": { "enabled": true, "minimum": 10, "maximum": 90, "offset": 0, "curve": 1.2 }
-    }
-  ]
+  "schema": "fluentcontrol.monitor-bundle",
+  "version": 2,
+  "name": "我的办公与游戏配置",
+  "groups": [{
+    "name": "本地 / 默认分组",
+    "profiles": [{
+      "name": "修图",
+      "applications": ["Photoshop"],
+      "monitors": [{
+        "slot": "display-1",
+        "modelId": "DEL1234",
+        "modelName": "示例型号",
+        "displayName": "左屏",
+        "brand": "Dell",
+        "values": {"brightness": 45, "contrast": 70, "gain-red": 50, "input": 15},
+        "brightness": {"enabled": true, "minimum": 10, "maximum": 90, "offset": 0, "curve": 1.2}
+      }]
+    }, {
+      "name": "夜间游戏",
+      "applications": ["示例游戏"],
+      "monitors": [{
+        "slot": "display-1",
+        "modelId": "DEL1234",
+        "modelName": "示例型号",
+        "displayName": "左屏",
+        "brand": "Dell",
+        "values": {"brightness": 20, "contrast": 60}
+      }]
+    }]
+  }]
 }
 ```
 
-示例型号只用于说明。连续属性单位为 0–100%；输入等枚举保留标准原始数值；Gamma 使用已解析的 16 位指令值。旧版 temperature 表示 Windows 高层 API 的温度枚举，与 color-preset 的 VCP 枚举不同。缺失键表示不修改。重置、电源、OSD 按键控制、只读信息、未知码均不能分享；所有参数在导入预览和实际写入时再次按目标能力校验。文件上限 1 MiB、16 屏、每屏 64 项；不支持的 schema/version 被拒绝。
+示例型号只用于说明。`modelId` 是 PnP 厂商/产品码，不是设备实例或序列号；`modelName` 优先取 Windows DisplayConfig/EDID 友好名称，无法读取时保留驱动名称，可在信息页手动补充。品牌来自已知 PnP 厂商映射，未知值保留厂商码，可编辑。别名、场景名和应用标签属于用户填写的共享元数据。
 
-## 网站接入约定
+同一物理屏幕在整个文件使用稳定 slot，多个同型号屏幕使用不同 slot。导入时只能绑定到相同型号，未知型号保持未绑定；同一场景不允许两个 slot 覆盖同一目标。离线或目标当前不支持的值不会丢弃，重名场景加序号。导入为新分组时以文件名命名，把源文件中的场景汇入此组；合并模式汇入当前组。导入操作不向硬件写入。
 
-`IMonitorProfileExchange` / `HttpMonitorProfileExchange` 已提供 HTTPS 下载与 JSON POST 上传函数。下载入口已接入 UI；上传尚未接入 UI，没有默认域名、自动上传或后台网络请求。
+连续属性单位为 0–100%；输入等枚举保留原始值；Gamma 使用已解析的 16 位指令值。`temperature` 是 Windows 高层 API 枚举，与 VCP `color-preset` 不同。缺失键表示不修改。只读信息、重置、电源、OSD 按键控制和未知码不分享。保存前及应用前校验当前允许的选项：显示器报告的当前色温值不等于可设置选项，不可重放的值不保存，旧配置中的无效选项跳过并报告数量。
 
-建议网站实现：
+限制：1 MiB、最多 128 组 / 512 场景，每场景最多 16 屏，每屏 64 项；名称 80 字符、型号名称 128 字符、应用标签最多 32 个，每个 80 字符。不支持的 schema/version 被拒绝。型号相同也重新按本机能力校验，不假设固件、HDR 或显示模式相同。
+
+## 查询维度与网站预留
+
+客户端已支持应用/游戏、型号（名称或 PnP 码）、品牌的单条件或多条件筛选。非空维度按 AND 组合、文本不区分大小写；多个屏幕的场景中，型号和品牌必须匹配同一个屏幕。应用标签只用于信息与筛选，**不会自动启动程序或切换配置**。
+
+`IMonitorProfileExchange` / `HttpMonitorProfileExchange` 支持 HTTPS 下载和 JSON POST 批量上传。下载入口已接入 UI；上传按钮与网站登录尚未接入，没有默认域名、自动上传或后台网络请求。建议服务端契约：
 
 | 接口 | 用途 |
 | --- | --- |
-| `GET /api/v1/models/{modelId}/profiles` | 后续列表/搜索接口，客户端本版未接入 |
-| `GET /api/v1/profiles/{id}` | 返回上面的纯 JSON，链接可直接粘贴到本版下载入口 |
-| `POST /api/v1/profiles` | 接收上述 JSON；上传客户端将由后续显式“发布”操作调用 |
+| `GET /api/v2/profiles?application=Photoshop&modelId=DEL1234&brand=Dell` | 一个或多个可选维度 AND 筛选，返回分页摘要；未来网站实现 |
+| `GET /api/v2/profiles/{id}` | 返回完整 v2 JSON；可直接粘贴此 HTTPS 链接下载 |
+| `POST /api/v2/profiles` | 接收 v2 JSON；未来由显式发布操作调用 |
 
-下载不跟随重定向，20 秒总超时和流式大小限制；分享链接应直接返回 JSON。上传登录、作者归属、审核、删除与版本管理交给网站后续定义；当前客户端未实现认证。服务端发布时仍应独立校验数据。共享配置不能携带命令、DLL、私有码脚本或本机可执行路径。
+服务端索引 `applications[]` 和每个 monitor 的 `modelId/modelName/brand`；以 bundle 或场景为搜索结果均须保留所属 bundle 与 scene 标识，避免跨屏错误匹配。下载不跟随重定向，20 秒超时，流式大小限制。网站后续负责认证、作者归属、审核、删除、分页及版本管理；服务端仍应独立校验。共享文件是纯数据，不携带命令、DLL、私有码脚本或可执行路径。
+
+通用功能只读探测，联动取同型号各屏能力和选项的并集，写入仅针对支持的屏幕。`IMonitorModelAdapter` 为随应用审核发布的适配器预留，尚无动态加载器或厂商 SDK。
 
 ## 其余建议的实施顺序
 
