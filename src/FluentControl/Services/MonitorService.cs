@@ -54,6 +54,9 @@ public sealed class MonitorService : IDisposable
     [DllImport("dxva2.dll", SetLastError = true)] private static extern bool GetPhysicalMonitorsFromHMONITOR(nint monitor, uint count, [Out] PhysicalMonitor[] monitors);
     [DllImport("dxva2.dll", SetLastError = true)] private static extern bool GetVCPFeatureAndVCPFeatureReply(nint monitor, byte code, out uint type, out uint current, out uint maximum);
     [DllImport("dxva2.dll", SetLastError = true)] private static extern bool SetVCPFeature(nint monitor, byte code, uint value);
+    [DllImport("dxva2.dll", SetLastError = true)] private static extern bool GetMonitorCapabilities(nint monitor, out uint capabilities, out uint temperatures);
+    [DllImport("dxva2.dll", SetLastError = true)] private static extern bool GetMonitorColorTemperature(nint monitor, out uint temperature);
+    [DllImport("dxva2.dll", SetLastError = true)] private static extern bool SetMonitorColorTemperature(nint monitor, uint temperature);
     [DllImport("dxva2.dll")] private static extern bool DestroyPhysicalMonitor(nint monitor);
 
     public List<MonitorDevice> Enumerate()
@@ -93,6 +96,26 @@ public sealed class MonitorService : IDisposable
                     };
                     devices.Add(device);
                     if (physical.Length == 0) continue;
+                    if (GetMonitorCapabilities(item.Handle, out var capabilities, out var temperatureFlags) &&
+                        (capabilities & 8) != 0 && GetMonitorColorTemperature(item.Handle, out var temperature))
+                    {
+                        var kelvin = new[] { 4000, 5000, 6500, 7500, 8200, 9300, 10000, 11500 };
+                        var options = Enumerable.Range(0, 8).Where(n => (temperatureFlags & (1u << n)) != 0)
+                            .Select(n => new ControlOption(n + 1, kelvin[n] + " K")).ToArray();
+                        var temperatureHandle = item.Handle;
+                        if (options.Any(x => x.Value == temperature)) device.Channels.Add(new ControlChannel
+                        {
+                            Name = "色温", Detail = "", DeviceId = device.Id, PropertyKey = "temperature", Glyph = "\uE753",
+                            Value = temperature, Minimum = 1, Maximum = 8, Unit = "", Options = options,
+                            Read = () => GetMonitorColorTemperature(temperatureHandle, out var t) ? t : throw new Win32Exception(Marshal.GetLastWin32Error()),
+                            Write = value =>
+                            {
+                                if (!options.Any(x => x.Value == value)) throw new ArgumentOutOfRangeException(nameof(value));
+                                if (!SetMonitorColorTemperature(temperatureHandle, (uint)value))
+                                    throw new Win32Exception(Marshal.GetLastWin32Error(), device.DisplayName + " — " + Strings.T("无法设置色温", "Color temperature was rejected"));
+                            }
+                        });
+                    }
                     foreach (var property in new[] { (Code: (byte)0x10, Key: "brightness", Name: "亮度", Icon: "\uE706"), (Code: (byte)0x12, Key: "contrast", Name: "对比度", Icon: "\uE793"), (Code: (byte)0x62, Key: "speaker", Name: "屏幕扬声器", Icon: "\uE767") })
                     {
                         var handle = item.Handle;
@@ -105,7 +128,7 @@ public sealed class MonitorService : IDisposable
                             Write = value =>
                             {
                                 if (!SetVCPFeature(handle, code, (uint)Math.Round(Math.Clamp(value, 0, 100) * max / 100)))
-                                    throw new Win32Exception(Marshal.GetLastWin32Error(), $"{device.DisplayName} 未接受指令，请检查 DDC/CI、HDR 或节能模式。");
+                                    throw new Win32Exception(Marshal.GetLastWin32Error(), $"{device.DisplayName}: " + Strings.T("未接受指令，请检查 DDC/CI、HDR 或节能模式。", "Command rejected. Check DDC/CI, HDR or power-saving mode."));
                             }
                         });
                     }
@@ -117,7 +140,7 @@ public sealed class MonitorService : IDisposable
         var success = EnumDisplayMonitors(0, 0, callback, 0);
         GC.KeepAlive(callback);
         if (callbackError is not null) throw callbackError;
-        if (!success) throw new InvalidOperationException("无法枚举显示器。");
+        if (!success) throw new InvalidOperationException(Strings.T("无法枚举显示器。", "Cannot enumerate monitors."));
         return devices.OrderBy(x => x.Left).ThenBy(x => x.Top).ThenBy(x => x.Id).ToList();
     }
     public void Dispose()

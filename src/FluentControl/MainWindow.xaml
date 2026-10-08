@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <NavigationView x:Name="Navigation" PaneTitle="FluentControl" PaneDisplayMode="Left"
-                    OpenPaneLength="200" IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
+                    OpenPaneLength="200" IsBackButtonVisible="Collapsed" IsSettingsVisible="True"
                     IsPaneToggleButtonVisible="False" IsPaneOpen="True" SelectionChanged="Navigation_SelectionChanged">
         <NavigationView.MenuItems>
             <NavigationViewItem Content="显示器" Tag="monitors" AutomationProperties.AutomationId="nav-monitors">
@@ -17,7 +17,7 @@
         </NavigationView.MenuItems>
         <Grid x:Name="Root" Padding="28,24,28,20" RowSpacing="20">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <Grid ColumnSpacing="16">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -29,37 +29,52 @@
                     <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72C;" FontSize="16"/><TextBlock Text="刷新"/></StackPanel>
                 </Button>
             </Grid>
-            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+                <Button x:Name="PreviousProfileButton" Content="‹" Click="PreviousProfile_Click"/>
+                <ComboBox x:Name="ProfilePicker" Width="210" PlaceholderText="选择配置" DisplayMemberPath="Name" SelectionChanged="ProfilePicker_SelectionChanged"/>
+                <Button x:Name="NextProfileButton" Content="›" Click="NextProfile_Click"/>
+                <Button x:Name="SaveProfileButton" Content="保存为配置" Click="SaveProfile_Click"/>
+                <Button x:Name="UpdateProfileButton" Content="更新" Click="UpdateProfile_Click"/>
+                <Button x:Name="DeleteProfileButton" Content="删除" Click="DeleteProfile_Click"/>
+            </StackPanel>
+            <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
                 <Grid>
                     <Grid.ChildrenTransitions><EntranceThemeTransition/></Grid.ChildrenTransitions>
                     <StackPanel x:Name="DisplayPanel" Spacing="16">
                         <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <RadioButtons x:Name="DisplayMode" MaxColumns="2" SelectedIndex="0" SelectionChanged="DisplayMode_SelectionChanged">
+                            <RadioButtons x:Name="DisplayMode" MaxColumns="2" SelectedIndex="1" SelectionChanged="DisplayMode_SelectionChanged">
                                 <x:String>单独控制</x:String><x:String>一起控制</x:String>
                             </RadioButtons>
                             <Button x:Name="IdentifyButton" Grid.Column="1" Content="识别显示器" Click="Identify_Click" VerticalAlignment="Center"/>
                         </Grid>
                         <TextBlock x:Name="MonitorSummary" Text="正在读取显示器…" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
-                        <StackPanel x:Name="MonitorRows" Spacing="16"/>
-                        <StackPanel x:Name="CombinedRows" Spacing="10" Visibility="Collapsed"/>
+                        <StackPanel x:Name="MonitorRows" Spacing="16" Visibility="Collapsed"/>
+                        <StackPanel x:Name="CombinedRows" Spacing="10"/>
+                        <Expander x:Name="SpecialFeatures" Header="更多显示功能" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                            <StackPanel Spacing="8">
+                                <TextBlock x:Name="SpecialFeaturesText" TextWrapping="Wrap" Text="色温仅在显示器报告支持时显示。软件准星可在设置中开启；厂商游戏模式、硬件准星与游戏 FPS 暂不支持。"/>
+                                <HyperlinkButton x:Name="NightLightLink" Content="Windows 夜间模式" Tag="ms-settings:nightlight" Click="OpenSettings_Click"/>
+                            </StackPanel>
+                        </Expander>
                     </StackPanel>
                     <StackPanel x:Name="AudioPanel" Spacing="16" Visibility="Collapsed">
-                        <TextBlock Text="Windows 当前默认设备" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                        <TextBlock x:Name="DefaultAudioTitle" Text="Windows 当前默认设备" Style="{StaticResource SubtitleTextBlockStyle}"/>
                         <StackPanel x:Name="AudioRows" Spacing="10"/>
                         <Expander x:Name="OtherAudioExpander" Header="其他音频设备" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                             <StackPanel x:Name="OtherAudioRows" Spacing="10" HorizontalAlignment="Stretch"/>
                         </Expander>
-                        <HyperlinkButton Content="Windows 声音设置" Tag="ms-settings:sound" Click="OpenSettings_Click" HorizontalAlignment="Left"/>
+                        <HyperlinkButton x:Name="SoundSettingsLink" Content="Windows 声音设置" Tag="ms-settings:sound" Click="OpenSettings_Click" HorizontalAlignment="Left"/>
                     </StackPanel>
                     <StackPanel x:Name="MousePanel" Spacing="16" Visibility="Collapsed">
                         <StackPanel x:Name="MouseRows" Spacing="10"/>
-                        <TextBlock Text="调整后立即生效。更多指针颜色与样式，可在 Windows 指针设置中选择。" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
-                        <HyperlinkButton Content="Windows 指针设置" Tag="ms-settings:easeofaccess-mousepointer" Click="OpenSettings_Click" HorizontalAlignment="Left"/>
+                        <TextBlock x:Name="MouseDescription" Text="调整后立即生效。更多指针颜色与样式，可在 Windows 指针设置中选择。" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                        <HyperlinkButton x:Name="PointerSettingsLink" Content="Windows 指针设置" Tag="ms-settings:easeofaccess-mousepointer" Click="OpenSettings_Click" HorizontalAlignment="Left"/>
                     </StackPanel>
+                    <StackPanel x:Name="SettingsPanel" Spacing="16" Visibility="Collapsed"/>
                 </Grid>
             </ScrollViewer>
-            <InfoBar x:Name="Status" Grid.Row="2" IsOpen="True" IsClosable="False" Severity="Informational" Message="正在读取设备…"/>
+            <InfoBar x:Name="Status" Grid.Row="3" IsOpen="False" Visibility="Collapsed" IsClosable="False" Severity="Informational" Message="正在读取设备…"/>
         </Grid>
     </NavigationView>
 </Window>

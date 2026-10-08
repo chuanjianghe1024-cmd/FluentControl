@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/FluentControl/Services/UserState.cs" Link="UserState.cs" />
     <Compile Include="../../src/FluentControl/Services/ControlChannel.cs" Link="ControlChannel.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorPreferences.cs" Link="MonitorPreferences.cs" />
     <Compile Include="../../src/FluentControl/Services/MouseService.cs" Link="MouseService.cs" />

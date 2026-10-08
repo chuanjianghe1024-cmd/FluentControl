@@ -5,7 +5,7 @@ internal static class UiTestData
 {
     private static ControlChannel Channel(string name, string key, double value, bool isDefault = false, string detail = "") => new()
     {
-        Name = name, PropertyKey = key, Value = value, Glyph = "\uE7F4", Detail = detail,
+        Name = name, DeviceId = name, PropertyKey = key, Value = value, Glyph = "\uE7F4", Detail = detail,
         IsDefaultAudio = isDefault, Write = _ => { }
     };
     internal static List<MonitorDevice> Monitors()
@@ -16,6 +16,7 @@ internal static class UiTestData
             var device = new MonitorDevice { Id = "ui-test-monitor-" + i, Model = "测试显示器", Connection = "test", Left = i * 1920, Width = 1920, Height = 1080, IsPrimary = i == 0 };
             device.Channels.Add(Channel("亮度", "brightness", 30 + i * 40));
             device.Channels.Add(Channel("对比度", "contrast", 60));
+            device.Channels.Add(new ControlChannel { Name = "色温", PropertyKey = "temperature", Value = 3, Minimum = 1, Maximum = 8, Unit = "", Detail = "", Glyph = "\uE753", Options = new[] { new ControlOption(1, "4000 K"), new ControlOption(3, "6500 K") }, Write = _ => { } });
             result.Add(device);
         }
         return result;

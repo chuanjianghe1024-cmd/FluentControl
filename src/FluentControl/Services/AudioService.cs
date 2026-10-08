@@ -22,9 +22,9 @@ public sealed class AudioService : IDisposable
                     var volume = device.AudioEndpointVolume;
                     var isDefault = device.ID == console || device.ID == multimedia;
                     var isCommunication = device.ID == communications;
-                    var labels = new List<string> { flow == DataFlow.Render ? "声音输出" : "麦克风输入" };
-                    if (isDefault) labels.Add("默认设备");
-                    if (isCommunication) labels.Add("默认通话");
+                    var labels = new List<string> { flow == DataFlow.Render ? Strings.T("声音输出", "Output") : Strings.T("麦克风输入", "Input") };
+                    if (isDefault) labels.Add(Strings.T("默认设备", "Default"));
+                    if (isCommunication) labels.Add(Strings.T("默认通话", "Communications"));
                     channels.Add(new ControlChannel
                     {
                         Name = device.FriendlyName, DeviceId = device.ID,

@@ -1,10 +1,13 @@
 namespace FluentControl.Services;
 
+public sealed record ControlOption(double Value, string Label);
+
 public sealed class ControlChannel
 {
     public required string Name { get; init; }
     public required string Detail { get; init; }
     public required string Glyph { get; init; }
+    public IReadOnlyList<ControlOption>? Options { get; init; }
     public string PropertyKey { get; init; } = "volume";
     public string DeviceId { get; init; } = "";
     public bool IsDefaultAudio { get; init; }

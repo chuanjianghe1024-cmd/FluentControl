@@ -13,8 +13,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets/FluentControl.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="Assets/FluentControl.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
     <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>

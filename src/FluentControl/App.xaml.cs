@@ -3,6 +3,7 @@ namespace FluentControl;
 public partial class App : Application
 {
     private Window? window;
+    private Mutex? instance;
     public App()
     {
         StartupLog.Write("App constructor");
@@ -22,9 +23,14 @@ public partial class App : Application
     {
         try
         {
+            var name = Environment.GetCommandLineArgs().Contains("--ui-test") ? @"Local\FluentControl.UiTest" : @"Local\FluentControl";
+            instance = new Mutex(true, name, out var firstInstance);
+            if (!firstInstance) { Services.ShellIntegration.SignalExisting(); instance.Dispose(); instance = null; Exit(); return; }
             StartupLog.Write("Creating main window");
-            window = new MainWindow();
-            window.Activate();
+            var main = new MainWindow();
+            window = main;
+            window.Closed += (_, _) => { instance?.ReleaseMutex(); instance?.Dispose(); instance = null; };
+            if (!main.TryStartInBackground()) window.Activate();
             StartupLog.Write("Main window activated");
         }
         catch (Exception ex)

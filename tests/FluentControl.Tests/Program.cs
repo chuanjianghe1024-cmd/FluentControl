@@ -28,6 +28,19 @@ var directory = Path.Combine(Path.GetTempPath(), "FluentControl-tests-" + Guid.N
 Directory.CreateDirectory(directory);
 try
 {
+    var statePath = Path.Combine(directory, "state.json");
+    var store = new UserStateStore(statePath);
+    Check(store.State.Settings.CloseToTray && !store.State.Settings.DesktopPanelEnabled, "Safe settings defaults.");
+    store.State.Profiles.Add(new ControlProfile { Id = "one", Name = "Reading", Values = new() { ["monitor/A/brightness"] = new SavedValue { Value = 42 } } });
+    store.State.Profiles.Add(new ControlProfile { Id = "two", Name = "Gaming" });
+    store.State.Settings.Language = "en-US"; store.State.Settings.DesktopMaxRows = 3;
+    store.State.Settings.DesktopRows = new() { "monitor/all/brightness" }; store.Save();
+    var restored = new UserStateStore(statePath);
+    Check(restored.State.Settings.Language == "en-US" && restored.State.Settings.DesktopMaxRows == 3, "Settings round trip.");
+    Check(restored.State.Profiles[0].Values["monitor/A/brightness"].Value == 42, "Profile values round trip.");
+    Check(UserStateStore.NextIndex(restored.State.Profiles, "one", -1) == 1, "Previous profile wraps.");
+    Check(UserStateStore.NextIndex(restored.State.Profiles, "two", 1) == 0, "Next profile wraps.");
+    Check(UserStateStore.NextIndex(Array.Empty<ControlProfile>(), null, 1) == -1, "Empty profiles handled.");
     var path = Path.Combine(directory, "names.json");
     var names = new MonitorPreferences(path);
     Check(names.GetOrAdd("monitor-A").Label == "M1", "First monitor label.");
