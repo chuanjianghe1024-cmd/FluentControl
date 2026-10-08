@@ -101,7 +101,38 @@ internal sealed class ShellIntegration : IDisposable
     internal static Windows.Graphics.SizeInt32 ClientSize(nint hwnd) { GetClientRect(hwnd, out var r); return new(r.Right - r.Left, r.Bottom - r.Top); }
     [StructLayout(LayoutKind.Sequential)] private struct Rect { public int Left, Top, Right, Bottom; }
     [DllImport("user32.dll")] private static extern bool GetClientRect(nint hwnd, out Rect rect);
-    internal static void Drag(nint hwnd) { ReleaseCapture(); SendMessage(hwnd, 0xa1, 2, 0); }
+    internal static void Drag(nint hwnd) => MoveOrResize(hwnd, false);
+    internal static void MoveOrResize(nint hwnd, bool resize) { ReleaseCapture(); SendMessage(hwnd, 0xa1, resize ? 17u : 2u, 0); }
+    internal static IDisposable LimitPanelSize(nint hwnd) => new PanelSizeLimits(hwnd);
+    private sealed class PanelSizeLimits : IDisposable
+    {
+        private readonly nint hwnd;
+        private readonly SubclassProc procedure;
+        internal PanelSizeLimits(nint hwnd)
+        {
+            this.hwnd = hwnd; procedure = Message;
+            if (!SetWindowSubclass(hwnd, procedure, 920, 0)) throw new Win32Exception(Marshal.GetLastWin32Error());
+        }
+        private nint Message(nint window, uint message, nuint w, nint l, nuint id, nuint data)
+        {
+            var result = DefSubclassProc(window, message, w, l);
+            if (message == 0x24 && l != 0)
+            {
+                var info = Marshal.PtrToStructure<MinMaxInfo>(l);
+                var scale = Dpi(window) / 96d;
+                GetWindowRect(window, out var outer); var client = ClientSize(window);
+                var borderX = Math.Max(0, outer.Right - outer.Left - client.Width);
+                var borderY = Math.Max(0, outer.Bottom - outer.Top - client.Height);
+                info.MinTrack = new Point { X = (int)(280 * scale) + borderX, Y = (int)(144 * scale) + borderY };
+                info.MaxTrack = new Point { X = (int)(900 * scale) + borderX, Y = (int)(1000 * scale) + borderY };
+                Marshal.StructureToPtr(info, l, false);
+            }
+            return result;
+        }
+        public void Dispose() => RemoveWindowSubclass(hwnd, procedure, 920);
+    }
+    [StructLayout(LayoutKind.Sequential)] private struct MinMaxInfo { public Point Reserved, MaxSize, MaxPosition, MinTrack, MaxTrack; }
+    [DllImport("user32.dll")] private static extern bool GetWindowRect(nint hwnd, out Rect rect);
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct NotifyData

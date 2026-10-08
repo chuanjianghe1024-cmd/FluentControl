@@ -22,6 +22,7 @@ internal sealed class DesktopPanelWindow : Window
     private readonly DispatcherTimer positionTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
     private readonly TransparentBackdrop backdrop = new();
     private readonly nint hwnd;
+    private readonly IDisposable sizeLimits;
     private readonly FrameworkElement dragGrip, resizeGrip;
     private AppSettings settings;
     private bool active, closing, moving;
@@ -45,8 +46,9 @@ internal sealed class DesktopPanelWindow : Window
         AppWindow.IsShownInSwitchers = false;
         if (AppWindow.Presenter is OverlappedPresenter p)
         {
-            p.SetBorderAndTitleBar(false, false); p.IsResizable = false; p.IsMaximizable = false; p.IsMinimizable = false;
+            p.IsResizable = true; p.SetBorderAndTitleBar(false, false); p.IsMaximizable = false; p.IsMinimizable = false;
         }
+        sizeLimits = ShellIntegration.LimitPanelSize(hwnd);
         body.RowDefinitions.Add(new() { Height = GridLength.Auto });
         body.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
         body.RowDefinitions.Add(new() { Height = GridLength.Auto });
@@ -69,7 +71,7 @@ internal sealed class DesktopPanelWindow : Window
         Activated += (_, e) => { if (e.WindowActivationState == WindowActivationState.Deactivated && !moving) SetUnlocked(false); };
         AppWindow.Changed += (_, e) => { if (e.DidPositionChange && !closing && !moving) { positionTimer.Stop(); positionTimer.Start(); } };
         positionTimer.Tick += (_, _) => { positionTimer.Stop(); SaveGeometry(false); };
-        Closed += (_, _) => { closing = true; rowGeneration++; positionTimer.Stop(); };
+        Closed += (_, _) => { closing = true; rowGeneration++; positionTimer.Stop(); sizeLimits.Dispose(); };
         var work = DisplayArea.Primary.WorkArea;
         AppWindow.Move(new PointInt32(settings.DesktopX ?? work.X + work.Width - 380, settings.DesktopY ?? work.Y + 60));
         SetUnlocked(false);
@@ -79,30 +81,16 @@ internal sealed class DesktopPanelWindow : Window
         (resize ? "<Path Data='M2,14 L14,2 M7,14 L14,7 M12,14 L14,12' Width='16' Height='16' Stroke='{ThemeResource TextFillColorSecondaryBrush}' StrokeThickness='1.4'/>" : "<FontIcon Glyph='" + glyph + "' FontSize='12' Opacity='0.75' />") + "</Grid>");
     private void ConfigureGrip(FrameworkElement grip, bool resize)
     {
-        void Complete()
-        {
-            if (!moving) return;
-            if (Environment.GetCommandLineArgs().Contains("--ui-test")) StartupLog.Write($"Grip complete resize={resize}");
-            moving = false; ClampPosition(); SaveGeometry(resize);
-        }
         grip.AddHandler(UIElement.PointerPressedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler((_, e) =>
         {
             if (!e.GetCurrentPoint(grip).Properties.IsLeftButtonPressed) return;
-            pointerStart = ShellIntegration.PointerPosition(); positionStart = AppWindow.Position; sizeStart = ShellIntegration.ClientSize(hwnd);
-            moving = grip.CapturePointer(e.Pointer); e.Handled = true;
-            if (Environment.GetCommandLineArgs().Contains("--ui-test")) StartupLog.Write($"Grip pressed resize={resize} captured={moving} pointer={pointerStart.X},{pointerStart.Y}");
+            e.Handled = true; moving = true;
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                try { ShellIntegration.MoveOrResize(hwnd, resize); }
+                finally { moving = false; ClampPosition(); SaveGeometry(resize); }
+            });
         }), true);
-        grip.AddHandler(UIElement.PointerMovedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler((_, e) =>
-        {
-            if (Environment.GetCommandLineArgs().Contains("--ui-test")) StartupLog.Write($"Grip move event moving={moving}");
-            if (!moving) return;
-            var now = ShellIntegration.PointerPosition();
-            ApplyGeometryDelta(resize, now.X - pointerStart.X, now.Y - pointerStart.Y); e.Handled = true;
-            if (Environment.GetCommandLineArgs().Contains("--ui-test")) StartupLog.Write($"Grip delta resize={resize} delta={now.X - pointerStart.X},{now.Y - pointerStart.Y}");
-        }), true);
-        grip.AddHandler(UIElement.PointerReleasedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler((_, e) => { Complete(); grip.ReleasePointerCapture(e.Pointer); e.Handled = true; }), true);
-        grip.PointerCaptureLost += (_, _) => { if (Environment.GetCommandLineArgs().Contains("--ui-test")) StartupLog.Write("Grip capture lost"); Complete(); };
-        grip.PointerCanceled += (_, _) => Complete();
     }
     private void ApplyGeometryDelta(bool resize, int x, int y)
     {

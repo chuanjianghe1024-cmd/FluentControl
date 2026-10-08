@@ -54,13 +54,14 @@ internal static class PanelDiagnostics
         var scale = ShellIntegration.Dpi(panel.Handle) / 96d;
         var start = new Point { X = size.Width - (int)((resize ? 14 : 24) * scale), Y = resize ? size.Height - (int)(14 * scale) : (int)(24 * scale) };
         ClientToScreen(panel.Handle, ref start);
-        MovePointer(start.X, start.Y); await Task.Delay(100);
-        mouse_event(2, 0, 0, 0, 0); await Task.Delay(100);
-        StartupLog.Write($"Injected press: key={GetAsyncKeyState(1):X4}");
-        MovePointer(start.X + dx, start.Y + dy); await Task.Delay(160);
-        var observed = ShellIntegration.PointerPosition();
-        StartupLog.Write($"Injected move: target={start.X + dx},{start.Y + dy}; observed={observed.X},{observed.Y}; key={GetAsyncKeyState(1):X4}");
-        mouse_event(4, 0, 0, 0, 0); await Task.Delay(160);
+        // Drive input from a worker so Windows' native move-size modal loop can run.
+        await Task.Run(async () =>
+        {
+            MovePointer(start.X, start.Y); await Task.Delay(150);
+            mouse_event(2, 0, 0, 0, 0); await Task.Delay(150);
+            MovePointer(start.X + dx, start.Y + dy); await Task.Delay(200);
+            mouse_event(4, 0, 0, 0, 0); await Task.Delay(200);
+        });
     }
     private static void MovePointer(int x, int y)
     {
