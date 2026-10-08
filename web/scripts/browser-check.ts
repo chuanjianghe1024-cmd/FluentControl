@@ -49,7 +49,7 @@ try {
     assert.equal(await page.locator(".profile-card").count(), 0, "Cross-scene filter mismatch");
     await context.addCookies([{ name: "authjs.session-token", value: sessionToken, url: base, httpOnly: true, sameSite: "Lax" }]);
     await page.goto(`${base}/publish`, { waitUntil: "networkidle" });
-    assert.ok(page.url().endsWith("/publish"), "Database-backed session did not authenticate");
+    assert.equal(new URL(page.url()).pathname, "/publish", "Database-backed session did not authenticate");
     assert.equal(await page.locator('input[type="file"]').count(), 1, "Publish form missing: " + await page.locator("body").innerText());
     await page.locator('input[type="file"]').setInputFiles({ name: "分享包.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(publication().bundle)) });
     await page.getByLabel("配置包名称", { exact: true }).fill("浏览器发布测试");
