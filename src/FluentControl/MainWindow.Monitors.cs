@@ -20,15 +20,16 @@ public sealed partial class MainWindow
         var start = refreshRows.Count;
         MonitorRows.Children.Clear(); CombinedRows.Children.Clear();
         foreach (var display in displayDevices) MonitorRows.Children.Add(CreateMonitorCard(display, version));
-        CombinedRows.Children.Add(Empty(T("同型号屏幕默认联动，不同型号独立控制。显示所有可用选项，仅向支持该项的屏幕发送命令。", "Matching models are linked; different models stay independent. All supported choices are shown and sent only to compatible displays.")));
-        foreach (var group in displayDevices.GroupBy(d => MonitorLinking.GroupKey(d.ModelId, d.Id)))
+        CombinedRows.Children.Add(Empty(T("所有已连接的显示器一起调节；仅向支持该功能或选项的屏幕发送命令。", "Adjust all connected displays together. Commands are sent only to displays supporting the feature or option.")));
+        if (displayDevices.Count == 1) CombinedRows.Children.Add(CreateMonitorCard(displayDevices[0], version, true));
+        else if (displayDevices.Count > 1)
         {
-            var devices = group.ToArray();
-            if (devices.Length == 1) { CombinedRows.Children.Add(CreateMonitorCard(devices[0], version, true)); continue; }
+            var devices = displayDevices.ToArray();
             var body = new StackPanel { Spacing = 8, Padding = new Thickness(16) };
-            body.Children.Add(new TextBlock { Text = devices[0].Model + " · " + devices[0].ModelId, FontSize = 20, TextWrapping = TextWrapping.Wrap });
-            body.Children.Add(ModelBadge(F("同型号 · {0} 台联动", "Same model · {0} linked displays", devices.Length)));
-            body.Children.Add(Empty(string.Join(" · ", devices.Select(MonitorTitle))));
+            body.Children.Add(new TextBlock { Text = T("整体控制", "Overall control"), FontSize = 20, TextWrapping = TextWrapping.Wrap });
+            var sameModel = devices.All(d => ModelIdentity.IsValid(d.ModelId)) && devices.Select(d => d.ModelId).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1;
+            body.Children.Add(ModelBadge(sameModel ? F("同型号 · {0} 台联动", "Same model · {0} linked displays", devices.Length) : F("跨型号 · {0} 台联动", "Across models · {0} linked displays", devices.Length)));
+            foreach (var device in devices) body.Children.Add(Empty(MonitorTitle(device) + " · " + device.Model + (device.ModelId.Length > 0 ? " · " + device.ModelId : "")));
             AddFeatureSections(body, devices, version, true); CombinedRows.Children.Add(Card(body));
         }
         var mappings = new StackPanel { Spacing = 8 };
@@ -123,6 +124,7 @@ public sealed partial class MainWindow
         if (!channel.IsAction)
         {
             var row = WithPartialSupport(CreateRow(channel, version), channel.PropertyKey);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(row, "individual-" + device.Id + "-" + channel.PropertyKey);
             if (!showDevice) return row;
             var panel = new StackPanel { Spacing = 4 };
             panel.Children.Add(new TextBlock { Text = device.DisplayName, FontSize = 12, Margin = new Thickness(8, 4, 0, 0) }); panel.Children.Add(row); return panel;

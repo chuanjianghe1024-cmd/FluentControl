@@ -193,6 +193,7 @@ internal sealed class DesktopPanelWindow : Window
             row.ColumnDefinitions.Add(new() { Width = new GridLength(104) });
             row.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
             row.ColumnDefinitions.Add(new() { Width = new GridLength(40) });
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(row, "desktop-" + item.Key);
             var label = new TextBlock { Text = item.Name, FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
             ToolTipService.SetToolTip(label, item.Name + (item.Detail.Length > 0 ? "\n" + item.Detail : "")); row.Children.Add(label);
             var first = item.Targets[0];

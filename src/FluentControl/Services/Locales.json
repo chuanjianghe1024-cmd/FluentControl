@@ -240,7 +240,6 @@
     "Standard (low power)": "標準（低功耗）",
     "Demo": "展示",
     "Dynamic contrast": "動態對比度",
-    "Matching models are linked; different models stay independent. All supported choices are shown and sent only to compatible displays.": "同型號螢幕預設連動，不同型號獨立控制。顯示所有可用選項，僅向支援的螢幕傳送命令。",
     "Export profile bundle": "批次匯出設定檔",
     "File name": "檔案名稱",
     "My display profiles": "我的螢幕設定檔",
@@ -285,8 +284,6 @@
     "Reading display information and supported controls. Please wait.": "正在讀取螢幕資訊與控制能力，請稍候。",
     "Uses your Startup folder and starts in the tray. Re-enable after moving the app.": "使用目前使用者的啟動資料夾，登入後於系統匣執行；移動程式後請重新啟用。",
     "Windows Startup Apps": "Windows 啟動應用程式",
-    "Link matching display models": "同型號螢幕一起控制",
-    "Different models stay independent. Turn off to control each display separately": "不同型號保持獨立；關閉後每台螢幕單獨控制",
     "Current 0x{0} (not replayable)": "目前值 0x{0}（無法重放）",
     "Local / Default group": "本機 / 預設群組",
     "Windows protects the legacy startup entry. Disable it in Windows Startup Apps.": "舊版啟動項受 Windows 保護，請在 Windows 啟動應用程式設定中關閉。",
@@ -309,7 +306,11 @@
     "Group deleted.": "群組已刪除。",
     "Manage groups": "管理群組",
     "No profiles in this group": "此群組尚無設定檔",
-    "Across groups: previous / next profile": "跨群組：上一個 / 下一個設定檔"
+    "Across groups: previous / next profile": "跨群組：上一個 / 下一個設定檔",
+    "Adjust all connected displays together. Commands are sent only to displays supporting the feature or option.": "所有已連接的螢幕一起調節；僅向支援該功能或選項的螢幕傳送命令。",
+    "Link all displays": "所有螢幕一起控制",
+    "Link different models too. Turn off to control each display separately": "不同型號也一起調節；關閉後每台螢幕單獨控制",
+    "Across models · {0} linked displays": "跨型號 · {0} 台連動"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -552,7 +553,6 @@
     "Standard (low power)": "標準（低電力）",
     "Demo": "デモ",
     "Dynamic contrast": "ダイナミックコントラスト",
-    "Matching models are linked; different models stay independent. All supported choices are shown and sent only to compatible displays.": "同じモデルを連動し、異なるモデルは個別に操作します。すべての対応項目を表示し、対応する画面だけに送信します。",
     "Export profile bundle": "プロファイルを一括エクスポート",
     "File name": "ファイル名",
     "My display profiles": "マイディスプレイ設定",
@@ -597,8 +597,6 @@
     "Reading display information and supported controls. Please wait.": "画面情報と対応する操作を読み込み中です。お待ちください。",
     "Uses your Startup folder and starts in the tray. Re-enable after moving the app.": "ユーザーのスタートアップフォルダーからトレイで起動します。移動後は再度有効にしてください。",
     "Windows Startup Apps": "Windows スタートアップアプリ",
-    "Link matching display models": "同じモデルの画面を連動",
-    "Different models stay independent. Turn off to control each display separately": "異なるモデルは独立します。オフにするとすべて個別操作になります。",
     "Current 0x{0} (not replayable)": "現在値 0x{0}（再適用不可）",
     "Local / Default group": "ローカル / 既定グループ",
     "Windows protects the legacy startup entry. Disable it in Windows Startup Apps.": "以前の起動項目がWindowsに保護されています。Windowsのスタートアップアプリで無効にしてください。",
@@ -621,7 +619,11 @@
     "Group deleted.": "グループを削除しました。",
     "Manage groups": "グループを管理",
     "No profiles in this group": "このグループにプロファイルはありません",
-    "Across groups: previous / next profile": "全グループ：前 / 次のプロファイル"
+    "Across groups: previous / next profile": "全グループ：前 / 次のプロファイル",
+    "Adjust all connected displays together. Commands are sent only to displays supporting the feature or option.": "接続中のすべての画面をまとめて調整します。機能や選択肢に対応する画面にのみコマンドを送信します。",
+    "Link all displays": "すべての画面を連動",
+    "Link different models too. Turn off to control each display separately": "異なるモデルも連動します。オフにすると各画面を個別に操作します。",
+    "Across models · {0} linked displays": "モデルを問わず {0} 台を連動"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -864,7 +866,6 @@
     "Standard (low power)": "표준(저전력)",
     "Demo": "데모",
     "Dynamic contrast": "동적 명암비",
-    "Matching models are linked; different models stay independent. All supported choices are shown and sent only to compatible displays.": "같은 모델만 연동하고 다른 모델은 개별 제어합니다. 지원되는 모든 옵션을 표시하며 해당 화면에만 명령을 보냅니다.",
     "Export profile bundle": "프로필 일괄 내보내기",
     "File name": "파일 이름",
     "My display profiles": "내 디스플레이 프로필",
@@ -909,8 +910,6 @@
     "Reading display information and supported controls. Please wait.": "디스플레이 정보와 지원 기능을 읽는 중입니다. 잠시 기다려 주세요.",
     "Uses your Startup folder and starts in the tray. Re-enable after moving the app.": "사용자 시작 폴더에서 트레이로 실행합니다. 앱을 이동한 뒤 다시 활성화하세요.",
     "Windows Startup Apps": "Windows 시작 앱",
-    "Link matching display models": "같은 모니터 모델 연동",
-    "Different models stay independent. Turn off to control each display separately": "다른 모델은 독립적으로 유지됩니다. 끄면 각 화면을 개별 제어합니다.",
     "Current 0x{0} (not replayable)": "현재 값 0x{0} (재적용 불가)",
     "Local / Default group": "로컬 / 기본 그룹",
     "Windows protects the legacy startup entry. Disable it in Windows Startup Apps.": "이전 시작 항목이 Windows로 보호됩니다. Windows 시작 앱에서 비활성화하세요.",
@@ -933,7 +932,11 @@
     "Group deleted.": "그룹을 삭제했습니다.",
     "Manage groups": "그룹 관리",
     "No profiles in this group": "이 그룹에 프로필이 없습니다",
-    "Across groups: previous / next profile": "모든 그룹: 이전 / 다음 프로필"
+    "Across groups: previous / next profile": "모든 그룹: 이전 / 다음 프로필",
+    "Adjust all connected displays together. Commands are sent only to displays supporting the feature or option.": "연결된 모든 화면을 함께 조절합니다. 해당 기능이나 옵션을 지원하는 화면에만 명령을 보냅니다.",
+    "Link all displays": "모든 화면 연동",
+    "Link different models too. Turn off to control each display separately": "다른 모델도 함께 조절합니다. 끄면 각 화면을 개별 제어합니다.",
+    "Across models · {0} linked displays": "모델에 관계없이 {0}대 연동"
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -1176,7 +1179,6 @@
     "Standard (low power)": "Standard (geringer Verbrauch)",
     "Demo": "Demo",
     "Dynamic contrast": "Dynamischer Kontrast",
-    "Matching models are linked; different models stay independent. All supported choices are shown and sent only to compatible displays.": "Gleiche Modelle werden gekoppelt, andere bleiben unabhängig. Alle verfügbaren Optionen werden nur an unterstützende Monitore gesendet.",
     "Export profile bundle": "Profile gesammelt exportieren",
     "File name": "Dateiname",
     "My display profiles": "Meine Monitorprofile",
@@ -1221,8 +1223,6 @@
     "Reading display information and supported controls. Please wait.": "Monitorinformationen und unterstützte Regler werden geladen. Bitte warten.",
     "Uses your Startup folder and starts in the tray. Re-enable after moving the app.": "Verwendet Ihren Autostartordner und startet im Infobereich. Nach Verschieben erneut aktivieren.",
     "Windows Startup Apps": "Windows-Autostart-Apps",
-    "Link matching display models": "Gleiche Monitormodelle koppeln",
-    "Different models stay independent. Turn off to control each display separately": "Andere Modelle bleiben unabhängig. Ausschalten, um jede Anzeige einzeln zu steuern.",
     "Current 0x{0} (not replayable)": "Aktuell 0x{0} (nicht erneut anwendbar)",
     "Local / Default group": "Lokal / Standardgruppe",
     "Windows protects the legacy startup entry. Disable it in Windows Startup Apps.": "Windows schützt den alten Autostarteintrag. Deaktivieren Sie ihn unter Windows-Autostart-Apps.",
@@ -1245,7 +1245,11 @@
     "Group deleted.": "Gruppe gelöscht.",
     "Manage groups": "Gruppen verwalten",
     "No profiles in this group": "Keine Profile in dieser Gruppe",
-    "Across groups: previous / next profile": "Gruppenübergreifend: vorheriges / nächstes Profil"
+    "Across groups: previous / next profile": "Gruppenübergreifend: vorheriges / nächstes Profil",
+    "Adjust all connected displays together. Commands are sent only to displays supporting the feature or option.": "Alle verbundenen Anzeigen gemeinsam einstellen. Befehle werden nur an Anzeigen gesendet, die die Funktion oder Option unterstützen.",
+    "Link all displays": "Alle Anzeigen koppeln",
+    "Link different models too. Turn off to control each display separately": "Auch unterschiedliche Modelle koppeln. Ausschalten, um jede Anzeige einzeln zu steuern.",
+    "Across models · {0} linked displays": "Modellübergreifend · {0} Anzeigen gekoppelt"
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -1488,7 +1492,6 @@
     "Standard (low power)": "Standard (faible consommation)",
     "Demo": "Démonstration",
     "Dynamic contrast": "Contraste dynamique",
-    "Matching models are linked; different models stay independent. All supported choices are shown and sent only to compatible displays.": "Les modèles identiques sont liés, les autres restent indépendants. Les options sont envoyées uniquement aux écrans compatibles.",
     "Export profile bundle": "Exporter un lot de profils",
     "File name": "Nom du fichier",
     "My display profiles": "Mes profils d’écran",
@@ -1533,8 +1536,6 @@
     "Reading display information and supported controls. Please wait.": "Lecture des informations d’écran et des réglages pris en charge. Veuillez patienter.",
     "Uses your Startup folder and starts in the tray. Re-enable after moving the app.": "Utilise votre dossier Démarrage et lance l’application dans la zone de notification. Réactivez après un déplacement.",
     "Windows Startup Apps": "Applications au démarrage de Windows",
-    "Link matching display models": "Lier les écrans de même modèle",
-    "Different models stay independent. Turn off to control each display separately": "Les modèles différents restent indépendants. Désactivez pour régler chaque écran séparément.",
     "Current 0x{0} (not replayable)": "Valeur actuelle 0x{0} (non réapplicable)",
     "Local / Default group": "Local / Groupe par défaut",
     "Windows protects the legacy startup entry. Disable it in Windows Startup Apps.": "Windows protège l’ancienne entrée de démarrage. Désactivez-la dans les applications au démarrage.",
@@ -1557,7 +1558,11 @@
     "Group deleted.": "Groupe supprimé.",
     "Manage groups": "Gérer les groupes",
     "No profiles in this group": "Aucun profil dans ce groupe",
-    "Across groups: previous / next profile": "Tous les groupes : profil précédent / suivant"
+    "Across groups: previous / next profile": "Tous les groupes : profil précédent / suivant",
+    "Adjust all connected displays together. Commands are sent only to displays supporting the feature or option.": "Réglez ensemble tous les écrans connectés. Les commandes sont envoyées uniquement aux écrans prenant en charge la fonction ou l’option.",
+    "Link all displays": "Lier tous les écrans",
+    "Link different models too. Turn off to control each display separately": "Lier aussi les modèles différents. Désactivez pour régler chaque écran séparément.",
+    "Across models · {0} linked displays": "Tous modèles · {0} écrans liés"
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -1800,7 +1805,6 @@
     "Standard (low power)": "Estándar (bajo consumo)",
     "Demo": "Demostración",
     "Dynamic contrast": "Contraste dinámico",
-    "Matching models are linked; different models stay independent. All supported choices are shown and sent only to compatible displays.": "Los modelos iguales se vinculan; los demás siguen independientes. Las opciones se envían solo a las pantallas compatibles.",
     "Export profile bundle": "Exportar lote de perfiles",
     "File name": "Nombre del archivo",
     "My display profiles": "Mis perfiles de pantalla",
@@ -1845,8 +1849,6 @@
     "Reading display information and supported controls. Please wait.": "Leyendo información de pantallas y controles compatibles. Espera un momento.",
     "Uses your Startup folder and starts in the tray. Re-enable after moving the app.": "Usa tu carpeta Inicio y se ejecuta en la bandeja. Reactiva tras mover la aplicación.",
     "Windows Startup Apps": "Aplicaciones de inicio de Windows",
-    "Link matching display models": "Vincular monitores del mismo modelo",
-    "Different models stay independent. Turn off to control each display separately": "Los modelos distintos siguen independientes. Desactiva para controlar cada pantalla por separado.",
     "Current 0x{0} (not replayable)": "Actual 0x{0} (no reaplicable)",
     "Local / Default group": "Local / Grupo predeterminado",
     "Windows protects the legacy startup entry. Disable it in Windows Startup Apps.": "Windows protege la entrada antigua. Desactívala en Aplicaciones de inicio de Windows.",
@@ -1869,6 +1871,10 @@
     "Group deleted.": "Grupo eliminado.",
     "Manage groups": "Administrar grupos",
     "No profiles in this group": "No hay perfiles en este grupo",
-    "Across groups: previous / next profile": "Entre grupos: perfil anterior / siguiente"
+    "Across groups: previous / next profile": "Entre grupos: perfil anterior / siguiente",
+    "Adjust all connected displays together. Commands are sent only to displays supporting the feature or option.": "Ajusta juntas todas las pantallas conectadas. Los comandos solo se envían a las pantallas compatibles con la función u opción.",
+    "Link all displays": "Vincular todas las pantallas",
+    "Link different models too. Turn off to control each display separately": "Vincula también modelos distintos. Desactiva para controlar cada pantalla por separado.",
+    "Across models · {0} linked displays": "Entre modelos · {0} pantallas vinculadas"
   }
 }

@@ -13,10 +13,11 @@ internal static class UiTestData
         var result = new List<MonitorDevice>();
         for (var i = 0; i < 2; i++)
         {
-            var device = new MonitorDevice { Id = "ui-test-monitor-" + i, Model = "测试显示器", ModelId = "TST0001", Connection = "test", Left = i * 1920, Width = 1920, Height = 1080, IsPrimary = i == 0 };
+            var device = new MonitorDevice { Id = "ui-test-monitor-" + i, Model = "测试显示器 " + (i + 1), ModelId = i == 0 ? "TST0001" : "TST0002", Connection = "test", Left = i * 1920, Width = 1920, Height = 1080, IsPrimary = i == 0 };
+            var scale = (uint)(i + 1); // Different models use different native VCP maxima.
             var replies = new Dictionary<byte, VcpReply>
             {
-                [0x10] = new((uint)(30 + i * 40),100), [0x12] = new(60,100), [0x62] = new(35,100),
+                [0x10] = new((uint)(30 + i * 40) * scale,100 * scale), [0x12] = new(60 * scale,100 * scale), [0x62] = new(35,100),
                 [0x14] = new(5,0), [0x16] = new(50,100), [0x18] = new(50,100), [0x1A] = new(50,100),
                 [0x60] = new(15,0), [0x8D] = new(0x202,0x202), [0xD6] = new(1,0), [0xC9] = new(0x0102,0)
             };

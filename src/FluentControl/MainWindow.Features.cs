@@ -329,23 +329,25 @@ public sealed partial class MainWindow
         var result = new List<PanelRow>();
         if (state.Settings.GroupDesktopMonitors)
         {
-            foreach (var group in displayDevices.GroupBy(d => MonitorLinking.GroupKey(d.ModelId, d.Id)))
-                foreach (var key in new[] { "brightness", "contrast", "speaker" })
-                {
-                    var targets = group.SelectMany(x => x.Channels).Where(x => x.PropertyKey == key).ToArray();
-                    if (targets.Length == 0) continue;
-                    var devices = group.ToArray(); var supported = devices.Where(d => d.Channels.Any(c => c.PropertyKey == key)).ToArray();
-                    var names = string.Join(" + ", supported.Select(d => d.DisplayName));
-                    if (supported.Length < devices.Length) names = F("仅 {0}", "Only {0}", names);
-                    result.Add(new() { Key = "monitor/" + group.Key + "/" + key, Name = names + " · " + Channel(targets[0]), Detail = SupportSummary(key, devices), Group = group.Key, Targets = targets, Linked = true });
-                }
+            var normalized = MonitorLinking.NormalizeLinkedDesktopRows(state.Settings.DesktopRows);
+            if (!state.Settings.DesktopRows.SequenceEqual(normalized)) { state.Settings.DesktopRows = normalized; SaveState(); }
+            var devices = displayDevices.ToArray();
+            foreach (var key in new[] { "brightness", "contrast", "speaker" })
+            {
+                var targets = devices.SelectMany(x => x.Channels).Where(x => x.PropertyKey == key).ToArray();
+                if (targets.Length == 0) continue;
+                var supported = devices.Where(d => d.Channels.Any(c => c.PropertyKey == key)).ToArray();
+                var names = string.Join(" + ", supported.Select(d => d.DisplayName));
+                if (supported.Length < devices.Length) names = F("仅 {0}", "Only {0}", names);
+                result.Add(new() { Key = "monitor/all/" + key, Name = names + " · " + Channel(targets[0]), Detail = SupportSummary(key, devices), Group = "monitor/all", Targets = targets, Linked = true });
+            }
         }
         else foreach (var display in displayDevices) foreach (var c in display.Channels.Where(x => !x.IsAction && !x.RequiresConfirmation))
             result.Add(new() { Key = $"monitor/{Uri.EscapeDataString(display.Id)}/{c.PropertyKey}", Name = display.DisplayName + " · " + Channel(c), Group = display.Id, Targets = new[] { c } });
         foreach (var c in audioChannels.Where(x => x.IsDefaultAudio)) result.Add(new() { Key = $"audio/{Uri.EscapeDataString(c.DeviceId)}/{c.PropertyKey}", Name = c.Name, Group = "audio", Targets = new[] { c } });
         foreach (var c in mouseChannels) result.Add(new() { Key = "mouse/" + c.PropertyKey, Name = Channel(c), Group = "mouse", Targets = new[] { c } });
         var legacy = state.Settings.DesktopRows.Where(k => k.StartsWith("monitor/all/", StringComparison.Ordinal)).ToArray();
-        if (displayDevices.Count > 0 && legacy.Length > 0)
+        if (!state.Settings.GroupDesktopMonitors && displayDevices.Count > 0 && legacy.Length > 0)
         {
             foreach (var item in result.Where(r => r.Key.StartsWith("monitor/") && legacy.Any(k => k.Split('/').Last() == r.Key.Split('/').Last())))
                 if (!state.Settings.DesktopRows.Contains(item.Key)) state.Settings.DesktopRows.Add(item.Key);
@@ -442,7 +444,7 @@ public sealed partial class MainWindow
         if (shell?.TrayAvailable != true) SettingsPanel.Children.Add(Empty(T("托盘不可用，关闭按钮将退出应用。", "Tray unavailable. Closing the window exits the app.")));
         Heading(T("桌面控制面板", "Desktop controls"));
         Toggle(T("显示桌面面板", "Show desktop panel"), T("半透明背景 · 双击解锁 · 拖动右上角移动，右下角缩放", "Translucent · Double-click to unlock · Drag top-right to move, bottom-right to resize"), state.Settings.DesktopPanelEnabled, value => { state.Settings.DesktopPanelEnabled = value; SaveState(); RefreshDesktopPanel(); });
-        Toggle(T("同型号显示器一起控制", "Link matching display models"), T("不同型号保持独立；关闭后每台屏幕单独控制", "Different models stay independent. Turn off to control each display separately"), state.Settings.GroupDesktopMonitors, value =>
+        Toggle(T("所有显示器一起控制", "Link all displays"), T("不同型号也一起调节；关闭后每台屏幕单独控制", "Link different models too. Turn off to control each display separately"), state.Settings.GroupDesktopMonitors, value =>
         {
             var old = state.Settings.DesktopRows.ToArray(); state.Settings.GroupDesktopMonitors = value;
             state.Settings.DesktopRows = DesktopCandidates().Where(x => old.Contains(x.Key) || (x.Key.StartsWith("monitor/") && old.Any(k => k.StartsWith("monitor/") && k.Split('/').Last() == x.Key.Split('/').Last()))).Select(x => x.Key).ToList();
@@ -560,10 +562,12 @@ public sealed partial class MainWindow
             if (brightness.Value != original) throw new InvalidOperationException("Profile failed to restore controls.");
             var persisted = new UserStateStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentControl", "test-user-state.json"));
             if (!persisted.State.Profiles.Any(x => x.Id == profile.Id)) throw new InvalidOperationException("Profile not persisted.");
-            state.Settings = new AppSettings { DesktopPanelEnabled = true, CrosshairEnabled = true };
+            state.Settings = new AppSettings { DesktopPanelEnabled = true, CrosshairEnabled = true,
+                DesktopRows = new() { "monitor/model/TST0001/brightness", "monitor/model/TST0002/brightness", "monitor/device/offline/contrast" } };
             RefreshDesktopPanel(); RefreshCrosshair();
             await Task.Delay(250);
             if (desktopPanel is null || desktopPanel.RowCount != 2 || desktopPanel.IsUnlocked) throw new InvalidOperationException("Desktop panel did not start locked with two rows.");
+            await CheckDesktopLinkedControlsAsync();
             await CheckPanelTextSwitchAsync();
             await CheckDesktopNavigationAsync();
             desktopPanel!.SetUnlocked(true);

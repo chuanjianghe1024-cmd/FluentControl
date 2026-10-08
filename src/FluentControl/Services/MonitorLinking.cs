@@ -2,8 +2,11 @@ namespace FluentControl.Services;
 
 public static class MonitorLinking
 {
-    // Unknown models stay independent; a generic friendly name is not a model ID.
-    public static string GroupKey(string modelId, string deviceId) => ModelIdentity.IsValid(modelId) ? "model/" + modelId : "device/" + Uri.EscapeDataString(deviceId);
+    // Overall controls follow capability, not model identity. Keep a stable row
+    // selection even when a monitor is disconnected or its model is unknown.
+    public static List<string> NormalizeLinkedDesktopRows(IEnumerable<string> rows) => rows.Select(key =>
+        key.StartsWith("monitor/model/", StringComparison.Ordinal) || key.StartsWith("monitor/device/", StringComparison.Ordinal)
+            ? "monitor/all/" + key.Split('/').Last() : key).Distinct(StringComparer.Ordinal).ToList();
     public static ControlOption[]? Options(IEnumerable<ControlChannel> channels)
     {
         var choices = channels.Where(c => c.Options is not null).SelectMany(c => c.Options!).DistinctBy(x => x.Value).ToArray();

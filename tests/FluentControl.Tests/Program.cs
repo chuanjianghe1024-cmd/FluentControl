@@ -75,8 +75,11 @@ var optionA = new ControlChannel { Name = "A", Detail = "", Glyph = "", Value = 
 var optionB = new ControlChannel { Name = "B", Detail = "", Glyph = "", Value = 5, Write = _ => { }, Options = new[] { new ControlOption(8, "9300 K"), new ControlOption(11, "Custom") } };
 Check(!ProfileExchange.CanApply(optionB, 5), "A readable current preset is not necessarily writable.");
 Check(MonitorLinking.Options(new[] { optionA, optionB })!.Select(o => o.Value).Order().SequenceEqual(new double[] { 5, 8, 11 }), "Linked options use the union.");
-Check(MonitorLinking.GroupKey("HWV1234", "one") == MonitorLinking.GroupKey("HWV1234", "two") && MonitorLinking.GroupKey("DEL1234", "two") != MonitorLinking.GroupKey("HWV1234", "one"), "Only matching models link by default.");
-Check(MonitorLinking.GroupKey("", "one") != MonitorLinking.GroupKey("", "two"), "Unknown models never link accidentally.");
+var oldDesktopRows = new[] { "monitor/model/HWV1234/brightness", "monitor/model/DEL1234/brightness", "monitor/device/offline/contrast", "audio/default/volume", "monitor/all/contrast" };
+var linkedDesktopRows = MonitorLinking.NormalizeLinkedDesktopRows(oldDesktopRows);
+Check(linkedDesktopRows.SequenceEqual(new[] { "monitor/all/brightness", "monitor/all/contrast", "audio/default/volume" }), "Old model-specific desktop rows collapse to one row per feature, including disconnected displays.");
+Check(MonitorLinking.NormalizeLinkedDesktopRows(linkedDesktopRows).SequenceEqual(linkedDesktopRows), "Desktop row migration is idempotent.");
+Check(MonitorLinking.NormalizeLinkedDesktopRows(Array.Empty<string>()).Count == 0, "An intentionally empty desktop selection stays empty.");
 var batchState = new UserState(); ProfileGroups.Normalize(batchState);
 var sceneA = new ControlProfile { Name = "办公模式", Applications = new() { "Photoshop", "Test Game" }, Monitors = new() { ["private-device-serial"] = new() { ModelId = "HWV1234", ModelName = "MateView 测试", DisplayName = "左屏", Brand = "Huawei" } }, Values = new() { [ProfileGroups.MonitorKey("private-device-serial", "brightness")] = new() { Value = 35 } } };
 var sceneB = new ControlProfile { Name = "夜间", Monitors = sceneA.Monitors, Values = new() { [ProfileGroups.MonitorKey("private-device-serial", "brightness")] = new() { Value = 15 } } };

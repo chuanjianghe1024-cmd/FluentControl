@@ -41,7 +41,7 @@ public sealed partial class MainWindow
         foreach (var expander in sections!.Children.OfType<Expander>()) expander.IsExpanded = true;
         await Task.Delay(100);
         var union = Descendants<ComboBox>(CombinedRows).FirstOrDefault(c => c.ItemsSource is ControlOption[] options && options.Select(o => o.Value).Order().SequenceEqual(new double[] { 5, 8, 11 }));
-        if (union is null) throw new InvalidOperationException("Union of same-model preset options missing.");
+        if (union is null) throw new InvalidOperationException("Union of cross-model preset options missing.");
         var selective = ((ControlOption[])union.ItemsSource).First(x => x.Value == 11);
         if (!selective.Label.Contains(displayDevices[1].Preference.Label) || selective.Label.Contains(displayDevices[0].Preference.Label))
             throw new InvalidOperationException("Partial preset option does not identify its supporting display.");
@@ -50,15 +50,19 @@ public sealed partial class MainWindow
         if (!supportText.Contains(displayDevices[0].Preference.Label) || !supportText.Contains(displayDevices[1].Preference.Label) || !supportText.Contains("1/2"))
             throw new InvalidOperationException("Partial monitor feature does not identify supported/unavailable displays.");
         if (!Equals(DisplayMode.Items[1], Strings.T("整体控制", "Overall control"))) throw new InvalidOperationException("Overall mode label not applied.");
-        if (!Descendants<TextBlock>(CombinedRows).Any(t => t.Text == Strings.F("同型号 · {0} 台联动", "Same model · {0} linked displays", 2)))
-            throw new InvalidOperationException("Same-model badge missing.");
-        var otherModel = new MonitorDevice { Id = "different-model", ModelId = "DEL1234", Model = "Other model", Connection = "test" };
+        if (!Descendants<TextBlock>(CombinedRows).Any(t => t.Text == Strings.F("跨型号 · {0} 台联动", "Across models · {0} linked displays", 2)))
+            throw new InvalidOperationException("Cross-model linked badge missing.");
+        await CheckCrossModelControlsAsync();
+        var otherModel = new MonitorDevice { Id = "unknown-model", Model = "Unknown model", Connection = "test" };
+        otherModel.Channels.Add(new() { Name = "Unknown display brightness", Detail = "", Glyph = "", PropertyKey = "brightness", Value = 45, Write = _ => { } });
         displayDevices.Add(otherModel);
         try
         {
             RenderMonitorControls(generation); await Task.Delay(100);
-            if (!Descendants<TextBlock>(CombinedRows).Any(t => t.Text == Strings.T("不同型号 · 独立调节", "Different model · independent controls")))
-                throw new InvalidOperationException("Different-model badge missing.");
+            if (!Descendants<TextBlock>(CombinedRows).Any(t => t.Text == Strings.F("跨型号 · {0} 台联动", "Across models · {0} linked displays", 3)) ||
+                Descendants<FrameworkElement>(CombinedRows).Count(x => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(x) == "linked-brightness") != 1 ||
+                DesktopCandidates().Single(x => x.Key == "monitor/all/brightness").Targets.Count != 3)
+                throw new InvalidOperationException("An unknown model must join overall brightness when it supports the feature.");
         }
         finally { displayDevices.Remove(otherModel); RenderMonitorControls(generation); }
         // Restore expanded controls after the different-model fixture was removed.
@@ -77,6 +81,74 @@ public sealed partial class MainWindow
         if (VisibleProfiles().Count != 1) throw new InvalidOperationException("Combined profile filters failed.");
         applicationFilter = modelFilter = ""; state.Profiles.Remove(profile); state.Groups.Remove(group); state.SelectedGroupId = ProfileGroup.LocalId; RefreshProfiles();
         StartupLog.Write("PASS: initialization, dark/light title bar, legacy preset guard, union choices, profile groups and combined filters");
+    }
+    private async Task SetTestSliderAsync(DependencyObject root, string id, double value)
+    {
+        var row = Descendants<FrameworkElement>(root).Single(x => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(x) == id);
+        var slider = Descendants<Slider>(row).Single();
+        ((IRangeValueProvider)new SliderAutomationPeer(slider).GetPattern(PatternInterface.RangeValue)).SetValue(value);
+        await WaitForWritesAsync();
+    }
+    private async Task CheckCrossModelControlsAsync()
+    {
+        if (displayDevices.Select(d => d.ModelId).Distinct().Count() != 2) throw new InvalidOperationException("Cross-model test requires different models.");
+        var channels = displayDevices.SelectMany(d => d.Channels).Where(c => c.PropertyKey is "brightness" or "contrast").ToArray();
+        var saved = channels.ToDictionary(c => c, c => c.Value);
+        var mapping = displayDevices[1].Preference.Brightness;
+        try
+        {
+            foreach (var key in new[] { "brightness", "contrast" })
+            {
+                var value = key == "brightness" ? 37 : 61;
+                await SetTestSliderAsync(CombinedRows, "linked-" + key, value);
+                if (channels.Where(c => c.PropertyKey == key).Any(c => c.Value != value || c.Read?.Invoke() != value))
+                    throw new InvalidOperationException("Overall slider failed to update both models using their native VCP ranges: " + key);
+            }
+            displayDevices[1].Preference.Brightness = new() { Enabled = true, Offset = 10 };
+            BindBrightnessMapping(displayDevices[1]);
+            await SetTestSliderAsync(CombinedRows, "linked-brightness", 55);
+            var first = displayDevices[0].Channels.First(c => c.PropertyKey == "brightness");
+            var second = displayDevices[1].Channels.First(c => c.PropertyKey == "brightness");
+            if (first.Value != 55 || second.Value != 65) throw new InvalidOperationException("Cross-model brightness did not retain per-display calibration.");
+            DisplayMode.SelectedIndex = 0; await Task.Delay(50);
+            await SetTestSliderAsync(MonitorRows, "individual-" + displayDevices[0].Id + "-brightness", 17);
+            if (first.Value != 17 || second.Value != 65) throw new InvalidOperationException("Individual mode changed another display.");
+        }
+        finally
+        {
+            displayDevices[1].Preference.Brightness = mapping; BindBrightnessMapping(displayDevices[1]);
+            foreach (var entry in saved) ControlOperations.Apply(new[] { entry.Key }, entry.Value);
+            SynchronizeValues(); DisplayMode.SelectedIndex = 1;
+        }
+        StartupLog.Write("PASS: one overall brightness/contrast slider updates different models and native ranges; calibration and individual isolation retained.");
+    }
+    private async Task CheckDesktopLinkedControlsAsync()
+    {
+        if (!state.Settings.DesktopRows.SequenceEqual(new[] { "monitor/all/brightness", "monitor/all/contrast" }))
+            throw new InvalidOperationException("Legacy model-specific desktop selections were not migrated.");
+        var candidates = DesktopCandidates();
+        if (candidates.Single(x => x.Key == "monitor/all/brightness").Targets.Count != 2 ||
+            candidates.Single(x => x.Key == "monitor/all/contrast").Targets.Count != 2 ||
+            candidates.Single(x => x.Key == "monitor/all/speaker").Targets.Count != 1)
+            throw new InvalidOperationException("Desktop controls must link different models and target partial capabilities correctly.");
+        var channels = displayDevices.SelectMany(d => d.Channels).Where(c => c.PropertyKey is "brightness" or "contrast").ToArray();
+        var saved = channels.ToDictionary(c => c, c => c.Value);
+        try
+        {
+            desktopPanel!.SetUnlocked(true);
+            foreach (var key in new[] { "brightness", "contrast" })
+            {
+                await SetTestSliderAsync(desktopPanel.Content, "desktop-monitor/all/" + key, 46);
+                if (channels.Where(c => c.PropertyKey == key).Any(c => c.Value != 46 || c.Read?.Invoke() != 46))
+                    throw new InvalidOperationException("Desktop overall slider failed to update both models: " + key);
+            }
+        }
+        finally
+        {
+            foreach (var entry in saved) ControlOperations.Apply(new[] { entry.Key }, entry.Value);
+            SynchronizeValues(); desktopPanel!.SetUnlocked(false);
+        }
+        StartupLog.Write("PASS: migrated desktop selections, two cross-model linked sliders and partial-feature targets.");
     }
     private async Task CheckPanelTextSwitchAsync()
     {
