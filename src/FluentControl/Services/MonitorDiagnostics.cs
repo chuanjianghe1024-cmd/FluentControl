@@ -14,7 +14,8 @@ public sealed class DiagnosticReading
     public string HexCode => $"0x{Code:X2}";
     public string Key { get; init; } = "";
     public bool Advertised { get; init; }
-    public byte[] AdvertisedOptions { get; init; } = Array.Empty<byte>();
+    // byte[] is encoded as Base64 by System.Text.Json; the wire format needs numbers.
+    public List<byte> AdvertisedOptions { get; init; } = new();
     public string Status { get; init; } = "not-probed";
     public uint? Type { get; init; }
     public uint? Current { get; init; }
@@ -108,7 +109,7 @@ public static class MonitorDiagnostics
             readings.Add(new()
             {
                 Code = code, Key = VcpCatalog.All.FirstOrDefault(d => d.Code == code)?.Key ?? "vcp-" + code.ToString("X2"),
-                Advertised = parsed.Features.TryGetValue(code, out var options), AdvertisedOptions = options?.ToArray() ?? Array.Empty<byte>(),
+                Advertised = parsed.Features.TryGetValue(code, out var options), AdvertisedOptions = options?.ToList() ?? new(),
                 Status = status, Type = ok ? reply!.Type : null, Current = ok ? reply!.Current : null,
                 Maximum = ok ? reply!.Maximum : null, ErrorCode = reply?.ErrorCode, ElapsedMilliseconds = timer.ElapsedMilliseconds
             });

@@ -49,6 +49,8 @@ internal static class MonitorDiagnosticsTests
         var json = MonitorDiagnostics.Serialize(Report(false));
         Check(!json.Contains("PRIVATE_") && !json.Contains("rawCapabilities") && json.Contains("色温 9300 K"), "default export excludes raw capabilities and local identity, keeps readable labels");
         using var parsed = JsonDocument.Parse(json);
+        var exportedOptions = parsed.RootElement.GetProperty("baseline").GetProperty("readings").EnumerateArray().Single(r => r.GetProperty("code").GetInt32() == 0x14).GetProperty("advertisedOptions");
+        Check(exportedOptions.ValueKind == JsonValueKind.Array && exportedOptions.EnumerateArray().Select(v => v.GetByte()).SequenceEqual(new byte[] { 5, 8 }), "website protocol uses numeric options, never Base64 strings");
         Check(parsed.RootElement.GetProperty("observations")[0].GetProperty("differences")[0].GetProperty("kind").GetString() == "value", "export includes recomputed differences");
         var rawJson = MonitorDiagnostics.Serialize(Report(true));
         Check(rawJson.Contains("PRIVATE_SERIAL") && !rawJson.Contains("PRIVATE_DEVICE_INSTANCE") && !rawJson.Contains("PRIVATE_LOCAL_PATH"), "raw opt-in is scoped to capability text");
