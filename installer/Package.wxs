@@ -16,6 +16,10 @@
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
     <Property Id="ARPURLINFOABOUT" Value="https://fctrl.app" />
     <Property Id="ARPNOMODIFY" Value="1" />
+    <!-- All runtime files are private to INSTALLFOLDER. Do not let Restart
+         Manager close/restart other desktop applications. Keep the standard
+         FilesInUse dialog and Windows Installer's real file-lock handling. -->
+    <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
     <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="请从开始菜单打开 FluentControl（聚合控制）。原有配置会自动保留。" />
 
     <StandardDirectory Id="LocalAppDataFolder">

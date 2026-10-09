@@ -24,6 +24,8 @@ dotnet publish src/FluentControl/FluentControl.csproj -c Release -p:PublishProfi
 
 输出为 `artifacts/installer/FluentControl-<版本>-x64.msi`，内部包含压缩 CAB 和离线运行库。保留 PRI/XAML，不做未经验证的 DLL 删除或反射裁剪。真实签名流程见 [code-signing.md](code-signing.md)。
 
+安装、升级或卸载前，请从托盘菜单退出 FluentControl；关闭主窗口仅会隐藏到托盘。安装包设置 `MSIRESTARTMANAGERCONTROL=Disable`，不使用 Restart Manager 关闭或重启其他程序；保留标准 `FilesInUse` 对话框、真实文件锁与必要的重启提示。这是包级设置，不修改 Windows 策略，也不跳过 `InstallValidate`。收到真实文件占用提示时，退出对应程序后重试；静默部署方必须处理返回码 3010，不能视为所有文件都已立即替换。
+
 ## 验证范围
 
 ```powershell
@@ -41,6 +43,8 @@ dotnet run --project tests/FluentControl.Tests -c Release -- --native
 ```
 
 `--native` 短暂修改并恢复鼠标设置。MSI 测试会实际安装、升级、启动、检查托盘和单实例、卸载并核对个人数据保留。Windows build 工作流完成这些检查后才上传安装包。无 Windows/实体设备环境的检查不能替代这些验证。
+
+安装回归还会保持一个独立测试窗口运行：它加载安装目录外的同名运行库，安装、升级和卸载不能关闭它。另一个测试窗口加载安装目录内的运行库，验证真实文件占用仍产生标准提示，取消后旧版完整保留；释放文件后再完成升级。旧版测试 MSI 移除新属性，以覆盖从仍启用 Restart Manager 的旧安装包升级。测试夹具只在 CI 临时目录编译，不随产品发布；它不能代替用户机器上 PowerToys、输入法等具体进程的复现日志。
 
 ## 发布已通过的构建
 
