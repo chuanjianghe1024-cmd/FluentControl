@@ -1,0 +1,12 @@
+{
+  "version": "0.3.33",
+  "sourceCommit": "2abbc8f138b4b12ae1def9c547bb8bad1e5b5834",
+  "runId": 37874101879,
+  "artifactId": 11591114085,
+  "artifactName": "FluentControl-MSI-x64",
+  "archiveSha256": "d613247d7de54def3fa4bbb801ae0b9c13d8ef1e1032c45235eed813af216ba5",
+  "fileName": "FluentControl-0.3.33-x64.msi",
+  "bytes": 50365300,
+  "sha256": "a46ebdbceb7acb09f6765a782f5a6d5cf009d993bd8861efbc827406735f8e58",
+  "notes": "docs/releases/v0.3.33.md"
+}

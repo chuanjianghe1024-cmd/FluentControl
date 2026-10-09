@@ -47,19 +47,19 @@
 
 限制：1 MiB、最多 128 组 / 512 场景，每场景最多 16 屏，每屏 64 项；名称 80 字符、型号名称 128 字符、应用标签最多 32 个，每个 80 字符。不支持的 schema/version 被拒绝。型号相同也重新按本机能力校验，不假设固件、HDR 或显示模式相同。
 
-## 查询维度与网站预留
+## 查询维度与网站接入状态
 
 客户端已支持应用/游戏、型号（名称或 PnP 码）、品牌的单条件或多条件筛选。非空维度按 AND 组合、文本不区分大小写；多个屏幕的场景中，型号和品牌必须匹配同一个屏幕。应用标签只用于信息与筛选，**不会自动启动程序或切换配置**。
 
-`IMonitorProfileExchange` / `HttpMonitorProfileExchange` 支持 HTTPS 下载和 JSON POST 批量上传。下载入口已接入 UI；上传按钮与网站登录尚未接入，计划官网及 API 域名为 `https://fctrl.app`。网站尚未部署，客户端不会自动请求该域名，没有自动上传或后台网络请求。预留服务端契约（以下路径相对此域名）：
+`IMonitorProfileExchange` / `HttpMonitorProfileExchange` 支持 HTTPS 下载和 JSON POST 批量上传。下载入口已接入 UI；上传按钮与网站登录尚未接入，计划官网及 API 域名为 `https://fctrl.app`。独立网站代码位于 [FluentControl-Web](https://github.com/chuanjianghe1024-cmd/FluentControl-Web)，已实现配置查询、认证和作者归属等服务端逻辑，正式部署及登录密钥配置仍单独进行。桌面客户端不会自动请求该域名，没有自动上传或后台网络请求。基础接口如下（部署后相对此域名，完整服务端行为以网站仓库为准）：
 
 | 接口 | 用途 |
 | --- | --- |
-| `GET /api/v2/profiles?application=Photoshop&modelId=DEL1234&brand=Dell` | 一个或多个可选维度 AND 筛选，返回分页摘要；未来网站实现 |
+| `GET /api/v2/profiles?application=Photoshop&modelId=DEL1234&brand=Dell` | 一个或多个可选维度 AND 筛选，返回分页摘要 |
 | `GET /api/v2/profiles/{id}` | 返回完整 v2 JSON；可直接粘贴此 HTTPS 链接下载 |
-| `POST /api/v2/profiles` | 接收 v2 JSON；未来由显式发布操作调用 |
+| `POST /api/v2/profiles` | 接收 v2 JSON，需要网站认证；桌面端发布按钮尚未接入 |
 
-服务端索引 `applications[]` 和每个 monitor 的 `modelId/modelName/brand`；以 bundle 或场景为搜索结果均须保留所属 bundle 与 scene 标识，避免跨屏错误匹配。下载不跟随重定向，20 秒超时，流式大小限制。网站后续负责认证、作者归属、审核、删除、分页及版本管理；服务端仍应独立校验。共享文件是纯数据，不携带命令、DLL、私有码脚本或可执行路径。
+服务端索引 `applications[]` 和每个 monitor 的 `modelId/modelName/brand`；以 bundle 或场景为搜索结果均须保留所属 bundle 与 scene 标识，避免跨屏错误匹配。下载不跟随重定向，20 秒超时，流式大小限制。认证、作者归属、删除、分页及版本管理由独立网站负责，服务端独立校验；审核与运营策略不能用客户端校验代替。共享文件是纯数据，不携带命令、DLL、私有码脚本或可执行路径。
 
 通用功能只读探测，联动取所有已连接屏幕能力和选项的并集（含不同型号），写入仅针对支持的屏幕。`IMonitorModelAdapter` 为随应用审核发布的适配器预留，尚无动态加载器或厂商 SDK。
 

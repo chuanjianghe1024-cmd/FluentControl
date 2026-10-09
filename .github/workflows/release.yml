@@ -1,0 +1,35 @@
+name: Publish release
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/release.json
+      - .github/workflows/release.yml
+      - scripts/publish-release.py
+      - tests/release/**
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate release manifest and integrity checks
+        run: |
+          python3 scripts/publish-release.py --validate-only
+          python3 -m unittest discover -s tests/release -v
+      - name: Publish the verified MSI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish-release.py

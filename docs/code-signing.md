@@ -1,10 +1,10 @@
 # 官网与 Windows 发布者
 
-官方域名为 https://fctrl.app。应用设置、MSI 的“有关信息”和签名的描述链接使用该地址；网站、DNS、HTTPS 及配置分享后台尚需单独部署。本仓库没有配置域名解析或自动上传。
+官方域名为 https://fctrl.app。应用设置、MSI 的“有关信息”和签名的描述链接使用该地址；网站、DNS、HTTPS 及配置分享后台在独立网站仓库部署。本仓库不配置域名解析；Release 工作流只负责把已验证的 MSI 发布到 GitHub Releases。
 
 ## 当前状态
 
-普通 GitHub Actions 构建未签名。品牌名称 `FluentControl`、MSI Manufacturer 和文件 Company 只是产品元数据，不代表 Windows 已验证的发布者。
+首个正式 Release v0.3.33 及普通 GitHub Actions 构建未签名。发布附件中的 SHA-256 只用于文件完整性校验。品牌名称 `FluentControl`、MSI Manufacturer 和文件 Company 只是产品元数据，不代表 Windows 已验证的发布者。
 
 “发布者未知”需要给应用及 MSI 添加有效的 Authenticode 代码签名。官网域名和 HTTPS 证书不能替代代码签名证书，自签名证书也不会自动获得其他用户的 Windows 信任。发布者名称来自证书中经过身份验证的个人或组织，不能任意改成域名。
 
