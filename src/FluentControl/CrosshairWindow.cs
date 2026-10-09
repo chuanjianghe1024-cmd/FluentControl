@@ -23,7 +23,7 @@ internal sealed class CrosshairWindow : Window
             p.SetBorderAndTitleBar(false, false); p.IsResizable = false; p.IsMaximizable = false; p.IsMinimizable = false; p.IsAlwaysOnTop = true;
         }
         ShellIntegration.ToolWindow(WinRT.Interop.WindowNative.GetWindowHandle(this), true, true);
-        AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(monitor.Left + monitor.Width / 2 - 24, monitor.Top + monitor.Height / 2 - 24, 48, 48));
+        WindowPlacement.Place(this, 48, 48, monitor, workArea: false);
         AppWindow.Show(false);
     }
 }

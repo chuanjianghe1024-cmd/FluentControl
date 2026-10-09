@@ -187,11 +187,24 @@ try {
     StopLockFixture $locked
     $locked = $null
     Write-Host 'PASS: real payload lock prompts FilesInUse; cancel preserves the product, files and running processes.'
+    # Keep the unrelated process/module alive, but keep its test window out of
+    # the desktop panel's hit-test area during the independent native UI suite.
+    Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class InstallerFixtureWindow {
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr window, int command);
+}
+'@
+    $unrelated.Refresh()
+    [void][InstallerFixtureWindow]::ShowWindow($unrelated.MainWindowHandle, 6)
     & "$PSScriptRoot/Test-Startup.ps1" -PublishDirectory $target
     & "$PSScriptRoot/Test-Startup.ps1" -PublishDirectory $target -UiTest
     & "$PSScriptRoot/Test-Startup.ps1" -PublishDirectory $target -Background
     # Confirm real application settings also survive uninstall byte-for-byte.
     $saved = @(Get-ChildItem $data -File -Filter '*.json' | ForEach-Object { @{ Path = $_.FullName; Hash = (Get-FileHash $_.FullName).Hash } })
+    $unrelated.Refresh()
+    [void][InstallerFixtureWindow]::ShowWindow($unrelated.MainWindowHandle, 4)
     RunMsi "/x $currentCode" 'uninstall'
     $installed = $null
     AssertProduct $currentCode $false

@@ -33,7 +33,7 @@ public sealed partial class MainWindow : Window
         Title = "FluentControl";
         try { SystemBackdrop = new MicaBackdrop(); }
         catch (Exception ex) { StartupLog.Write("Mica unavailable: " + ex); }
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1120, 780));
+        WindowPlacement.Place(this, 1120, 780);
         try
         {
             preferences = new MonitorPreferences(Path.Combine(
@@ -343,18 +343,8 @@ public sealed partial class MainWindow : Window
         {
             foreach (var device in displayDevices.GroupBy(x => (x.Left, x.Top)).Select(x => x.First()))
             {
-                var window = new Window { Title = MonitorTitle(device) };
-                var label = new StackPanel { Spacing = 8, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-                label.Children.Add(new TextBlock { Text = device.Preference.Label, FontSize = 56, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center });
-                label.Children.Add(new TextBlock { Text = device.DisplayName, FontSize = 20, HorizontalAlignment = HorizontalAlignment.Center });
-                window.Content = new Border { Background = (Brush)Application.Current.Resources["SolidBackgroundFillColorBaseBrush"], BorderBrush = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"], BorderThickness = new Thickness(3), Child = label };
-                if (window.AppWindow.Presenter is OverlappedPresenter presenter)
-                {
-                    presenter.SetBorderAndTitleBar(false, false);
-                    presenter.IsResizable = false; presenter.IsMaximizable = false; presenter.IsMinimizable = false; presenter.IsAlwaysOnTop = true;
-                }
+                var window = new MonitorIdentificationWindow(device, MonitorTitle(device), Root.ActualTheme);
                 identificationWindows.Add(window);
-                window.AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(device.Left + (device.Width - 440) / 2, device.Top + (device.Height - 220) / 2, 440, 220));
                 window.Activate();
             }
             identificationTimer.Start();
@@ -380,6 +370,7 @@ public sealed partial class MainWindow : Window
     {
         try
         {
+            await CheckWindowSizingAsync();
             if (MonitorRows.Children.Count != 2 || CombinedRows.Children.Count < 3) throw new InvalidOperationException("Monitor controls not rendered.");
             if (monitorPlaceholderCount == 0) throw new InvalidOperationException("Unsupported capability placeholders are missing.");
             state.Settings.HideUnavailableMonitorControls = true; RenderMonitorControls(generation);

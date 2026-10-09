@@ -8,6 +8,7 @@
   <ItemGroup>
     <EmbeddedResource Include="../../src/FluentControl/Services/Locales.json" LogicalName="FluentControl.Locales.json" />
     <Compile Include="../../src/FluentControl/Services/Strings.cs" Link="Strings.cs" />
+    <Compile Include="../../src/FluentControl/Services/WindowGeometry.cs" Link="WindowGeometry.cs" />
 
     <Compile Include="../../src/FluentControl/Services/UserState.cs" Link="UserState.cs" />
     <Compile Include="../../src/FluentControl/Services/ControlChannel.cs" Link="ControlChannel.cs" />

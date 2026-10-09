@@ -138,9 +138,7 @@ public sealed partial class MainWindow
         int dark = Root.ActualTheme == ElementTheme.Dark ? 1 : 0;
         DwmSetWindowAttribute(hwnd, 20, ref dark, sizeof(int));
         try { window.AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "FluentControl.ico")); } catch { }
-        var width = Math.Min(580, Math.Max(320, device.Width - 40));
-        var height = Math.Min(660, Math.Max(320, device.Height - 80));
-        window.AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(device.Left + (device.Width - width) / 2, device.Top + (device.Height - height) / 2, width, height));
+        WindowPlacement.Place(window, 580, 660, device);
         window.Activate();
     }
 }

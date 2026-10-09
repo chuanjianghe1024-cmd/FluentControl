@@ -8,6 +8,42 @@ namespace FluentControl;
 
 public sealed partial class MainWindow
 {
+    private async Task CheckWindowSizingAsync()
+    {
+        var area = WindowPlacement.Area(this);
+        var scale = WindowPlacement.Scale(this);
+        var expected = WindowGeometry.ClientSize(1120, 780, scale, area,
+            AppWindow.Size.Width - AppWindow.ClientSize.Width, AppWindow.Size.Height - AppWindow.ClientSize.Height);
+        if (Math.Abs(AppWindow.ClientSize.Width - expected.Width) > 2 || Math.Abs(AppWindow.ClientSize.Height - expected.Height) > 2)
+            throw new InvalidOperationException("Main window did not convert its logical client size to the current display DPI.");
+        var monitor = new MonitorDevice
+        {
+            Id = "ui-identification-layout", Model = "Layout fixture", Connection = "test",
+            Left = area.X, Top = area.Y, Width = area.Width, Height = area.Height,
+            Preference = new() { Label = "M123", Alias = "四千分辨率显示器缩放布局验证名称，长文字应自动换行并且完整显示" }
+        };
+        var marker = new MonitorIdentificationWindow(monitor, "Identification layout fixture", Root.ActualTheme);
+        try
+        {
+            marker.Activate();
+            var deadline = DateTime.UtcNow.AddSeconds(3);
+            while ((!marker.NameLabel.IsLoaded || marker.NameLabel.ActualHeight < 1) && DateTime.UtcNow < deadline) await Task.Delay(30);
+            await Task.Delay(100);
+            var content = (FrameworkElement)marker.Content;
+            content.UpdateLayout();
+            if (marker.NameLabel.ActualHeight < 40 || marker.NameLabel.IsTextTrimmed || marker.IndexLabel.IsTextTrimmed)
+                throw new InvalidOperationException("Long identification text did not wrap without trimming.");
+            foreach (var label in new[] { marker.IndexLabel, marker.NameLabel })
+            {
+                var origin = label.TransformToVisual(content).TransformPoint(new Windows.Foundation.Point());
+                if (origin.X < -1 || origin.Y < -1 || origin.X + label.ActualWidth > content.ActualWidth + 1 || origin.Y + label.ActualHeight > content.ActualHeight + 1)
+                    throw new InvalidOperationException("Identification text was clipped by the window bounds.");
+            }
+            StartupLog.Write($"PASS: native DPI client sizing and wrapped identification text fit their window bounds; runner scale={scale}.");
+        }
+        finally { marker.Close(); Activate(); }
+    }
+
     private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
     {
         if (root is T match) yield return match;

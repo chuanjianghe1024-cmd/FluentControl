@@ -35,6 +35,8 @@ dotnet publish src/FluentControl/FluentControl.csproj -c Release -p:PublishProfi
 
 启动测试针对 `publish` 目录；`-UiTest` 使用模拟设备进行界面回归。真实显示器测试应记录型号、固件、线缆/转接方式、DDC/CI/HDR/ECO 状态，并对照 OSD 核验。能力和当前值的缓存行为、异常屏幕隔离、同屏请求顺序属于读取优化的关键回归。
 
+窗口尺寸使用 XAML 逻辑像素，经目标窗口 DPI 换算后调用 `ResizeClient`；跨屏弹窗先定位到目标显示器，再读取该窗口 DPI，工作区使用 Win32 的绝对坐标。纯逻辑测试覆盖 4K 的 100%–200% 缩放、负坐标副屏及受限工作区；WinUI 回归检查当前测试屏幕 DPI 下的原生客户区尺寸、长识别名称换行和文字边界。虚拟运行器不能代替实体 4K / 150% 及混合 DPI 双屏拖动验证，不能把计算测试描述成这些硬件场景已实测。
+
 以下命令只用于可丢弃的 Windows 测试环境：
 
 ```powershell
