@@ -12,9 +12,14 @@ internal sealed class DesktopLayer : IDisposable
     private readonly nint foregroundHook, minimizeHook;
     private readonly nint desktopSentinel;
     private const nuint DesktopTimer = 0x46434453;
+    // Suppress presenter/owner reordering for our own explicit layer changes.
+    private const uint PlacementFlags = 0x613; // NOSIZE | NOMOVE | NOACTIVATE | NOOWNERZORDER | NOSENDCHANGING
     private bool locked = true, disposed, placing, recoveryQueued, desktopBoosted, showDesktop;
     private int timerTicks;
-    internal string DiagnosticState => $"sentinel={desktopSentinel}, raised={IsDesktopRaised()}, tracked={showDesktop}, boosted={desktopBoosted}, locked={locked}, ticks={timerTicks}";
+    private long firstBoostStyle, anchorStyle;
+    private nint boostAnchor;
+    private bool firstBoostOk, anchorOk;
+    internal string DiagnosticState => $"sentinel={desktopSentinel}, raised={IsDesktopRaised()}, tracked={showDesktop}, boosted={desktopBoosted}, locked={locked}, ticks={timerTicks}, first={firstBoostOk}/0x{firstBoostStyle:X}, anchor={boostAnchor}/0x{anchorStyle:X}/{anchorOk}";
     internal DesktopLayer(nint window, Func<Action, bool> dispatch, Action lockPanel)
     {
         this.window = window; this.dispatch = dispatch; this.lockPanel = lockPanel; callback = WindowProc;
@@ -26,7 +31,7 @@ internal sealed class DesktopLayer : IDisposable
         // Show Desktop puts the shell above this marker, even without a foreground event.
         desktopSentinel = CreateWindowEx(0x08000080, "STATIC", "FluentControl.DesktopSentinel", 0x88000000,
             0, 0, 0, 0, 0, 0, 0, 0);
-        if (desktopSentinel != 0) SetWindowPos(desktopSentinel, 1, 0, 0, 0, 0, 0x13);
+        if (desktopSentinel != 0) SetWindowPos(desktopSentinel, 1, 0, 0, 0, 0, PlacementFlags);
         SetTimer(window, DesktopTimer, 200, 0);
     }
     internal void SetLocked(bool value)
@@ -60,14 +65,16 @@ internal sealed class DesktopLayer : IDisposable
             if (showDesktop)
             {
                 desktopBoosted = true;
-                SetWindowPos(window, -1, 0, 0, 0, 0, 0x13);
-                if (lastTopmost != 0) SetWindowPos(window, lastTopmost, 0, 0, 0, 0, 0x13);
+                firstBoostOk = SetWindowPos(window, -1, 0, 0, 0, 0, PlacementFlags);
+                firstBoostStyle = (long)GetWindowLongPtr(window, -20);
+                boostAnchor = lastTopmost; anchorStyle = lastTopmost == 0 ? 0 : (long)GetWindowLongPtr(lastTopmost, -20);
+                anchorOk = lastTopmost == 0 || SetWindowPos(window, lastTopmost, 0, 0, 0, 0, PlacementFlags);
             }
             else
             {
                 desktopBoosted = false;
-                SetWindowPos(window, -2, 0, 0, 0, 0, 0x13);
-                SetWindowPos(window, anchor, 0, 0, 0, 0, 0x13);
+                SetWindowPos(window, -2, 0, 0, 0, 0, PlacementFlags);
+                SetWindowPos(window, anchor, 0, 0, 0, 0, PlacementFlags);
             }
         }
         finally { placing = false; }
@@ -76,7 +83,7 @@ internal sealed class DesktopLayer : IDisposable
     {
         if (!desktopBoosted || disposed) return;
         desktopBoosted = false; placing = true;
-        try { SetWindowPos(window, -2, 0, 0, 0, 0, 0x13); }
+        try { SetWindowPos(window, -2, 0, 0, 0, 0, PlacementFlags); }
         finally { placing = false; }
     }
     private static bool IsDesktop(nint hwnd)
