@@ -18,6 +18,12 @@ public sealed record MonitorPresetPlan(IReadOnlyList<(ControlChannel Channel, do
 
 public static class MonitorPresetLibrary
 {
+    // Connected models stay visible before their first preset is saved. This list
+    // is a view only: never create empty presets or mutate saved user data.
+    public static List<MonitorDescriptor> GroupModels(IEnumerable<MonitorPreset> presets, IEnumerable<MonitorDevice> connected) =>
+        connected.Select(d => new MonitorDescriptor { ModelId = d.ModelId, ModelName = d.Model, DisplayName = d.DisplayName, Brand = ModelIdentity.Brand(d.ModelId) })
+        .Concat(presets.Select(p => p.Monitor)).DistinctBy(GroupKey).ToList();
+
     public static string GroupKey(MonitorDescriptor monitor) => ModelIdentity.IsValid(monitor.ModelId) ? monitor.ModelId : "unknown:" + monitor.Brand + ":" + monitor.ModelName;
     public static string ModelName(MonitorDescriptor monitor) => string.IsNullOrWhiteSpace(monitor.ModelName) ? monitor.ModelId.Length > 0 ? monitor.ModelId : Strings.T("未知型号", "Unknown model") : monitor.ModelName;
     public static string GroupName(MonitorDescriptor monitor) => ModelName(monitor) + (monitor.ModelId.Length > 0 && monitor.ModelId != monitor.ModelName ? " · " + monitor.ModelId : "");

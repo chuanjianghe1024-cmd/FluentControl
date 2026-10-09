@@ -174,16 +174,21 @@ public sealed class MonitorService : IDisposable
         {
             var watch = Stopwatch.StartNew();
             var ok = GetVCPFeatureAndVCPFeatureReply(handle, code, out _, out var current, out var maximum);
+            var error = ok ? 0 : Marshal.GetLastWin32Error();
             var elapsed = watch.ElapsedMilliseconds;
-            if (code == 0x14) diagnostic?.Invoke($"Color preset read [{device.Model}]: current=0x{current:X4}, maximum=0x{maximum:X4}, success={ok}");
+            if (code is 0x14 or 0xDC || !ok) diagnostic?.Invoke($"Monitor read [{device.DisplayName} / {device.Model} / {device.ModelId}]: VCP=0x{code:X2}, current=0x{current:X4}, maximum=0x{maximum:X4}, success={ok}, error=0x{unchecked((uint)error):X8}, duration={elapsed}ms");
             reads++; if (!ok) failures++; longestRead = Math.Max(longestRead, elapsed);
             if (elapsed >= 250) diagnostic?.Invoke($"Slow monitor read [{device.Model}]: VCP=0x{code:X2}, duration={elapsed}ms, success={ok}");
             return ok ? new VcpReply(current, maximum) : null;
         }
         void Write(byte code, uint value)
         {
-            diagnostic?.Invoke($"Monitor write [{device.Model}]: VCP=0x{code:X2}, value=0x{value:X4}");
-            if (!SetVCPFeature(handle, code, value)) throw new Win32Exception(Marshal.GetLastWin32Error(), device.DisplayName + $" · VCP 0x{code:X2}: " + Strings.T("未接受指令，请检查 DDC/CI、HDR 或节能模式。", "Command rejected. Check DDC/CI, HDR or power-saving mode."));
+            var watch = Stopwatch.StartNew();
+            var ok = SetVCPFeature(handle, code, value);
+            var error = ok ? 0 : Marshal.GetLastWin32Error();
+            diagnostic?.Invoke($"Monitor write [{device.DisplayName} / {device.Model} / {device.ModelId}]: VCP=0x{code:X2}, value=0x{value:X4}, success={ok}, error=0x{unchecked((uint)error):X8}, duration={watch.ElapsedMilliseconds}ms");
+            if (!ok) throw new Win32Exception(error, device.DisplayName + $" · VCP 0x{code:X2}: " +
+                Strings.F("写入失败（Windows 错误 {0}）：{1}", "Write failed (Windows error {0}): {1}", $"0x{unchecked((uint)error):X8}", new Win32Exception(error).Message));
         }
         // The known read-only firmware query is needed even when capabilities omit C9.
         // Reuse this reply during discovery so each refresh reads it only once.

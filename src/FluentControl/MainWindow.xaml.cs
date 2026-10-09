@@ -211,7 +211,7 @@ public sealed partial class MainWindow : Window
             }
             catch (Exception ex) { ShowStatus(T("名称未保存：", "Name not saved: ") + ex.Message, InfoBarSeverity.Error); }
         };
-        var menu = new Button { Content = T("屏幕菜单", "On-screen menu") };
+        var menu = new Button { Content = T("FC 屏幕菜单", "FC on-screen menu") };
         menu.Click += (_, _) => ShowMonitorOsd(device);
         var actions = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
         actions.Children.Add(menu); actions.Children.Add(CreateAdaptationButton(device)); actions.Children.Add(rename);

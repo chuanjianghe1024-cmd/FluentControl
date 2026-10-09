@@ -401,7 +401,14 @@
     "Submission opens the website. Sign in with GitHub or Google, then choose the exported report to upload.": "提交時會開啟網站；使用 GitHub 或 Google 登入後，選擇剛匯出的報告上傳。",
     "The OSD switch enables the native menu; it does not open it. Look for a native menu package in Model adapters.": "OSD 開關只允許使用原廠選單，不會彈出選單。可在型號適配中尋找原廠選單適配包。",
     "Unknown private codes and action commands are listed without probing. Differences are observations, not executable commands or native menu navigation support.": "未知私有碼和動作指令只列出，不探測。差異只是觀測結果，不會自動成為可執行指令或原廠選單導航。",
-    "\nRead {0} controls successfully; {1} failed.": "\n成功讀取 {0} 項，失敗 {1} 項。"
+    "\nRead {0} controls successfully; {1} failed.": "\n成功讀取 {0} 項，失敗 {1} 項。",
+    "OSD state: {0}": "OSD 狀態：{0}",
+    "Read-only state; OSD switching has not been verified.": "唯讀狀態；尚未驗證選單開關寫入。",
+    "Native menu remote control is not adapted. Use the FC on-screen menu for supported settings. The OSD switch enables the native menu; it does not open it.": "原廠選單遙控尚未適配。可使用 FC 螢幕選單調整已支援的參數；OSD 開關只控制選單是否可用，不會彈出選單。",
+    "Write failed (Windows error {0}): {1}": "寫入失敗（Windows 錯誤 {0}）：{1}",
+    "Save current settings from {0}": "儲存 {0} 目前參數",
+    "No presets saved for this model yet.": "此型號尚未儲存設定。",
+    "DDC/CI volume unavailable. Use Audio to adjust the corresponding Windows playback device.": "DDC/CI 音量無法使用。可在「音效與麥克風」中調整對應的 Windows 播放裝置。"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -805,7 +812,14 @@
     "Submission opens the website. Sign in with GitHub or Google, then choose the exported report to upload.": "サイトが開きます。GitHubまたはGoogleでログインし、出力したレポートを選んで送信してください。",
     "The OSD switch enables the native menu; it does not open it. Look for a native menu package in Model adapters.": "OSDスイッチは本体メニューを有効にするだけです。モデル別アダプターでメニュー対応パッケージを検索できます。",
     "Unknown private codes and action commands are listed without probing. Differences are observations, not executable commands or native menu navigation support.": "不明な独自コードや操作命令は一覧のみで調査しません。差分は観測であり、実行可能な命令や本体メニュー操作にはなりません。",
-    "\nRead {0} controls successfully; {1} failed.": "\n{0} 項目の読取成功、{1} 項目失敗。"
+    "\nRead {0} controls successfully; {1} failed.": "\n{0} 項目の読取成功、{1} 項目失敗。",
+    "OSD state: {0}": "OSD の状態：{0}",
+    "Read-only state; OSD switching has not been verified.": "読み取り専用の状態です。OSD 切り替えの書き込みは未検証です。",
+    "Native menu remote control is not adapted. Use the FC on-screen menu for supported settings. The OSD switch enables the native menu; it does not open it.": "本体メニューのリモート操作は未対応です。対応する設定は FC 画面メニューで調整できます。OSD スイッチは本体メニューを有効にするもので、メニューを開く操作ではありません。",
+    "Write failed (Windows error {0}): {1}": "書き込み失敗（Windows エラー {0}）：{1}",
+    "Save current settings from {0}": "{0} の現在の設定を保存",
+    "No presets saved for this model yet.": "このモデルのプリセットはまだ保存されていません。",
+    "DDC/CI volume unavailable. Use Audio to adjust the corresponding Windows playback device.": "DDC/CI 音量を利用できません。「音声とマイク」で対応する Windows 再生デバイスを調整してください。"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -1209,7 +1223,14 @@
     "Submission opens the website. Sign in with GitHub or Google, then choose the exported report to upload.": "웹사이트가 열립니다. GitHub 또는 Google로 로그인하고 내보낸 보고서를 선택해 업로드하세요.",
     "The OSD switch enables the native menu; it does not open it. Look for a native menu package in Model adapters.": "OSD 스위치는 메뉴 사용을 허용할 뿐 열지는 않습니다. 모델 어댑터에서 메뉴 패키지를 찾아보세요.",
     "Unknown private codes and action commands are listed without probing. Differences are observations, not executable commands or native menu navigation support.": "알 수 없는 전용 코드와 동작 명령은 목록만 표시합니다. 차이는 관찰 결과일 뿐 실행 명령이나 기본 메뉴 탐색 지원이 아닙니다.",
-    "\nRead {0} controls successfully; {1} failed.": "\n읽기 성공 {0}개, 실패 {1}개."
+    "\nRead {0} controls successfully; {1} failed.": "\n읽기 성공 {0}개, 실패 {1}개.",
+    "OSD state: {0}": "OSD 상태: {0}",
+    "Read-only state; OSD switching has not been verified.": "읽기 전용 상태입니다. OSD 전환 쓰기는 검증되지 않았습니다.",
+    "Native menu remote control is not adapted. Use the FC on-screen menu for supported settings. The OSD switch enables the native menu; it does not open it.": "모니터 자체 메뉴의 원격 제어는 아직 지원되지 않습니다. 지원되는 설정은 FC 화면 메뉴에서 조절하세요. OSD 스위치는 자체 메뉴를 활성화하며 메뉴를 열지는 않습니다.",
+    "Write failed (Windows error {0}): {1}": "쓰기 실패(Windows 오류 {0}): {1}",
+    "Save current settings from {0}": "{0}의 현재 설정 저장",
+    "No presets saved for this model yet.": "이 모델에 저장된 프리셋이 아직 없습니다.",
+    "DDC/CI volume unavailable. Use Audio to adjust the corresponding Windows playback device.": "DDC/CI 볼륨을 사용할 수 없습니다. 오디오에서 해당 Windows 재생 장치를 조절하세요."
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -1613,7 +1634,14 @@
     "Submission opens the website. Sign in with GitHub or Google, then choose the exported report to upload.": "Die Website wird geöffnet. Mit GitHub oder Google anmelden und den exportierten Bericht hochladen.",
     "The OSD switch enables the native menu; it does not open it. Look for a native menu package in Model adapters.": "Der OSD-Schalter aktiviert das Monitormenü, öffnet es aber nicht. Unter Modelladapter nach einem Menüpaket suchen.",
     "Unknown private codes and action commands are listed without probing. Differences are observations, not executable commands or native menu navigation support.": "Unbekannte private Codes und Aktionsbefehle werden nur aufgelistet. Unterschiede sind Beobachtungen, keine ausführbaren Befehle oder Menünavigation.",
-    "\nRead {0} controls successfully; {1} failed.": "\n{0} Werte erfolgreich gelesen; {1} fehlgeschlagen."
+    "\nRead {0} controls successfully; {1} failed.": "\n{0} Werte erfolgreich gelesen; {1} fehlgeschlagen.",
+    "OSD state: {0}": "OSD-Status: {0}",
+    "Read-only state; OSD switching has not been verified.": "Nur lesbarer Status; das Umschalten des OSD wurde nicht verifiziert.",
+    "Native menu remote control is not adapted. Use the FC on-screen menu for supported settings. The OSD switch enables the native menu; it does not open it.": "Die Fernsteuerung des Monitormenüs ist noch nicht angepasst. Nutzen Sie das FC-Bildschirmmenü für unterstützte Einstellungen. Der OSD-Schalter aktiviert das Monitormenü, öffnet es aber nicht.",
+    "Write failed (Windows error {0}): {1}": "Schreiben fehlgeschlagen (Windows-Fehler {0}): {1}",
+    "Save current settings from {0}": "Aktuelle Einstellungen von {0} speichern",
+    "No presets saved for this model yet.": "Für dieses Modell sind noch keine Voreinstellungen gespeichert.",
+    "DDC/CI volume unavailable. Use Audio to adjust the corresponding Windows playback device.": "DDC/CI-Lautstärke nicht verfügbar. Passen Sie unter Audio das entsprechende Windows-Wiedergabegerät an."
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -2017,7 +2045,14 @@
     "Submission opens the website. Sign in with GitHub or Google, then choose the exported report to upload.": "Le site s’ouvre. Connectez-vous avec GitHub ou Google, puis choisissez le rapport exporté à envoyer.",
     "The OSD switch enables the native menu; it does not open it. Look for a native menu package in Model adapters.": "Le commutateur OSD active le menu sans l’ouvrir. Cherchez un paquet de menu dans les adaptateurs de modèle.",
     "Unknown private codes and action commands are listed without probing. Differences are observations, not executable commands or native menu navigation support.": "Les codes privés inconnus et actions sont listés sans sondage. Les différences sont des observations, pas des commandes exécutables ni une navigation de menu.",
-    "\nRead {0} controls successfully; {1} failed.": "\n{0} paramètres lus ; {1} échecs."
+    "\nRead {0} controls successfully; {1} failed.": "\n{0} paramètres lus ; {1} échecs.",
+    "OSD state: {0}": "État de l’OSD : {0}",
+    "Read-only state; OSD switching has not been verified.": "État en lecture seule ; la modification du commutateur OSD n’a pas été vérifiée.",
+    "Native menu remote control is not adapted. Use the FC on-screen menu for supported settings. The OSD switch enables the native menu; it does not open it.": "La commande à distance du menu du moniteur n’est pas encore adaptée. Utilisez le menu à l’écran FC pour les réglages pris en charge. Le commutateur OSD active le menu du moniteur, mais ne l’ouvre pas.",
+    "Write failed (Windows error {0}): {1}": "Échec de l’écriture (erreur Windows {0}) : {1}",
+    "Save current settings from {0}": "Enregistrer les réglages actuels de {0}",
+    "No presets saved for this model yet.": "Aucun préréglage enregistré pour ce modèle.",
+    "DDC/CI volume unavailable. Use Audio to adjust the corresponding Windows playback device.": "Volume DDC/CI indisponible. Dans Audio, réglez le périphérique de lecture Windows correspondant."
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -2421,6 +2456,13 @@
     "Submission opens the website. Sign in with GitHub or Google, then choose the exported report to upload.": "Se abrirá el sitio. Inicia sesión con GitHub o Google y selecciona el informe exportado para subirlo.",
     "The OSD switch enables the native menu; it does not open it. Look for a native menu package in Model adapters.": "El interruptor OSD habilita el menú, pero no lo abre. Busca un paquete de menú en Adaptadores de modelo.",
     "Unknown private codes and action commands are listed without probing. Differences are observations, not executable commands or native menu navigation support.": "Los códigos privados desconocidos y acciones solo se enumeran. Las diferencias son observaciones, no comandos ejecutables ni navegación del menú.",
-    "\nRead {0} controls successfully; {1} failed.": "\n{0} controles leídos; {1} fallidos."
+    "\nRead {0} controls successfully; {1} failed.": "\n{0} controles leídos; {1} fallidos.",
+    "OSD state: {0}": "Estado del OSD: {0}",
+    "Read-only state; OSD switching has not been verified.": "Estado de solo lectura; no se ha verificado la escritura del interruptor OSD.",
+    "Native menu remote control is not adapted. Use the FC on-screen menu for supported settings. The OSD switch enables the native menu; it does not open it.": "El control remoto del menú del monitor aún no está adaptado. Use el menú en pantalla FC para los ajustes compatibles. El interruptor OSD habilita el menú del monitor, pero no lo abre.",
+    "Write failed (Windows error {0}): {1}": "Error de escritura (error de Windows {0}): {1}",
+    "Save current settings from {0}": "Guardar los ajustes actuales de {0}",
+    "No presets saved for this model yet.": "Aún no hay ajustes guardados para este modelo.",
+    "DDC/CI volume unavailable. Use Audio to adjust the corresponding Windows playback device.": "Volumen DDC/CI no disponible. En Audio, ajuste el dispositivo de reproducción de Windows correspondiente."
   }
 }

@@ -560,7 +560,7 @@ public sealed partial class MainWindow
         {
             if (syncing || combo.SelectedItem is not ControlOption choice) return;
             if (targets.Any(x => x.RequiresConfirmation) && !await ConfirmMonitorChangeAsync(channel, targets)) { Update(); return; }
-            pendingWrites++; var page = notificationContext;
+            pendingWrites++; combo.IsEnabled = false; var page = notificationContext;
             await gate.WaitAsync();
             try
             {
@@ -571,7 +571,7 @@ public sealed partial class MainWindow
                 ShowStatus(errors.Count == 0 ? F("已更新{0}", "{0} updated", Channel(channel)) : string.Join("; ", errors), errors.Count == 0 ? InfoBarSeverity.Success : InfoBarSeverity.Error, page);
             }
             catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error, page); }
-            finally { pendingWrites--; gate.Release(); }
+            finally { pendingWrites--; gate.Release(); if (!closed && version == generation) { combo.IsEnabled = true; Update(); } }
         };
         return SettingsRow((group is null ? "" : T("统一", "Linked ")) + Channel(channel), channel.Detail, combo);
     }

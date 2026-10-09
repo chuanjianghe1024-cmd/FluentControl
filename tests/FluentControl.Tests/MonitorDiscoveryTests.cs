@@ -11,9 +11,33 @@ internal static class MonitorDiscoveryTests
     {
         var directory = Path.Combine(Path.GetTempPath(), "FluentControl-monitor-cache-" + Guid.NewGuid());
         Directory.CreateDirectory(directory);
-        try { CacheChecks(directory); BatchChecks(); }
+        try { CacheChecks(directory); BatchChecks(); OsdStatusChecks(); }
         finally { Directory.Delete(directory, true); }
         Console.WriteLine("PASS: monitor metadata cache, live values, forced/expired/corrupt cache recovery, bounded parallel reads and failure isolation.");
+    }
+
+    private static void OsdStatusChecks()
+    {
+        var reads = new List<byte>(); var writes = 0;
+        var caps = VcpCapabilities.Parse("(vcp(10 12 14(05 08 0B 0C) DC(00 02 03 05) FD) mccs_ver(2.1))");
+        List<MonitorFeature> Discover(VcpReply? reply) => VcpDiscovery.Discover("osd-fixture", caps,
+            code => { reads.Add(code); return code == 0xCA ? reply : null; }, (_, _) => writes++);
+        var features = Discover(new(0x0202, 2));
+        var osd = features.Single(f => f.Definition.Key == "osd");
+        Check(reads.Count(c => c == 0xCA) == 1 && !reads.Contains(0xFD) && writes == 0,
+            "omitted standard OSD state is read once without probing private commands or writing");
+        Check(osd.Channel is null && osd.Information.Contains("0x0202") && osd.Reason.Length > 0,
+            "an unadvertised readable OSD state must not expose menu lock writes");
+        var device = new MonitorDevice { Id = "osd-fixture", Model = "OSD fixture", ModelId = "TST0001", Connection = "test", CapabilitiesText = "(vcp(10 12))" };
+        device.Features.AddRange(features);
+        var exported = MonitorHardwareInfo.Capture(device)!.Controls.Single(c => c.Key == "osd");
+        Check(exported.Readable && !exported.Writable && !exported.Advertised,
+            "saved hardware observations must keep OSD read support separate from write support");
+        Check(Discover(null).Single(f => f.Definition.Key == "osd") is { Channel: null, Information.Length: 0 },
+            "failed OSD reads must not invent a state or writable control");
+        Check(Discover(new(0xAB09, 2)).Single(f => f.Definition.Key == "osd").Information.Contains("0xAB09"),
+            "unknown OSD states must preserve the raw value");
+        Console.WriteLine("PASS: unadvertised OSD state remains visible and read-only; failed reads and private codes never grant writes.");
     }
 
     private static void CacheChecks(string directory)

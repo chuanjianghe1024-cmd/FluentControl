@@ -90,6 +90,7 @@ public sealed partial class MainWindow
             throw new InvalidOperationException("Cross-model linked badge missing.");
         await CheckCrossModelControlsAsync();
         await CheckMonitorOsdAsync();
+        await CheckReadOnlyOsdAndLibraryAsync();
         await CheckAdapterCaptureAsync();
         var otherModel = new MonitorDevice { Id = "unknown-model", Model = "Unknown model", Connection = "test" };
         otherModel.Channels.Add(new() { Name = "Unknown display brightness", Detail = "", Glyph = "", PropertyKey = "brightness", Value = 45, Write = _ => { } });
@@ -197,6 +198,60 @@ public sealed partial class MainWindow
             StartupLog.Write("PASS: monitor OSD controls only the selected screen; closing cancels queued writes");
         }
         finally { CloseMonitorOsd(); ControlOperations.Apply(new[] { first }, before); SynchronizeValues(); }
+    }
+    private async Task CheckReadOnlyOsdAndLibraryAsync()
+    {
+        var fixture = new MonitorDevice { Id = "ui-readonly-osd", ModelId = "TST0003", Model = "Unsaved OSD fixture", Connection = "test" };
+        var writes = 0;
+        fixture.Features.AddRange(VcpDiscovery.Discover(fixture.Id, VcpCapabilities.Parse("(vcp(10 12 FD))"),
+            code => code == 0xCA ? new VcpReply(2, 2) : null, (_, _) => writes++));
+        var hide = state.Settings.HideUnavailableMonitorControls;
+        var presets = state.MonitorPresets.ToList(); var model = libraryModel; var search = librarySearch;
+        var navigation = Navigation.SelectedItem; var mode = DisplayMode.SelectedIndex;
+        displayDevices.Add(fixture);
+        async Task ExpandAsync(DependencyObject root)
+        {
+            await Task.Delay(100);
+            foreach (var expander in Descendants<Expander>(root).ToArray()) expander.IsExpanded = true;
+            await Task.Delay(100);
+        }
+        bool Has(DependencyObject root, string id) => Descendants<FrameworkElement>(root)
+            .Any(e => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(e) == id);
+        try
+        {
+            state.Settings.HideUnavailableMonitorControls = true;
+            RenderMonitorControls(generation);
+            foreach (var index in new[] { 0, 1 })
+            {
+                DisplayMode.SelectedIndex = index;
+                var root = index == 0 ? MonitorRows : CombinedRows;
+                await ExpandAsync(root);
+                if (!Has(root, "native-osd-status-" + fixture.Id) || !Has(root, "readonly-" + fixture.Id + "-osd"))
+                    throw new InvalidOperationException("Read-only OSD status disappeared when unavailable controls were hidden.");
+            }
+            ShowMonitorOsd(fixture);
+            var osd = (DependencyObject)monitorOsd!.Content;
+            await ExpandAsync(osd);
+            if (!Has(osd, "native-osd-status-" + fixture.Id) || !Has(osd, "readonly-" + fixture.Id + "-osd"))
+                throw new InvalidOperationException("FC menu omitted native adaptation status or the readable OSD state.");
+            CloseMonitorOsd();
+            state.MonitorPresets.Clear(); libraryModel = librarySearch = "";
+            Navigation.SelectedItem = Navigation.MenuItems[3]; BuildPresetLibrary();
+            await ExpandAsync(PresetLibraryPanel);
+            if (displayDevices.Any(d => !Has(PresetLibraryPanel, "library-save-" + d.Id)) || state.MonitorPresets.Count != 0)
+                throw new InvalidOperationException("Connected models without presets need visible save entries without creating empty presets.");
+            if (writes != 0 || fixture.Channels.Count != 0 || fixture.Features.Any(f => f.Channel is not null))
+                throw new InvalidOperationException("Read-only OSD discovery or rendering must not grant writes or send commands.");
+            StartupLog.Write("PASS: unadvertised read-only OSD state in individual/overall/software menus and unsaved connected models in the library.");
+        }
+        finally
+        {
+            CloseMonitorOsd(); displayDevices.Remove(fixture);
+            state.Settings.HideUnavailableMonitorControls = hide;
+            state.MonitorPresets.Clear(); state.MonitorPresets.AddRange(presets);
+            libraryModel = model; librarySearch = search; BuildPresetLibrary();
+            Navigation.SelectedItem = navigation; DisplayMode.SelectedIndex = mode; RenderMonitorControls(generation);
+        }
     }
     private async Task CheckCrossModelControlsAsync()
     {

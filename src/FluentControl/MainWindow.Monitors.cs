@@ -31,7 +31,7 @@ public sealed partial class MainWindow
             body.Children.Add(ModelBadge(sameModel ? F("同型号 · {0} 台联动", "Same model · {0} linked displays", devices.Length) : F("跨型号 · {0} 台联动", "Across models · {0} linked displays", devices.Length)));
             foreach (var device in devices)
             {
-                var menu = new Button { Content = MonitorTitle(device) + " · " + device.Model + " · " + T("屏幕菜单", "On-screen menu") };
+                var menu = new Button { Content = MonitorTitle(device) + " · " + device.Model + " · " + T("FC 屏幕菜单", "FC on-screen menu") };
                 menu.Click += (_, _) => ShowMonitorOsd(device); body.Children.Add(menu);
                 body.Children.Add(CreateAdaptationButton(device));
                 body.Children.Add(CreateMonitorPresetRow(device));
@@ -48,17 +48,21 @@ public sealed partial class MainWindow
         foreach (var category in VcpCatalog.All.Select(x => x.Category).Append("extensions").Distinct())
         {
             var rows = new StackPanel { Spacing = 6 };
+            if (category == "osd")
+                foreach (var device in devices) rows.Children.Add(CreateNativeMenuStatus(device, linked));
             var definitions = category == "extensions" ? devices.SelectMany(x => x.Features).Where(x => x.Definition.Category == category).Select(x => x.Definition).DistinctBy(x => x.Key) : VcpCatalog.All.Where(x => x.Category == category);
             foreach (var definition in definitions)
             {
                 var entries = devices.Select(d => (Device: d, Feature: d.Features.FirstOrDefault(f => f.Definition.Key == definition.Key) ?? new MonitorFeature { Definition = definition, Channel = d.Channels.FirstOrDefault(c => c.PropertyKey == definition.Key), Reason = T("不支持或当前无法读取", "Unsupported or currently unreadable") })).ToArray();
                 var targets = entries.Where(x => x.Feature.Channel is not null).Select(x => x.Feature.Channel!).ToArray();
-                if (state.Settings.HideUnavailableMonitorControls && targets.Length == 0) continue;
+                if (state.Settings.HideUnavailableMonitorControls && targets.Length == 0 &&
+                    !(category == "osd" && entries.Any(x => x.Feature.Information.Length > 0))) continue;
                 if (!linked || definition.Confirm || definition.Kind == VcpKind.ReadOnly || targets.Length == 0)
                 {
                     foreach (var entry in entries)
                     {
-                        if (state.Settings.HideUnavailableMonitorControls && entry.Feature.Channel is null) continue;
+                        if (state.Settings.HideUnavailableMonitorControls && entry.Feature.Channel is null &&
+                            !(category == "osd" && entry.Feature.Information.Length > 0)) continue;
                         rows.Children.Add(FeatureRow(entry.Device, entry.Feature, version, linked));
                     }
                 }
@@ -125,7 +129,9 @@ public sealed partial class MainWindow
         if (feature.Channel is not ControlChannel channel)
         {
             monitorPlaceholderCount++;
-            return SettingsRow(title, $"VCP 0x{definition.Code:X2} · " + (feature.Reason.Length > 0 ? feature.Reason : T("只读", "Read only")), new TextBlock { Text = feature.Information.Length > 0 ? feature.Information : "—", Opacity = .6, VerticalAlignment = VerticalAlignment.Center });
+            var status = SettingsRow(title, $"VCP 0x{definition.Code:X2} · " + (feature.Reason.Length > 0 ? feature.Reason : T("只读", "Read only")), new TextBlock { Text = feature.Information.Length > 0 ? feature.Information : "—", Opacity = .6, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap });
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(status, "readonly-" + device.Id + "-" + definition.Key);
+            return status;
         }
         if (!channel.IsAction)
         {

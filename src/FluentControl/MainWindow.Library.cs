@@ -9,7 +9,7 @@ public sealed partial class MainWindow
     private sealed record ModelGroupOption(string Id, string Name);
     private string libraryModel = "", librarySearch = "";
     private List<ModelGroupOption> LibraryGroups() => new[] { new ModelGroupOption("", T("全部型号", "All models")) }
-        .Concat(state.MonitorPresets.GroupBy(p => MonitorPresetLibrary.GroupKey(p.Monitor)).Select(g => new ModelGroupOption(g.Key, MonitorPresetLibrary.GroupName(g.First().Monitor)))).ToList();
+        .Concat(MonitorPresetLibrary.GroupModels(state.MonitorPresets, displayDevices).Select(m => new ModelGroupOption(MonitorPresetLibrary.GroupKey(m), MonitorPresetLibrary.GroupName(m)))).ToList();
     private static bool PresetMatches(MonitorPreset preset, string group, string query) =>
         (group.Length == 0 || MonitorPresetLibrary.GroupKey(preset.Monitor) == group) &&
         string.Join(" ", new[] { preset.Name, preset.Scenario, preset.Summary, preset.Monitor.ModelId, preset.Monitor.ModelName, preset.Monitor.Brand }.Concat(preset.Applications)).Contains(query.Trim(), StringComparison.CurrentCultureIgnoreCase);
@@ -47,13 +47,27 @@ public sealed partial class MainWindow
         {
             libraryModel = (model.SelectedItem as ModelGroupOption)?.Id ?? ""; librarySearch = search.Text;
             rows.Children.Clear();
-            foreach (var group in state.MonitorPresets.Where(p => PresetMatches(p, libraryModel, librarySearch)).GroupBy(p => MonitorPresetLibrary.GroupKey(p.Monitor)))
+            foreach (var group in groups.Skip(1).Where(g => libraryModel.Length == 0 || g.Id == libraryModel))
             {
+                var all = state.MonitorPresets.Where(p => MonitorPresetLibrary.GroupKey(p.Monitor) == group.Id).ToArray();
+                var presets = all.Where(p => PresetMatches(p, group.Id, librarySearch)).ToArray();
+                if (presets.Length == 0 && (all.Length > 0 || !group.Name.Contains(librarySearch.Trim(), StringComparison.CurrentCultureIgnoreCase))) continue;
                 var content = new StackPanel { Spacing = 8 };
-                var deleteGroup = new Button { Content = T("删除分组", "Delete group") };
-                deleteGroup.Click += async (_, _) => await DeleteMonitorPresetsAsync(state.MonitorPresets.Where(p => MonitorPresetLibrary.GroupKey(p.Monitor) == group.Key).ToArray());
-                content.Children.Add(deleteGroup);
-                foreach (var preset in group)
+                foreach (var device in displayDevices.Where(d => MonitorPresetLibrary.GroupKey(new() { ModelId = d.ModelId, ModelName = d.Model, Brand = ModelIdentity.Brand(d.ModelId) }) == group.Id))
+                {
+                    var save = new Button { Content = F("保存 {0} 当前参数", "Save current settings from {0}", MonitorTitle(device)) };
+                    Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(save, "library-save-" + device.Id);
+                    save.Click += async (_, _) => await SaveMonitorPresetAsync(device);
+                    content.Children.Add(save);
+                }
+                if (all.Length == 0) content.Children.Add(Empty(T("此型号尚未保存配置。", "No presets saved for this model yet.")));
+                else
+                {
+                    var deleteGroup = new Button { Content = T("删除分组", "Delete group") };
+                    deleteGroup.Click += async (_, _) => await DeleteMonitorPresetsAsync(state.MonitorPresets.Where(p => MonitorPresetLibrary.GroupKey(p.Monitor) == group.Id).ToArray());
+                    content.Children.Add(deleteGroup);
+                }
+                foreach (var preset in presets)
                 {
                     var body = new StackPanel { Spacing = 6, Padding = new Thickness(12) };
                     body.Children.Add(new TextBlock { Text = preset.Name, FontSize = 16, TextWrapping = TextWrapping.Wrap });
@@ -77,7 +91,7 @@ public sealed partial class MainWindow
                     remove.Click += async (_, _) => await DeleteMonitorPresetsAsync(new[] { preset });
                     actions.Children.Add(use); actions.Children.Add(edit); actions.Children.Add(remove); body.Children.Add(actions); content.Children.Add(Card(body));
                 }
-                rows.Children.Add(new Expander { Header = MonitorPresetLibrary.GroupName(group.First().Monitor), IsExpanded = true, Content = content, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
+                rows.Children.Add(new Expander { Header = group.Name, IsExpanded = true, Content = content, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
             }
             if (rows.Children.Count == 0) rows.Children.Add(Empty(T("暂无显示器配置。可从屏幕保存当前参数，或导入分享文件。", "No monitor presets. Save current display settings or import a shared file.")));
         }

@@ -57,6 +57,7 @@ internal static class StartupTemperatureTests
             Write = _ => { }, Read = () => 6, Value = 4, VerifyChoiceReadback = true };
         Check(ControlOperations.Apply(new[] { mismatch }, 8).Count == 1 && mismatch.Value == 6,
             "A real mismatch is reported and preserves actual hardware state; never fake success or guess a correction.");
+        ChoiceReadbackChecks();
         var canonicalKey = ProfileGroups.MonitorKey("display", "color-preset");
         var values = new Dictionary<string, SavedValue> { [canonicalKey] = new() { Value = 5 } };
         var available = new Dictionary<string, ControlChannel> { [canonicalKey] = preset };
@@ -75,6 +76,32 @@ internal static class StartupTemperatureTests
         var union = MonitorLinking.DesktopOptions(new[] { preset, second }, c => c.DeviceId)!;
         Check(union.Single(o => o.Value == 8).Label == "9300 K" && union.Single(o => o.Value == 4).Label.Contains("display"), "Desktop enum union identifies partially supported options.");
         Console.WriteLine("PASS: startup retry policy, preset namespaces/readback/legacy scenes and complete desktop aggregation.");
+    }
+
+    private static void ChoiceReadbackChecks()
+    {
+        foreach (var code in new byte[] { 0x14, 0xDC })
+        {
+            var reads = 0; var writes = 0; var actual = code == 0x14 ? 8u : 0u;
+            var caps = VcpCapabilities.Parse("(vcp(14(05 08) DC(00 02 03 05)))");
+            var channel = VcpDiscovery.Discover("ignored-write", caps,
+                c => { if (c != code) return null; reads++; return new VcpReply(actual, 255); },
+                (_, _) => writes++).Single(f => f.Definition.Code == code).Channel!;
+            reads = 0;
+            var errors = ControlOperations.Apply(new[] { channel }, 5);
+            Check(errors.Count == 1 && errors[0].Contains("0x05") && errors[0].Contains($"0x{actual:X2}") && channel.Value == actual,
+                "Ignored color and picture preset writes must report both raw values and retain hardware state.");
+            Check(writes == 1 && reads == 4, "Readback is bounded and never resends a rejected preset.");
+            channel.Read!();
+            Check(reads == 5, "A later refresh must not repeat a consumed write verification.");
+        }
+        var delayedReads = 0; var delayedWrites = 0;
+        var delayed = VcpDiscovery.Discover("delayed-mode", VcpCapabilities.Parse("(vcp(DC(00 02 03 05)))"),
+            c => c == 0xDC ? new VcpReply(delayedWrites > 0 && ++delayedReads > 1 ? 5u : 0u, 255) : null,
+            (_, _) => delayedWrites++).Single(f => f.Definition.Code == 0xDC).Channel!;
+        Check(ControlOperations.Apply(new[] { delayed }, 5).Count == 0 && delayed.Value == 5 && delayedWrites == 1 && delayedReads == 2,
+            "A delayed picture mode must settle by reading again, without duplicate writes or false rejection.");
+        Console.WriteLine("PASS: ignored color/picture mode writes, raw mismatch reporting, bounded read-only retries and delayed acknowledgement.");
     }
 
     internal static void RunNative()

@@ -48,7 +48,7 @@ public static class ControlOperations
                 channel.Value = channel.Read?.Invoke() ?? target;
                 if (channel.VerifyChoiceReadback && channel.Value != target)
                 {
-                    string Label(double value) => channel.Options?.FirstOrDefault(o => o.Value == value)?.Label ?? $"0x{(uint)value:X}";
+                    string Label(double value) => channel.Options?.FirstOrDefault(o => o.Value == value)?.Label is { } label ? $"{label} (0x{(uint)value:X2})" : $"0x{(uint)value:X2}";
                     errors.Add(channel.Name + "：" + Strings.F("请求 {0}，显示器实际返回 {1}。", "Requested {0}; the display returned {1}.", Label(target), Label(channel.Value)));
                 }
             }

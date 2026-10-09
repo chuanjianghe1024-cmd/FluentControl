@@ -22,6 +22,11 @@ internal static class PresetLibraryTests
         Check(imported.Single().Scenario == "Office" && imported[0].Applications.Single() == "Editor", "Scenario and application metadata round trip.");
         Check(MonitorPresetLibrary.Import(exported, imported, "same file").Count == 0, "Repeated imports do not duplicate identical model presets.");
         var target = new MonitorDevice { Id = "new-screen", ModelId = "HWV4321", Model = "Other panel", Connection = "test" };
+        var secondConnected = new MonitorDevice { Id = "other-screen", ModelId = "TST0002", Model = "Unsaved panel", Connection = "test" };
+        var sameModel = new MonitorDevice { Id = "same-model-screen", ModelId = "HWV4321", Model = "Other panel", Connection = "test" };
+        var models = MonitorPresetLibrary.GroupModels(imported, new[] { target, secondConnected, sameModel });
+        Check(models.Select(m => m.ModelId).SequenceEqual(new[] { "HWV4321", "TST0002", "DEL1234" }) && imported.Count == 1,
+            "Library includes unsaved connected models once and preserves offline saved models without creating presets.");
         var written = new List<double>();
         target.Channels.Add(new() { Name = "Brightness", Detail = "", Glyph = "", PropertyKey = "brightness", Value = 10, Write = written.Add });
         target.Channels.Add(new() { Name = "Color", Detail = "", Glyph = "", PropertyKey = "color-preset", Options = new[] { new ControlOption(5, "6500K") }, Write = _ => throw new Exception("Unsupported preset sent") });

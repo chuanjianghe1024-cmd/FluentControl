@@ -11,6 +11,15 @@ public sealed partial class MainWindow
 {
     private Window? monitorOsd;
     private void CloseMonitorOsd() { monitorOsd?.Close(); monitorOsd = null; }
+    private FrameworkElement CreateNativeMenuStatus(MonitorDevice device, bool showDevice = false)
+    {
+        var message = device.InstalledAdapter?.NativeMenu.Count > 0 ?
+            T("已安装原厂菜单适配；在主窗口的型号扩展中操作。", "Native menu adapter installed. Use Model extensions in the main window.") :
+            T("原厂菜单遥控尚未适配。可使用 FC 屏幕菜单调节已支持的参数；OSD 开关只控制菜单是否可用，不会弹出菜单。", "Native menu remote control is not adapted. Use the FC on-screen menu for supported settings. The OSD switch enables the native menu; it does not open it.");
+        var status = Empty((showDevice ? MonitorTitle(device) + " · " + device.Model + "\n" : "") + message);
+        AutomationProperties.SetAutomationId(status, "native-osd-status-" + device.Id);
+        return status;
+    }
     private void ShowMonitorOsd(MonitorDevice device)
     {
         if (closed || refreshing || monitorAdaptationDialog is not null || !displayDevices.Contains(device)) return;
@@ -65,9 +74,9 @@ public sealed partial class MainWindow
             var rows = new StackPanel { Spacing = 10 };
             if (category == "osd")
             {
-                rows.Children.Add(Empty(device.InstalledAdapter?.NativeMenu.Count > 0 ?
-                    T("已安装原厂菜单适配；在主窗口的型号扩展中操作。", "Native menu adapter installed. Use Model extensions in the main window.") :
-                    T("菜单开关只控制原厂 OSD 是否可用，不会弹出菜单。可在型号适配中查找原厂菜单适配包。", "The OSD switch enables the native menu; it does not open it. Look for a native menu package in Model adapters.")));
+                rows.Children.Add(CreateNativeMenuStatus(device));
+                foreach (var feature in device.Features.Where(f => f.Definition.Category == "osd" && f.Channel is null && f.Information.Length > 0))
+                    rows.Children.Add(FeatureRow(device, feature, version, false));
                 if (channels.Length == 0) rows.Children.Add(Empty(T("未检测到可控制的原厂 OSD 设置。", "No controllable native OSD settings detected.")));
             }
             foreach (var channel in channels)

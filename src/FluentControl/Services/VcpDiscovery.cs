@@ -16,7 +16,7 @@ public static class VcpDiscovery
             bool advertised = capabilities.Features.TryGetValue(code, out var values);
             values ??= Array.Empty<byte>();
             var missing = T("未报告支持", "Not advertised");
-            if (capabilities.HasVcpSection && !advertised && adaptedOptions is null && code is not 0x10 and not 0x12 and not 0x62)
+            if (capabilities.HasVcpSection && !advertised && adaptedOptions is null && code is not 0x10 and not 0x12 and not 0x62 and not 0xCA)
             { features.Add(new() { Definition = definition, Reason = missing }); continue; }
             if (definition.Kind == VcpKind.Action)
             {
@@ -31,7 +31,25 @@ public static class VcpDiscovery
             VcpReply? reply;
             try { reply = read(code); } catch { reply = null; }
             if (reply is not VcpReply data)
-            { features.Add(new() { Definition = definition, Reason = T("不支持或当前无法读取", "Unsupported or currently unreadable") }); continue; }
+            {
+                features.Add(new() { Definition = definition, Reason = code == 0x62 ?
+                    T("DDC/CI 音量不可用。可在“声音与麦克风”中调节对应的 Windows 播放设备。", "DDC/CI volume unavailable. Use Audio to adjust the corresponding Windows playback device.") :
+                    T("不支持或当前无法读取", "Unsupported or currently unreadable") });
+                continue;
+            }
+            // Some displays omit CA while returning its state. Reading that state
+            // must not grant permission to write an unadvertised menu/keyboard lock.
+            if (code == 0xCA && !advertised)
+            {
+                var state = (data.Current & 255) switch { 1 => T("关闭", "Off"), 2 => T("开启", "On"), var value => $"0x{value:X2}" };
+                features.Add(new()
+                {
+                    Definition = definition,
+                    Information = F("OSD 状态：{0}", "OSD state: {0}", state) + $" · 0x{data.Current:X4}",
+                    Reason = T("只读状态；未验证菜单开关写入。", "Read-only state; OSD switching has not been verified.")
+                });
+                continue;
+            }
             if (definition.Kind == VcpKind.ReadOnly)
             {
                 var information = code == 0xC0 ? (((ulong)data.Maximum << 16) | data.Current).ToString() + " h" : $"{data.Current >> 8}.{data.Current & 255}";
@@ -63,18 +81,20 @@ public static class VcpDiscovery
                 if (options.Count == 0)
                 { features.Add(new() { Definition = definition, Information = $"0x{data.Current:X4}", Reason = T("可读取，缺少可安全设置的选项", "Readable; writable options unavailable") }); continue; }
             }
-            uint? pendingPreset = null;
+            var verifyChoice = code is 0x14 or 0xDC;
+            uint? pendingChoice = null;
             double ReadValue()
             {
+                var expected = pendingChoice;
+                pendingChoice = null;
                 var now = read(code) ?? throw new IOException(T("无法回读显示器", "Cannot read back display"));
-                // Preset changes can settle after the write acknowledgement.
+                // Color and picture presets can settle after the write acknowledgement.
                 // Retry reads only; never resend or manufacture the selected value.
-                if (code == 0x14 && pendingPreset is uint expected)
+                if (expected is uint target)
                 {
-                    pendingPreset = null;
-                    for (var attempt = 0; attempt < 2 && (now.Current & 255) != expected; attempt++)
+                    for (var attempt = 0; attempt < 3 && (lowByte ? now.Current & 255 : now.Current) != target; attempt++)
                     {
-                        Thread.Sleep(80);
+                        Thread.Sleep(80 << attempt);
                         now = read(code) ?? throw new IOException(T("无法回读显示器", "Cannot read back display"));
                     }
                 }
@@ -85,7 +105,7 @@ public static class VcpDiscovery
                 Name = definition.Name, Detail = $"VCP 0x{code:X2}", DeviceId = deviceId, PropertyKey = definition.Key, Glyph = "\uE7F4",
                 VcpCode = code, Value = initial, Minimum = 0, Maximum = maximum, Unit = continuous ? "%" : "", Options = options,
                 RequiresConfirmation = definition.Confirm, CanSave = code is not 0xD6 and not 0xCA, ApplyOrder = definition.Order,
-                VerifyChoiceReadback = code == 0x14,
+                VerifyChoiceReadback = verifyChoice,
                 Read = code is 0x60 or 0xD6 ? null : ReadValue,
                 Write = value =>
                 {
@@ -98,7 +118,7 @@ public static class VcpDiscovery
                         native = (before.Current & 0xFF00) | (native & 255); // preserve screen blank / power-button fields
                     }
                     write(code, native);
-                    if (code == 0x14) pendingPreset = native; // read high byte is tolerance, not part of the preset
+                    if (verifyChoice) pendingChoice = native;
                 }
             };
             features.Add(new() { Definition = definition, Channel = channel });
