@@ -53,6 +53,7 @@ public sealed partial class MainWindow
     }
     private void ShutdownFeatures()
     {
+        CloseMonitorOsd();
         statusTimer.Stop(); pendingStateTimer.Stop();
         if (desktopPanel is not null)
         {

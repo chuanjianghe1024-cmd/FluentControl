@@ -29,7 +29,11 @@ public sealed partial class MainWindow
             body.Children.Add(new TextBlock { Text = T("整体控制", "Overall control"), FontSize = 20, TextWrapping = TextWrapping.Wrap });
             var sameModel = devices.All(d => ModelIdentity.IsValid(d.ModelId)) && devices.Select(d => d.ModelId).Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1;
             body.Children.Add(ModelBadge(sameModel ? F("同型号 · {0} 台联动", "Same model · {0} linked displays", devices.Length) : F("跨型号 · {0} 台联动", "Across models · {0} linked displays", devices.Length)));
-            foreach (var device in devices) body.Children.Add(Empty(MonitorTitle(device) + " · " + device.Model + (device.ModelId.Length > 0 ? " · " + device.ModelId : "")));
+            foreach (var device in devices)
+            {
+                var menu = new Button { Content = MonitorTitle(device) + " · " + device.Model + " · " + T("屏幕菜单", "On-screen menu") };
+                menu.Click += (_, _) => ShowMonitorOsd(device); body.Children.Add(menu);
+            }
             AddFeatureSections(body, devices, version, true); CombinedRows.Children.Add(Card(body));
         }
         var mappings = new StackPanel { Spacing = 8 };
@@ -144,7 +148,7 @@ public sealed partial class MainWindow
         };
         return WithPartialSupport(SettingsRow(title, $"VCP 0x{definition.Code:X2}", run), definition.Key);
     }
-    private async Task<bool> ConfirmMonitorChangeAsync(ControlChannel channel, IReadOnlyList<ControlChannel> targets)
+    private async Task<bool> ConfirmMonitorChangeAsync(ControlChannel channel, IReadOnlyList<ControlChannel> targets, XamlRoot? dialogRoot = null)
     {
         var message = channel.PropertyKey switch
         {
@@ -153,7 +157,7 @@ public sealed partial class MainWindow
             _ => T("切换输入源或电源状态可能断开当前画面与 DDC/CI 连接；之后可能需要用显示器按键切回。", "Changing input or power may disconnect the picture and DDC/CI. You may need the monitor's buttons to switch back.")
         };
         var names = string.Join(", ", displayDevices.Where(d => targets.Any(c => d.Channels.Contains(c))).Select(d => d.DisplayName));
-        try { return await new ContentDialog { Title = Channel(channel), Content = names + "\n\n" + message, PrimaryButtonText = T("继续", "Continue"), CloseButtonText = T("取消", "Cancel"), DefaultButton = ContentDialogButton.Close, XamlRoot = Root.XamlRoot }.ShowAsync() == ContentDialogResult.Primary; }
+        try { return await new ContentDialog { Title = Channel(channel), Content = names + "\n\n" + message, PrimaryButtonText = T("继续", "Continue"), CloseButtonText = T("取消", "Cancel"), DefaultButton = ContentDialogButton.Close, XamlRoot = dialogRoot ?? Root.XamlRoot }.ShowAsync() == ContentDialogResult.Primary; }
         catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error); return false; }
     }
     private Task<bool> ConfirmProfileInputAsync(ControlProfile profile)

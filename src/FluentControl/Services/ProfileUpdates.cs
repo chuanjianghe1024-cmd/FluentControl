@@ -19,6 +19,7 @@ public static class ProfileUpdates
             if (existing.ModelName.Length == 0) existing.ModelName = item.Value.ModelName;
             if (existing.DisplayName.Length == 0) existing.DisplayName = item.Value.DisplayName;
             if (existing.Brand.Length == 0) existing.Brand = item.Value.Brand;
+            if (item.Value.Hardware is not null) existing.Hardware = item.Value.Hardware.Copy();
         }
         var brightness = profile.BrightnessMappings.ToDictionary(x => x.Key, x => x.Value.Copy());
         foreach (var item in mappings) brightness[item.Key] = item.Value.Copy();

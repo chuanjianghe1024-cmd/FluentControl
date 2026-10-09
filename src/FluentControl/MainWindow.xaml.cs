@@ -91,6 +91,7 @@ public sealed partial class MainWindow : Window
         var refreshWatch = System.Diagnostics.Stopwatch.StartNew();
         RefreshButton.IsEnabled = false;
         IdentifyButton.IsEnabled = false;
+        CloseMonitorOsd();
         var version = ++generation;
         var page = notificationContext;
         desktopPanel?.SetUnlocked(false);
@@ -206,7 +207,11 @@ public sealed partial class MainWindow : Window
             }
             catch (Exception ex) { ShowStatus(T("名称未保存：", "Name not saved: ") + ex.Message, InfoBarSeverity.Error); }
         };
-        Grid.SetColumn(rename, 1); header.Children.Add(rename); body.Children.Add(header);
+        var menu = new Button { Content = T("屏幕菜单", "On-screen menu") };
+        menu.Click += (_, _) => ShowMonitorOsd(device);
+        var actions = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
+        actions.Children.Add(menu); actions.Children.Add(rename);
+        Grid.SetColumn(actions, 1); header.Children.Add(actions); body.Children.Add(header);
         AddFeatureSections(body, new[] { device }, version, false);
         body.Children.Add(CreateMappingRow(device));
         return Card(body);

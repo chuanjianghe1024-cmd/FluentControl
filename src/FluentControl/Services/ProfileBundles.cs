@@ -21,7 +21,7 @@ public static class ProfileBundles
                     var metadata = profile.Monitors.GetValueOrDefault(pair.Key) ?? state.KnownMonitors.GetValueOrDefault(pair.Key) ?? new MonitorDescriptor { ModelId = ModelIdentity.FromDevicePath(pair.Key) };
                     if (model.Length > 0 && metadata.ModelId != model) continue;
                     if (!slots.TryGetValue(pair.Key, out var slot)) slots[pair.Key] = slot = "display-" + (slots.Count + 1);
-                    scene.Monitors.Add(new() { Slot = slot, ModelId = metadata.ModelId, ModelName = metadata.ModelName, DisplayName = metadata.DisplayName, Brand = metadata.Brand, Values = pair.Value, Brightness = profile.BrightnessMappings.GetValueOrDefault(pair.Key)?.Copy() });
+                    scene.Monitors.Add(new() { Slot = slot, ModelId = metadata.ModelId, ModelName = metadata.ModelName, DisplayName = metadata.DisplayName, Brand = metadata.Brand, Hardware = (metadata.Hardware ?? state.KnownMonitors.GetValueOrDefault(pair.Key)?.Hardware)?.Copy(), Values = pair.Value, Brightness = profile.BrightnessMappings.GetValueOrDefault(pair.Key)?.Copy() });
                 }
                 if (scene.Monitors.Count > 0) exported.Profiles.Add(scene);
             }
@@ -44,7 +44,7 @@ public static class ProfileBundles
                 {
                     if (!unbound.TryGetValue(monitor.Slot, out id)) unbound[monitor.Slot] = id = "unbound:" + Guid.NewGuid().ToString("N");
                 }
-                profile.Monitors[id] = new() { ModelId = monitor.ModelId, ModelName = monitor.ModelName, DisplayName = monitor.DisplayName, Brand = monitor.Brand };
+                profile.Monitors[id] = new() { ModelId = monitor.ModelId, ModelName = monitor.ModelName, DisplayName = monitor.DisplayName, Brand = monitor.Brand, Hardware = monitor.Hardware?.Copy() };
                 foreach (var value in monitor.Values) profile.Values[ProfileGroups.MonitorKey(id, value.Key)] = new() { Value = value.Value };
                 if (monitor.Brightness is not null) profile.BrightnessMappings[id] = monitor.Brightness.Copy();
             }

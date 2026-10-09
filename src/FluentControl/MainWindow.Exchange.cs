@@ -20,6 +20,7 @@ public sealed partial class MainWindow
         actions.SelectionChanged += (_, _) => { exportOptions.Visibility = actions.SelectedIndex == 0 ? Visibility.Visible : Visibility.Collapsed; url.Visibility = actions.SelectedIndex == 2 ? Visibility.Visible : Visibility.Collapsed; };
         var content = new StackPanel { Spacing = 12, MinWidth = 360 }; content.Children.Add(actions); content.Children.Add(exportOptions); content.Children.Add(url);
         content.Children.Add(Empty(T("导出已保存的显示器场景，包含屏幕别名、型号、品牌和应用标签；不含设备序列号、音频设备或本机路径。", "Exports saved monitor scenes with display aliases, models, brands and application tags; excludes serial numbers, audio devices and local paths.")));
+        content.Children.Add(Empty(T("同时包含已读取的固件、MCCS 版本与控制能力，用于型号和参数匹配；能力信息不保证目标屏幕兼容。", "Includes observed firmware, MCCS version and control capabilities for model and parameter matching; capabilities do not guarantee target compatibility.")));
         content.Children.Add(Empty(T("网站上传：接口已预留，等待分享网站接入。", "Website upload: interface reserved until the sharing site is connected.")));
         try
         {

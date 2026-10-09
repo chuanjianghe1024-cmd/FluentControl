@@ -13,6 +13,7 @@ static ControlChannel Channel(string name, double initial, Action<double> write,
 Strings.ValidateCatalog();
 MonitorDiscoveryTests.Run();
 StartupTemperatureTests.Run();
+HardwareInfoTests.Run();
 Check(Strings.SupportedLanguages.Count == 8, "Eight supported locales.");
 Check(Strings.ResolveLanguage("zh-HK") == "zh-TW" && Strings.ResolveLanguage("es-MX") == "es-ES", "Regional language fallback.");
 foreach (var locale in Strings.SupportedLanguages)

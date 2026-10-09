@@ -17,16 +17,21 @@ public sealed partial class MainWindow
         if (result.Count > 32 || result.Any(x => x.Length > 80)) throw new ArgumentException(T("最多 32 个应用，每个名称不超过 80 字符。", "Use up to 32 apps, with at most 80 characters per name."));
         return result;
     }
-    private Dictionary<string, MonitorDescriptor> CaptureMonitorMetadata() => displayDevices.ToDictionary(d => d.Id, d => new MonitorDescriptor { ModelId = d.ModelId, ModelName = d.Model, DisplayName = d.DisplayName, Brand = ModelIdentity.Brand(d.ModelId) });
+    private Dictionary<string, MonitorDescriptor> CaptureMonitorMetadata() => displayDevices.ToDictionary(d => d.Id, d => new MonitorDescriptor { ModelId = d.ModelId, ModelName = d.Model, DisplayName = d.DisplayName, Brand = ModelIdentity.Brand(d.ModelId), Hardware = MonitorHardwareInfo.Capture(d) });
     private void RecordMonitorMetadata(bool renamed = false)
     {
         foreach (var pair in CaptureMonitorMetadata())
         {
+            pair.Value.Hardware ??= state.KnownMonitors.GetValueOrDefault(pair.Key)?.Hardware?.Copy();
             state.KnownMonitors[pair.Key] = pair.Value;
             foreach (var profile in state.Profiles.Where(p => p.Values.Keys.Any(k => ProfileGroups.TryMonitorKey(k, out var id, out _) && id == pair.Key)))
             {
                 if (!profile.Monitors.ContainsKey(pair.Key)) profile.Monitors[pair.Key] = pair.Value.Copy();
-                else if (renamed) profile.Monitors[pair.Key].DisplayName = pair.Value.DisplayName;
+                else
+                {
+                    if (renamed) profile.Monitors[pair.Key].DisplayName = pair.Value.DisplayName;
+                    if (pair.Value.Hardware is not null) profile.Monitors[pair.Key].Hardware = pair.Value.Hardware.Copy();
+                }
             }
         }
         SaveState(); RefreshProfiles();

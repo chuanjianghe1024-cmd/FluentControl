@@ -317,7 +317,13 @@
     "Detect again": "重新偵測",
     "Display capability scan": "顯示器功能偵測",
     "Normally reuses cached capabilities. Detect again after changing connections or monitor modes.": "通常重用功能快取；更換連接或顯示器模式後，可重新完整偵測",
-    "Requested {0}; the display returned {1}.": "請求 {0}，顯示器實際回傳 {1}。"
+    "Requested {0}; the display returned {1}.": "請求 {0}，顯示器實際回傳 {1}。",
+    "FC on-screen menu": "FC 螢幕選單",
+    "On-screen menu": "螢幕選單",
+    "FC software menu for this display. Esc to close.": "此螢幕的 FC 軟體選單。按 Esc 關閉。",
+    "The OSD switch enables the native menu; it does not open it. Native menu display and navigation need a model adapter and are not connected.": "OSD 開關只啟用原廠選單，不會開啟選單。原廠選單顯示與導覽需型號適配，目前尚未接入。",
+    "No controllable native OSD settings detected.": "未偵測到可控制的原廠 OSD 設定。",
+    "Includes observed firmware, MCCS version and control capabilities for model and parameter matching; capabilities do not guarantee target compatibility.": "同時包含已讀取的韌體、MCCS 版本與控制能力，用於型號和參數比對；能力資訊不保證目標螢幕相容。"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -637,7 +643,13 @@
     "Detect again": "再検出",
     "Display capability scan": "ディスプレイ機能の検出",
     "Normally reuses cached capabilities. Detect again after changing connections or monitor modes.": "通常は機能のキャッシュを使用します。接続やモニターモードの変更後は再検出してください。",
-    "Requested {0}; the display returned {1}.": "要求値は {0}、ディスプレイの応答値は {1} です。"
+    "Requested {0}; the display returned {1}.": "要求値は {0}、ディスプレイの応答値は {1} です。",
+    "FC on-screen menu": "FC 画面メニュー",
+    "On-screen menu": "画面メニュー",
+    "FC software menu for this display. Esc to close.": "この画面用の FC ソフトウェアメニュー。Esc で閉じます。",
+    "The OSD switch enables the native menu; it does not open it. Native menu display and navigation need a model adapter and are not connected.": "OSD スイッチは本体メニューを有効にしますが、開く操作ではありません。本体メニューの表示と操作には機種対応が必要で、現在は未対応です。",
+    "No controllable native OSD settings detected.": "操作可能な本体 OSD 設定が検出されませんでした。",
+    "Includes observed firmware, MCCS version and control capabilities for model and parameter matching; capabilities do not guarantee target compatibility.": "検出済みのファームウェア、MCCS バージョン、制御機能を含み、機種とパラメータの照合に使います。互換性を保証するものではありません。"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -957,7 +969,13 @@
     "Detect again": "다시 검색",
     "Display capability scan": "디스플레이 기능 검색",
     "Normally reuses cached capabilities. Detect again after changing connections or monitor modes.": "평소에는 캐시된 기능 정보를 사용합니다. 연결이나 모니터 모드를 변경한 후 다시 검색하세요.",
-    "Requested {0}; the display returned {1}.": "요청한 값은 {0}이며 디스플레이가 반환한 값은 {1}입니다."
+    "Requested {0}; the display returned {1}.": "요청한 값은 {0}이며 디스플레이가 반환한 값은 {1}입니다.",
+    "FC on-screen menu": "FC 화면 메뉴",
+    "On-screen menu": "화면 메뉴",
+    "FC software menu for this display. Esc to close.": "이 화면의 FC 소프트웨어 메뉴입니다. Esc로 닫습니다.",
+    "The OSD switch enables the native menu; it does not open it. Native menu display and navigation need a model adapter and are not connected.": "OSD 스위치는 기본 메뉴를 활성화하며 열지는 않습니다. 기본 메뉴 표시와 탐색에는 모델별 지원이 필요하며 현재 연결되지 않았습니다.",
+    "No controllable native OSD settings detected.": "제어 가능한 기본 OSD 설정이 감지되지 않았습니다.",
+    "Includes observed firmware, MCCS version and control capabilities for model and parameter matching; capabilities do not guarantee target compatibility.": "감지된 펌웨어, MCCS 버전 및 제어 기능을 포함해 모델과 매개변수를 비교합니다. 대상 화면의 호환성을 보장하지는 않습니다."
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -1277,7 +1295,13 @@
     "Detect again": "Erneut erkennen",
     "Display capability scan": "Bildschirmfunktionen erkennen",
     "Normally reuses cached capabilities. Detect again after changing connections or monitor modes.": "Nutzt normalerweise zwischengespeicherte Funktionen. Nach Änderungen am Anschluss oder Monitormodus erneut erkennen.",
-    "Requested {0}; the display returned {1}.": "Angefordert: {0}; vom Monitor zurückgegeben: {1}."
+    "Requested {0}; the display returned {1}.": "Angefordert: {0}; vom Monitor zurückgegeben: {1}.",
+    "FC on-screen menu": "FC-Bildschirmmenü",
+    "On-screen menu": "Bildschirmmenü",
+    "FC software menu for this display. Esc to close.": "FC-Softwaremenü für diesen Bildschirm. Esc zum Schließen.",
+    "The OSD switch enables the native menu; it does not open it. Native menu display and navigation need a model adapter and are not connected.": "Der OSD-Schalter aktiviert das Gerätemenü, öffnet es aber nicht. Anzeige und Navigation benötigen eine noch nicht integrierte Modellanpassung.",
+    "No controllable native OSD settings detected.": "Keine steuerbaren nativen OSD-Einstellungen erkannt.",
+    "Includes observed firmware, MCCS version and control capabilities for model and parameter matching; capabilities do not guarantee target compatibility.": "Enthält erkannte Firmware, MCCS-Version und Steuerungsfähigkeiten zum Modell- und Parameterabgleich; dies garantiert keine Kompatibilität."
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -1597,7 +1621,13 @@
     "Detect again": "Détecter à nouveau",
     "Display capability scan": "Détection des fonctions de l’écran",
     "Normally reuses cached capabilities. Detect again after changing connections or monitor modes.": "Réutilise les fonctions en cache. Relancez la détection après un changement de connexion ou de mode du moniteur.",
-    "Requested {0}; the display returned {1}.": "Valeur demandée : {0} ; valeur renvoyée par l’écran : {1}."
+    "Requested {0}; the display returned {1}.": "Valeur demandée : {0} ; valeur renvoyée par l’écran : {1}.",
+    "FC on-screen menu": "Menu à l’écran FC",
+    "On-screen menu": "Menu à l’écran",
+    "FC software menu for this display. Esc to close.": "Menu logiciel FC pour cet écran. Échap pour fermer.",
+    "The OSD switch enables the native menu; it does not open it. Native menu display and navigation need a model adapter and are not connected.": "Le commutateur OSD active le menu natif sans l’ouvrir. Son affichage et sa navigation nécessitent un adaptateur de modèle, non intégré actuellement.",
+    "No controllable native OSD settings detected.": "Aucun réglage OSD natif contrôlable détecté.",
+    "Includes observed firmware, MCCS version and control capabilities for model and parameter matching; capabilities do not guarantee target compatibility.": "Inclut le micrologiciel, la version MCCS et les capacités observées pour comparer modèles et paramètres, sans garantir la compatibilité."
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -1917,6 +1947,12 @@
     "Detect again": "Detectar de nuevo",
     "Display capability scan": "Detección de funciones de pantalla",
     "Normally reuses cached capabilities. Detect again after changing connections or monitor modes.": "Normalmente reutiliza las funciones en caché. Vuelva a detectar tras cambiar la conexión o el modo del monitor.",
-    "Requested {0}; the display returned {1}.": "Se solicitó {0}; la pantalla devolvió {1}."
+    "Requested {0}; the display returned {1}.": "Se solicitó {0}; la pantalla devolvió {1}.",
+    "FC on-screen menu": "Menú en pantalla FC",
+    "On-screen menu": "Menú en pantalla",
+    "FC software menu for this display. Esc to close.": "Menú de software FC para esta pantalla. Esc para cerrar.",
+    "The OSD switch enables the native menu; it does not open it. Native menu display and navigation need a model adapter and are not connected.": "El interruptor OSD habilita el menú nativo, pero no lo abre. Su visualización y navegación requieren un adaptador de modelo, aún no integrado.",
+    "No controllable native OSD settings detected.": "No se detectaron ajustes OSD nativos controlables.",
+    "Includes observed firmware, MCCS version and control capabilities for model and parameter matching; capabilities do not guarantee target compatibility.": "Incluye firmware, versión MCCS y capacidades detectadas para comparar modelos y parámetros; no garantiza la compatibilidad."
   }
 }

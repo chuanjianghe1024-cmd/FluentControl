@@ -53,6 +53,7 @@ public sealed partial class MainWindow
         if (!Descendants<TextBlock>(CombinedRows).Any(t => t.Text == Strings.F("跨型号 · {0} 台联动", "Across models · {0} linked displays", 2)))
             throw new InvalidOperationException("Cross-model linked badge missing.");
         await CheckCrossModelControlsAsync();
+        await CheckMonitorOsdAsync();
         var otherModel = new MonitorDevice { Id = "unknown-model", Model = "Unknown model", Connection = "test" };
         otherModel.Channels.Add(new() { Name = "Unknown display brightness", Detail = "", Glyph = "", PropertyKey = "brightness", Value = 45, Write = _ => { } });
         displayDevices.Add(otherModel);
@@ -88,6 +89,25 @@ public sealed partial class MainWindow
         var slider = Descendants<Slider>(row).Single();
         ((IRangeValueProvider)new SliderAutomationPeer(slider).GetPattern(PatternInterface.RangeValue)).SetValue(value);
         await WaitForWritesAsync();
+    }
+    private async Task CheckMonitorOsdAsync()
+    {
+        var first = displayDevices[0].Channels.First(c => c.PropertyKey == "brightness");
+        var second = displayDevices[1].Channels.First(c => c.PropertyKey == "brightness");
+        var before = first.Value; var other = second.Value;
+        try
+        {
+            ShowMonitorOsd(displayDevices[0]); await Task.Delay(150);
+            var content = (DependencyObject)monitorOsd!.Content;
+            await SetTestSliderAsync(content, "osd-brightness", 61);
+            if (first.Value != 61 || second.Value != other) throw new InvalidOperationException("OSD must target only its selected screen.");
+            var row = Descendants<FrameworkElement>(content).Single(x => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(x) == "osd-brightness");
+            Descendants<Slider>(row).Single().Value = 63;
+            CloseMonitorOsd(); await WaitForWritesAsync();
+            if (first.Value != 61 || monitorOsd is not null) throw new InvalidOperationException("Closed OSD must cancel pending writes.");
+            StartupLog.Write("PASS: monitor OSD controls only the selected screen; closing cancels queued writes");
+        }
+        finally { CloseMonitorOsd(); ControlOperations.Apply(new[] { first }, before); SynchronizeValues(); }
     }
     private async Task CheckCrossModelControlsAsync()
     {

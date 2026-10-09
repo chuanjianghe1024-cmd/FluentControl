@@ -45,6 +45,8 @@ public sealed class SharedMonitorSlot
     public string ModelName { get; set; } = "";
     public string DisplayName { get; set; } = "";
     public string Brand { get; set; } = "";
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public MonitorHardwareInfo? Hardware { get; set; }
     public Dictionary<string, double> Values { get; set; } = new();
     public BrightnessMapping? Brightness { get; set; }
 }
@@ -75,6 +77,7 @@ public static class ProfileExchange
             if (slot is null || string.IsNullOrWhiteSpace(slot.Slot) || slot.Slot.Length > 40 || !slots.Add(slot.Slot) || !(ModelIdentity.IsValid(slot.ModelId) || allowUnknownModel && slot.ModelId == "") || slot.Values is null || slot.Values.Count > 64) throw new InvalidDataException("Invalid monitor slot.");
             if (slot.ModelName is null || slot.DisplayName is null || slot.Brand is null || slot.ModelName.Length > 128 || slot.DisplayName.Length > 80 || slot.Brand.Length > 80) throw new InvalidDataException("Invalid display metadata.");
             slot.Brightness?.Validate();
+            slot.Hardware?.Validate();
             foreach (var value in slot.Values)
             {
                 if (!IsShareable(value.Key) || !double.IsFinite(value.Value) || value.Value < 0 || value.Value > 65535 ||

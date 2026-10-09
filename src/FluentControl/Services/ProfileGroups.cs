@@ -6,7 +6,9 @@ public sealed class MonitorDescriptor
     public string ModelName { get; set; } = "";
     public string DisplayName { get; set; } = "";
     public string Brand { get; set; } = "";
-    public MonitorDescriptor Copy() => new() { ModelId = ModelId, ModelName = ModelName, DisplayName = DisplayName, Brand = Brand };
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public MonitorHardwareInfo? Hardware { get; set; }
+    public MonitorDescriptor Copy() => new() { ModelId = ModelId, ModelName = ModelName, DisplayName = DisplayName, Brand = Brand, Hardware = Hardware?.Copy() };
 }
 public sealed class ProfileGroup
 {
