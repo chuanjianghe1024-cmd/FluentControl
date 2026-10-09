@@ -237,6 +237,7 @@ public sealed partial class MainWindow
                     foreach (var entry in profile.Values.OrderBy(x => available.TryGetValue(x.Key, out var c) ? c.ApplyOrder : 50))
                     {
                         if (!available.TryGetValue(entry.Key, out var channel)) { missing++; continue; }
+                        if (MonitorColorTemperature.IsSuperseded(channel, profile.Values, available)) continue;
                         if (entry.Key.StartsWith("monitor/") && !ProfileExchange.CanApply(channel, entry.Value.Value)) { missing++; continue; }
                         if (channel.PropertyKey == "input" && channel.Value == entry.Value.Value) continue;
                         var failures = ControlOperations.Apply(new[] { channel }, entry.Value.Value);
@@ -268,6 +269,7 @@ public sealed partial class MainWindow
         finally { applyingProfile = false; }
     }
     private Dictionary<string, SavedValue> CaptureProfile() => AllChannels()
+        .Where(x => !x.Value.CompatibilityOnly)
         .Where(x => (!x.Key.StartsWith("audio/") || x.Value.IsDefaultAudio) && (!x.Key.StartsWith("monitor/") || ProfileExchange.CanApply(x.Value, x.Value.Value)))
         .ToDictionary(x => x.Key, x => new SavedValue { Value = x.Value.Value, Muted = x.Value.WriteMute is null ? null : x.Value.IsMuted });
     private async void SaveProfile_Click(object sender, RoutedEventArgs e)
@@ -326,24 +328,40 @@ public sealed partial class MainWindow
     }
     private List<PanelRow> DesktopCandidates()
     {
+        // Preserve a selected legacy temperature row when its canonical VCP row becomes available.
+        string CanonicalKey(string key)
+        {
+            if (!key.EndsWith("/temperature", StringComparison.Ordinal)) return key;
+            var legacyDevices = displayDevices.Where(d => d.Channels.Any(c => c.CompatibilityOnly)).ToArray();
+            if (key == "monitor/all/temperature" && legacyDevices.Length == displayDevices.Count && legacyDevices.Length > 0 ||
+                legacyDevices.Any(d => key == $"monitor/{Uri.EscapeDataString(d.Id)}/temperature"))
+                return key[..^"temperature".Length] + "color-preset";
+            return key;
+        }
+        var originalRows = state.Settings.DesktopRows;
+        state.Settings.DesktopRows = originalRows.Select(CanonicalKey).Distinct().ToList();
+        if (state.Settings.DesktopIndividualRows is not null) state.Settings.DesktopIndividualRows = state.Settings.DesktopIndividualRows.Select(CanonicalKey).Distinct().ToList();
+        if (state.Settings.DesktopLinkedRows is not null) state.Settings.DesktopLinkedRows = state.Settings.DesktopLinkedRows.Select(CanonicalKey).Distinct().ToList();
+        if (!originalRows.SequenceEqual(state.Settings.DesktopRows)) SaveState();
         var result = new List<PanelRow>();
         if (state.Settings.GroupDesktopMonitors)
         {
             var normalized = MonitorLinking.NormalizeLinkedDesktopRows(state.Settings.DesktopRows);
             if (!state.Settings.DesktopRows.SequenceEqual(normalized)) { state.Settings.DesktopRows = normalized; SaveState(); }
             var devices = displayDevices.ToArray();
-            foreach (var key in new[] { "brightness", "contrast", "speaker" })
+            foreach (var controls in MonitorLinking.DesktopGroups(devices.SelectMany(d => d.Channels)))
             {
-                var targets = devices.SelectMany(x => x.Channels).Where(x => x.PropertyKey == key).ToArray();
-                if (targets.Length == 0) continue;
+                var key = controls.Key;
+                var targets = controls.ToArray();
                 var supported = devices.Where(d => d.Channels.Any(c => c.PropertyKey == key)).ToArray();
                 var names = string.Join(" + ", supported.Select(d => d.DisplayName));
                 if (supported.Length < devices.Length) names = F("仅 {0}", "Only {0}", names);
                 var label = supported.Length < devices.Length ? names : T("整体", "All");
-                result.Add(new() { Key = "monitor/all/" + key, Name = label + " · " + Channel(targets[0]), Detail = SupportSummary(key, devices), Group = "monitor/all", Targets = targets, Linked = true });
+                result.Add(new() { Key = "monitor/all/" + key, Name = label + " · " + Channel(targets[0]), Detail = SupportSummary(key, devices), Group = "monitor/all", Targets = targets, Linked = true,
+                    Options = MonitorLinking.DesktopOptions(targets, c => devices.First(d => d.Id == c.DeviceId).DisplayName) });
             }
         }
-        else foreach (var display in displayDevices) foreach (var c in display.Channels.Where(x => !x.IsAction && !x.RequiresConfirmation))
+        else foreach (var display in displayDevices) foreach (var c in display.Channels.Where(MonitorLinking.IsDesktopControl))
             result.Add(new() { Key = $"monitor/{Uri.EscapeDataString(display.Id)}/{c.PropertyKey}", Name = display.DisplayName + " · " + Channel(c), Group = display.Id, Targets = new[] { c } });
         foreach (var c in audioChannels.Where(x => x.IsDefaultAudio)) result.Add(new() { Key = $"audio/{Uri.EscapeDataString(c.DeviceId)}/{c.PropertyKey}", Name = c.Name, Group = "audio", Targets = new[] { c } });
         foreach (var c in mouseChannels) result.Add(new() { Key = "mouse/" + c.PropertyKey, Name = Channel(c), Group = "mouse", Targets = new[] { c } });
@@ -361,7 +379,7 @@ public sealed partial class MainWindow
         await WaitForWritesAsync();
         if (closed || state.Settings.GroupDesktopMonitors == linked) return;
         var unlocked = desktopPanel?.IsUnlocked == true;
-        var individualKeys = displayDevices.SelectMany(d => d.Channels.Where(c => !c.IsAction && !c.RequiresConfirmation)
+        var individualKeys = displayDevices.SelectMany(d => d.Channels.Where(MonitorLinking.IsDesktopControl)
             .Select(c => $"monitor/{Uri.EscapeDataString(d.Id)}/{c.PropertyKey}"));
         MonitorLinking.ChangeDesktopMode(state.Settings, linked, individualKeys);
         SaveState(); BuildSettings(); RefreshDesktopPanel();

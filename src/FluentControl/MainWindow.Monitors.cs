@@ -72,7 +72,7 @@ public sealed partial class MainWindow
             }
             if (category == "color")
                 foreach (var device in devices)
-                    foreach (var channel in device.Channels.Where(x => x.PropertyKey == "temperature"))
+                    foreach (var channel in device.Channels.Where(x => x.PropertyKey == "temperature" && !x.CompatibilityOnly))
                     {
                         if (linked) rows.Children.Add(new TextBlock { Text = device.DisplayName, FontSize = 12 });
                         rows.Children.Add(WithPartialSupport(CreateRow(channel, version), channel.PropertyKey));

@@ -150,6 +150,58 @@ public sealed partial class MainWindow
         }
         StartupLog.Write("PASS: migrated desktop selections, two cross-model linked sliders and partial-feature targets.");
         await CheckDesktopModeSwitchAsync();
+        await CheckDesktopExtendedControlsAsync();
+    }
+    private async Task CheckDesktopExtendedControlsAsync()
+    {
+        var originalRows = state.Settings.DesktopRows.ToList();
+        var keys = new[] { "color-preset", "gain-red", "gain-green", "gain-blue", "display-mode" };
+        var channels = displayDevices.SelectMany(d => d.Channels).Where(c => keys.Contains(c.PropertyKey)).ToArray();
+        var saved = channels.ToDictionary(c => c, c => c.Value);
+        try
+        {
+            var candidates = DesktopCandidates();
+            foreach (var key in keys)
+                if (candidates.Single(r => r.Key == "monitor/all/" + key).Targets.Count != 2)
+                    throw new InvalidOperationException("Missing extended desktop aggregate: " + key);
+            if (candidates.Any(r => r.Targets.Any(c => c.RequiresConfirmation || c.IsAction || c.CompatibilityOnly)))
+                throw new InvalidOperationException("Unsafe or duplicate desktop aggregate.");
+            state.Settings.DesktopRows = keys.Select(k => "monitor/all/" + k).ToList();
+            RefreshDesktopPanel(); desktopPanel!.SetUnlocked(true);
+            await Task.Delay(100);
+            foreach (var key in keys.Where(k => k.StartsWith("gain-")))
+            {
+                await SetTestSliderAsync(desktopPanel.Content, "desktop-monitor/all/" + key, 43);
+                if (channels.Where(c => c.PropertyKey == key).Any(c => c.Value != 43 || c.Read?.Invoke() != 43))
+                    throw new InvalidOperationException("RGB desktop aggregate did not update both displays.");
+            }
+            async Task<ComboBox> Choose(string key, double value)
+            {
+                var row = Descendants<FrameworkElement>(desktopPanel.Content).First(e =>
+                    Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(e) == "desktop-monitor/all/" + key);
+                var combo = Descendants<ComboBox>(row).Single();
+                combo.SelectedItem = ((IEnumerable<ControlOption>)combo.ItemsSource).Single(o => o.Value == value);
+                await Task.Delay(100); await WaitForWritesAsync();
+                return combo;
+            }
+            await Choose("color-preset", 8);
+            if (channels.Where(c => c.PropertyKey == "color-preset").Any(c => c.Value != 8))
+                throw new InvalidOperationException("Common desktop color preset did not update both displays.");
+            var mixed = await Choose("color-preset", 11);
+            if (displayDevices[0].Channels.Single(c => c.PropertyKey == "color-preset").Value != 8 ||
+                displayDevices[1].Channels.Single(c => c.PropertyKey == "color-preset").Value != 11 || mixed.SelectedItem is not null)
+                throw new InvalidOperationException("Partial preset must target only its supported display and show mixed values.");
+            await Choose("display-mode", 5);
+            if (channels.Where(c => c.PropertyKey == "display-mode").Any(c => c.Value != 5))
+                throw new InvalidOperationException("Desktop scene mode did not update both displays.");
+        }
+        finally
+        {
+            foreach (var entry in saved) ControlOperations.Apply(new[] { entry.Key }, entry.Value);
+            state.Settings.DesktopRows = originalRows;
+            RefreshDesktopPanel(); SynchronizeValues(); desktopPanel!.SetUnlocked(false);
+        }
+        StartupLog.Write("PASS: desktop aggregated RGB, color presets, display modes, union options, partial targeting and mixed readback.");
     }
     private async Task CheckDesktopModeSwitchAsync()
     {

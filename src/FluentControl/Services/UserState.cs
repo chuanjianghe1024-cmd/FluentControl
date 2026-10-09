@@ -81,6 +81,7 @@ public sealed class UserStateStore
 }
 public sealed class PanelRow
 {
+    public IReadOnlyList<ControlOption>? Options { get; init; }
     public string Detail { get; init; } = "";
     public required string Key { get; init; }
     public required string Name { get; init; }

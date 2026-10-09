@@ -14,6 +14,8 @@ public sealed class ControlChannel
     public byte? VcpCode { get; init; }
     public bool IsAction { get; init; }
     public bool CanSave { get; init; } = true;
+    public bool CompatibilityOnly { get; init; }
+    public bool VerifyChoiceReadback { get; init; }
     public bool RequiresConfirmation { get; init; }
     public int ApplyOrder { get; init; } = 50;
     public Func<double, double>? LinkedToDevice { get; set; }
@@ -44,6 +46,11 @@ public static class ControlOperations
                     throw new ArgumentOutOfRangeException(nameof(value), "Unsupported option");
                 channel.Write(target);
                 channel.Value = channel.Read?.Invoke() ?? target;
+                if (channel.VerifyChoiceReadback && channel.Value != target)
+                {
+                    string Label(double value) => channel.Options?.FirstOrDefault(o => o.Value == value)?.Label ?? $"0x{(uint)value:X}";
+                    errors.Add(channel.Name + "：" + Strings.F("请求 {0}，显示器实际返回 {1}。", "Requested {0}; the display returned {1}.", Label(target), Label(channel.Value)));
+                }
             }
             catch (Exception ex) { errors.Add(channel.Name + "：" + ex.Message); }
         }

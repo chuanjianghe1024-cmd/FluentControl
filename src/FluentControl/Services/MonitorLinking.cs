@@ -2,6 +2,20 @@ namespace FluentControl.Services;
 
 public static class MonitorLinking
 {
+    public static bool IsDesktopControl(ControlChannel channel) =>
+        !channel.IsAction && !channel.RequiresConfirmation && !channel.CompatibilityOnly;
+
+    public static IEnumerable<IGrouping<string, ControlChannel>> DesktopGroups(IEnumerable<ControlChannel> channels) =>
+        channels.Where(IsDesktopControl).GroupBy(c => c.PropertyKey);
+
+    public static ControlOption[]? DesktopOptions(IReadOnlyList<ControlChannel> targets, Func<ControlChannel, string> name) =>
+        Options(targets)?.Select(option =>
+        {
+            var supported = targets.Where(c => c.Options?.Any(o => o.Value == option.Value) == true).ToArray();
+            return supported.Length == targets.Count ? option : new ControlOption(option.Value,
+                option.Label + " · " + Strings.F("仅 {0}", "Only {0}", string.Join(", ", supported.Select(name))));
+        }).ToArray();
+
     // Overall controls follow capability, not model identity. Keep a stable row
     // selection even when a monitor is disconnected or its model is unknown.
     public static List<string> NormalizeLinkedDesktopRows(IEnumerable<string> rows) => rows.Select(key =>

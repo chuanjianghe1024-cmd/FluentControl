@@ -12,6 +12,7 @@ static ControlChannel Channel(string name, double initial, Action<double> write,
 
 Strings.ValidateCatalog();
 MonitorDiscoveryTests.Run();
+StartupTemperatureTests.Run();
 Check(Strings.SupportedLanguages.Count == 8, "Eight supported locales.");
 Check(Strings.ResolveLanguage("zh-HK") == "zh-TW" && Strings.ResolveLanguage("es-MX") == "es-ES", "Regional language fallback.");
 foreach (var locale in Strings.SupportedLanguages)
@@ -190,6 +191,7 @@ Console.WriteLine("PASS: linked/individual controls, partial failures, readback 
 
 if (args.Contains("--native"))
 {
+    StartupTemperatureTests.RunNative();
     var shortcut = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "FluentControl-test-" + Guid.NewGuid() + ".lnk");
     try
     {

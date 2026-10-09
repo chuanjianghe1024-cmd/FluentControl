@@ -165,42 +165,40 @@ public sealed class MonitorService : IDisposable
         }, forceCapabilities, out var cacheHit);
         device.CapabilitiesText = metadata.VcpText;
         var capabilityMs = scan.ElapsedMilliseconds;
-        // The flags are metadata; the current color temperature is always live.
-        var temperatureFlags = metadata.ColorTemperatureFlags ?? (cacheHit ? ReadTemperatureFlags(handle) : null) ?? 0;
-        if (temperatureFlags != 0 && GetMonitorColorTemperature(handle, out var temperature))
-        {
-            var kelvin = new[] { 4000, 5000, 6500, 7500, 8200, 9300, 10000, 11500 };
-            var options = Enumerable.Range(0, 8).Where(n => (temperatureFlags & (1u << n)) != 0)
-                .Select(n => new ControlOption(n + 1, kelvin[n] + " K")).ToArray();
-            if (options.Any(x => x.Value == temperature)) device.Channels.Add(new ControlChannel
-            {
-                Name = "色温", Detail = "", DeviceId = device.Id, PropertyKey = "temperature", Glyph = "\uE753",
-                Value = temperature, Minimum = 1, Maximum = 8, Unit = "", Options = options,
-                Read = () => GetMonitorColorTemperature(handle, out var t) ? t : throw new Win32Exception(Marshal.GetLastWin32Error()),
-                Write = value =>
-                {
-                    if (!options.Any(x => x.Value == value)) throw new ArgumentOutOfRangeException(nameof(value));
-                    if (!SetMonitorColorTemperature(handle, (uint)value))
-                        throw new Win32Exception(Marshal.GetLastWin32Error(), device.DisplayName + " — " + Strings.T("无法设置色温", "Color temperature was rejected"));
-                }
-            });
-        }
         var reads = 0; var failures = 0; var longestRead = 0L;
         VcpReply? Read(byte code)
         {
             var watch = Stopwatch.StartNew();
             var ok = GetVCPFeatureAndVCPFeatureReply(handle, code, out _, out var current, out var maximum);
             var elapsed = watch.ElapsedMilliseconds;
+            if (code == 0x14) diagnostic?.Invoke($"Color preset read [{device.Model}]: current=0x{current:X4}, maximum=0x{maximum:X4}, success={ok}");
             reads++; if (!ok) failures++; longestRead = Math.Max(longestRead, elapsed);
             if (elapsed >= 250) diagnostic?.Invoke($"Slow monitor read [{device.Model}]: VCP=0x{code:X2}, duration={elapsed}ms, success={ok}");
             return ok ? new VcpReply(current, maximum) : null;
         }
         void Write(byte code, uint value)
         {
+            diagnostic?.Invoke($"Monitor write [{device.Model}]: VCP=0x{code:X2}, value=0x{value:X4}");
             if (!SetVCPFeature(handle, code, value)) throw new Win32Exception(Marshal.GetLastWin32Error(), device.DisplayName + $" · VCP 0x{code:X2}: " + Strings.T("未接受指令，请检查 DDC/CI、HDR 或节能模式。", "Command rejected. Check DDC/CI, HDR or power-saving mode."));
         }
         device.Features.AddRange(VcpDiscovery.Discover(device.Id, VcpCapabilities.Parse(device.CapabilitiesText), Read, Write));
         device.Channels.AddRange(device.Features.Where(f => f.Channel is not null).Select(f => f.Channel!));
+        // Prefer a single raw VCP read/write namespace over two competing color controls.
+        var preset = device.Channels.FirstOrDefault(c => c.PropertyKey == "color-preset");
+        var flags = preset is null ? metadata.ColorTemperatureFlags ?? (cacheHit ? ReadTemperatureFlags(handle) : null) ?? 0 : 0;
+        try
+        {
+            var temperature = MonitorColorTemperature.Create(device.Id, preset, flags,
+                () => GetMonitorColorTemperature(handle, out var value) ? value : throw new Win32Exception(Marshal.GetLastWin32Error()),
+                value =>
+                {
+                    diagnostic?.Invoke($"Windows color temperature write [{device.Model}]: enum={value}");
+                    if (!SetMonitorColorTemperature(handle, value)) throw new Win32Exception(Marshal.GetLastWin32Error());
+                });
+            if (temperature is not null) device.Channels.Add(temperature);
+        }
+        catch (Exception ex) { diagnostic?.Invoke($"Color temperature unavailable [{device.Model}]: {ex.Message}"); }
+
         diagnostic?.Invoke($"Monitor read [{device.Model}]: capabilities={(cacheHit ? "cache" : "hardware")}, capabilitiesTime={capabilityMs}ms, vcpReads={reads}, failures={failures}, longestRead={longestRead}ms, total={scan.ElapsedMilliseconds}ms");
     }
 

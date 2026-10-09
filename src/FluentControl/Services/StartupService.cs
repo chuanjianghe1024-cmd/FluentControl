@@ -8,6 +8,7 @@ internal static class StartupService
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string ValueName = "FluentControl";
+    private static readonly object ShortcutLock = new();
     private static string Executable => Environment.ProcessPath ?? throw new InvalidOperationException("Executable path unavailable.");
     internal static string ShortcutPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "FluentControl.lnk");
     internal static bool IsEnabled() => ShortcutMatches(ShortcutPath, Executable) || HasLegacyRegistration();
@@ -31,9 +32,33 @@ internal static class StartupService
     }
     internal static void SetShortcut(string path, string executable, bool enabled)
     {
-        if (!enabled) { if (File.Exists(path)) File.Delete(path); return; }
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-        var temporary = path + ".tmp.lnk";
+        lock (ShortcutLock)
+        {
+            path = Path.GetFullPath(path);
+            if (!enabled) { RetrySharingViolation(() => File.Delete(path)); return; }
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            // A unique non-.lnk staging file avoids collisions and never becomes
+            // a second executable startup entry while Explorer observes the folder.
+            var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                SaveShortcut(temporary, executable); // releases the writer before any read/rename
+                RetrySharingViolation(() =>
+                {
+                    if (!ShortcutMatches(temporary, executable)) throw new IOException("Startup shortcut verification failed.");
+                }); // the verification reader is also released before the move
+                RetrySharingViolation(() => File.Move(temporary, path, true));
+            }
+            finally
+            {
+                // Cleanup must not hide the real error or report failure after a successful move.
+                try { File.Delete(temporary); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+            }
+        }
+    }
+    private static void SaveShortcut(string path, string executable)
+    {
         object instance = new ShellLink();
         try
         {
@@ -41,11 +66,20 @@ internal static class StartupService
             link.SetPath(executable); link.SetArguments("--background");
             link.SetWorkingDirectory(Path.GetDirectoryName(executable)!); link.SetDescription("Fluent Control"); link.SetShowCmd(7);
             link.SetIconLocation(executable, 0);
-            ((IPersistFile)instance).Save(temporary, true);
-            if (!ShortcutMatches(temporary, executable)) throw new IOException("Startup shortcut verification failed.");
-            File.Move(temporary, path, true);
+            var file = (IPersistFile)instance;
+            file.Save(path, true);
+            file.SaveCompleted(path);
         }
-        finally { Marshal.FinalReleaseComObject(instance); if (File.Exists(temporary)) File.Delete(temporary); }
+        finally { Marshal.FinalReleaseComObject(instance); }
+    }
+    internal static void RetrySharingViolation(Action operation, Action<int>? delay = null)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try { operation(); return; }
+            catch (Exception ex) when (attempt < 5 && (ex is IOException or COMException) && (ex.HResult & 0xFFFF) is 32 or 33)
+            { (delay ?? Thread.Sleep)(40 * (attempt + 1)); }
+        }
     }
     internal static bool ShortcutMatches(string path, string executable)
     {
@@ -53,7 +87,7 @@ internal static class StartupService
         object instance = new ShellLink();
         try
         {
-            ((IPersistFile)instance).Load(path, 0);
+            ((IPersistFile)instance).Load(path, 0x40); // STGM_READ | STGM_SHARE_DENY_NONE
             var link = (IShellLinkW)instance; var target = new StringBuilder(32768); var arguments = new StringBuilder(256);
             link.GetPath(target, target.Capacity, 0, 4); link.GetArguments(arguments, arguments.Capacity);
             return string.Equals(target.ToString(), executable, StringComparison.OrdinalIgnoreCase) && arguments.ToString() == "--background";

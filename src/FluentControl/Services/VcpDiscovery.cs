@@ -38,7 +38,7 @@ public static class VcpDiscovery
             IReadOnlyList<ControlOption>? options = null;
             double initial = data.Current, maximum = 65535;
             var continuous = definition.Kind == VcpKind.Continuous;
-            bool lowByte = code is 0x8D or 0xCA;
+            bool lowByte = code is 0x14 or 0x8D or 0xCA;
             if (continuous)
             {
                 if (data.Maximum is 0 or > 65535 || data.Current > data.Maximum)
@@ -60,9 +60,21 @@ public static class VcpDiscovery
                 if (options.Count == 0)
                 { features.Add(new() { Definition = definition, Information = $"0x{data.Current:X4}", Reason = T("可读取，缺少可安全设置的选项", "Readable; writable options unavailable") }); continue; }
             }
+            uint? pendingPreset = null;
             double ReadValue()
             {
                 var now = read(code) ?? throw new IOException(T("无法回读显示器", "Cannot read back display"));
+                // Preset changes can settle after the write acknowledgement.
+                // Retry reads only; never resend or manufacture the selected value.
+                if (code == 0x14 && pendingPreset is uint expected)
+                {
+                    pendingPreset = null;
+                    for (var attempt = 0; attempt < 2 && (now.Current & 255) != expected; attempt++)
+                    {
+                        Thread.Sleep(80);
+                        now = read(code) ?? throw new IOException(T("无法回读显示器", "Cannot read back display"));
+                    }
+                }
                 return continuous ? 100d * now.Current / data.Maximum : lowByte ? now.Current & 255 : now.Current;
             }
             var channel = new ControlChannel
@@ -70,18 +82,20 @@ public static class VcpDiscovery
                 Name = definition.Name, Detail = $"VCP 0x{code:X2}", DeviceId = deviceId, PropertyKey = definition.Key, Glyph = "\uE7F4",
                 VcpCode = code, Value = initial, Minimum = 0, Maximum = maximum, Unit = continuous ? "%" : "", Options = options,
                 RequiresConfirmation = definition.Confirm, CanSave = code is not 0xD6 and not 0xCA, ApplyOrder = definition.Order,
+                VerifyChoiceReadback = code == 0x14,
                 Read = code is 0x60 or 0xD6 ? null : ReadValue,
                 Write = value =>
                 {
                     if (!double.IsFinite(value) || value < 0 || value > maximum || (options is not null && !options.Any(x => x.Value == value)))
                         throw new ArgumentOutOfRangeException(nameof(value));
                     uint native = continuous ? (uint)Math.Round(value * data.Maximum / 100) : (uint)value;
-                    if (lowByte)
+                    if (code is 0x8D or 0xCA)
                     {
                         var before = read(code) ?? throw new IOException(T("无法回读显示器", "Cannot read back display"));
                         native = (before.Current & 0xFF00) | (native & 255); // preserve screen blank / power-button fields
                     }
                     write(code, native);
+                    if (code == 0x14) pendingPreset = native; // read high byte is tolerance, not part of the preset
                 }
             };
             features.Add(new() { Definition = definition, Channel = channel });

@@ -210,16 +210,31 @@ internal sealed class DesktopPanelWindow : Window
             Grid.SetColumn(number, 2); row.Children.Add(number);
             var updating = false;
             CancellationTokenSource? pending = null;
-            if (first.Options is { } options)
+            if ((item.Options ?? first.Options) is { } options)
             {
                 var picker = new ComboBox { ItemsSource = options, DisplayMemberPath = "Label", MinHeight = 30, Padding = new Thickness(4, 0, 4, 0), HorizontalAlignment = HorizontalAlignment.Stretch };
                 Grid.SetColumn(picker, 1); Grid.SetColumnSpan(picker, 2); row.Children.Add(picker); number.Visibility = Visibility.Collapsed;
-                void Update() { updating = true; picker.SelectedItem = options.FirstOrDefault(x => x.Value == first.Value); updating = false; }
+                void Update()
+                {
+                    updating = true;
+                    var same = item.Targets.All(c => c.Value == first.Value);
+                    picker.SelectedItem = same ? options.FirstOrDefault(x => x.Value == first.Value) : null;
+                    picker.PlaceholderText = same && picker.SelectedItem is null
+                        ? Strings.F("当前值 0x{0}（不可重放）", "Current 0x{0} (not replayable)", ((uint)first.Value).ToString("X")) : Strings.T("不同", "Mixed");
+                    updating = false;
+                }
                 sync.Add(Update); Update();
                 picker.SelectionChanged += async (_, _) =>
                 {
-                    if (!active || updating || picker.SelectedItem is not ControlOption option) return;
-                    await apply(item.Targets, option.Value, item.Linked); if (!closing && version == rowGeneration) RefreshValues();
+                    if (!active || updating || version != rowGeneration || picker.SelectedItem is not ControlOption option) return;
+                    pendingChanges++;
+                    try
+                    {
+                        var targets = item.Targets.Where(c => c.Options?.Any(o => o.Value == option.Value) == true).ToArray();
+                        await apply(targets, option.Value, item.Linked);
+                        if (!closing && version == rowGeneration) RefreshValues();
+                    }
+                    finally { pendingChanges--; }
                 };
             }
             else
