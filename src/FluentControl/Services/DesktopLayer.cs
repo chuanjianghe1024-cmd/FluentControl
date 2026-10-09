@@ -13,6 +13,8 @@ internal sealed class DesktopLayer : IDisposable
     private readonly nint desktopSentinel;
     private const nuint DesktopTimer = 0x46434453;
     private bool locked = true, disposed, placing, recoveryQueued, desktopBoosted, showDesktop;
+    private int timerTicks;
+    internal string DiagnosticState => $"sentinel={desktopSentinel}, raised={IsDesktopRaised()}, tracked={showDesktop}, boosted={desktopBoosted}, locked={locked}, ticks={timerTicks}";
     internal DesktopLayer(nint window, Func<Action, bool> dispatch, Action lockPanel)
     {
         this.window = window; this.dispatch = dispatch; this.lockPanel = lockPanel; callback = WindowProc;
@@ -102,16 +104,22 @@ internal sealed class DesktopLayer : IDisposable
     {
         if (message == 0x113 && wParam == DesktopTimer)
         {
+            timerTicks++;
             if (!disposed && IsWindowVisible(window))
             {
                 var raised = IsDesktopRaised();
-                if (raised != showDesktop)
+                if (raised)
                 {
-                    showDesktop = raised;
-                    if (raised) QueueRecovery();
-                    else if (locked) Lower();
+                    // Explorer/WinUI may finish restoring styles after focus loss.
+                    // Repair a lost band as well as detecting entry into Show Desktop.
+                    if (!showDesktop || !locked || ((long)GetWindowLongPtr(window, -20) & 8) == 0 || IsIconic(window)) QueueRecovery();
+                }
+                else if (showDesktop || desktopBoosted)
+                {
+                    if (locked) Lower();
                     else RemoveDesktopBoost();
                 }
+                showDesktop = raised;
             }
             return 0;
         }

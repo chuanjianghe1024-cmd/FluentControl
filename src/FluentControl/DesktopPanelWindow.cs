@@ -48,6 +48,7 @@ internal sealed class DesktopPanelWindow : Window
     internal double ContentHeight => root.ActualHeight;
     internal byte BackdropAlpha => backdrop.TintColor.A;
     internal nint Handle => hwnd;
+    internal string LayerDiagnosticState => layer.DiagnosticState;
     internal DesktopPanelWindow(AppSettings settings, Action<int> switchGroup, Action<int> switchProfile, Action<bool> setMonitorMode, Action changed)
     {
         this.settings = settings; this.changed = changed;

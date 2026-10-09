@@ -102,6 +102,7 @@ internal static class PanelDiagnostics
                 var hitClass = new System.Text.StringBuilder(128); GetClassName(hit, hitClass, hitClass.Capacity);
                 var foregroundClass = new System.Text.StringBuilder(128); GetClassName(GetForegroundWindow(), foregroundClass, foregroundClass.Capacity);
                 StartupLog.Write($"Show Desktop check {i}: panel={panel.Handle}, hit={hit}, class={hitClass}, foreground={foregroundClass}, extendedStyle=0x{(long)GetWindowLongPtr(panel.Handle, -20):X}");
+                StartupLog.Write("Desktop layer state: " + panel.LayerDiagnosticState);
                 if (hit != panel.Handle)
                     throw new InvalidOperationException("Show Desktop covered the panel with Explorer's desktop.");
                 shellType.InvokeMember("ToggleDesktop", System.Reflection.BindingFlags.InvokeMethod, null, shell, null); toggled = false;
