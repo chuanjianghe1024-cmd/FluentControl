@@ -6,6 +6,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 
+[assembly: System.Reflection.AssemblyFileVersion("0.0.1.0")]
+
 internal static class InstallerLockFixture
 {
     private static readonly StringBuilder messages = new StringBuilder();
@@ -34,14 +36,14 @@ internal static class InstallerLockFixture
             finally { FreeLibrary(module); }
             return 0;
         }
-        if (args.Length == 4 && args[0] == "probe")
+        if (args.Length == 4 && args[0] == "uninstall")
         {
             // BASIC UI makes FilesInUse messages available. Handle them before
             // the built-in UI and cancel; never accept Ignore or close apps.
             MsiSetInternalUI(3, IntPtr.Zero);
-            MsiSetExternalUI(handler, 0x0200003f, IntPtr.Zero);
+            MsiSetExternalUI(handler, 0x0200013f, IntPtr.Zero);
             MsiEnableLog(0x00003fff, args[3], 0);
-            uint result = MsiInstallProduct(args[1], "REBOOT=ReallySuppress");
+            uint result = MsiConfigureProductEx(args[1], 0, 2, "REBOOT=ReallySuppress");
             File.WriteAllText(args[2], "Result=" + result + Environment.NewLine + messages);
             GC.KeepAlive(handler);
             return 0;
@@ -52,6 +54,7 @@ internal static class InstallerLockFixture
     private static int OnInstallerMessage(IntPtr context, uint type, string message)
     {
         uint kind = type & 0xff000000;
+        if (kind == 0x08000000) messages.AppendLine("Action=" + message);
         if (kind == 0x05000000 || kind == 0x19000000)
         {
             messages.AppendLine((kind == 0x05000000 ? "FilesInUse=" : "RMFilesInUse=") + message);
@@ -74,5 +77,5 @@ internal static class InstallerLockFixture
     [DllImport("msi.dll", CharSet = CharSet.Unicode)]
     private static extern uint MsiEnableLog(uint mode, string path, uint attributes);
     [DllImport("msi.dll", CharSet = CharSet.Unicode)]
-    private static extern uint MsiInstallProduct(string path, string properties);
+    private static extern uint MsiConfigureProductEx(string productCode, int level, int state, string properties);
 }

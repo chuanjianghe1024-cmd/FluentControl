@@ -2,7 +2,11 @@
   <Package Name="FluentControl" Manufacturer="FluentControl" Version="$(var.ProductVersion)"
            UpgradeCode="2A0EC0F8-C99E-4B42-A42D-CB4BEE512F79" Scope="perUser"
            Language="2052" Codepage="936" InstallerVersion="500" Compressed="yes">
-    <MajorUpgrade DowngradeErrorMessage="已安装更新版本的 FluentControl。" Schedule="afterInstallInitialize" />
+    <!-- Register the new clients of stable components before removing the old
+         product. Its cached MSI must not delete/reinstall unchanged runtimes or
+         hand those files to its older Restart Manager policy. Both operations
+         stay inside the rollback transaction. Keep component GUIDs/keypaths. -->
+    <MajorUpgrade DowngradeErrorMessage="已安装更新版本的 FluentControl。" Schedule="afterInstallExecute" />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" MaximumUncompressedMediaSize="1024" />
     <!-- Windows Installer's legacy WindowsBuild/VersionNT values can be shimmed
          to Windows 8.1. Read the actual build before checking the app minimum. -->

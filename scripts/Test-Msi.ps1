@@ -88,9 +88,21 @@ try {
             }
         }
     }
-    # The earlier package has the same payload, but a lower MSI version and a
-    # different ProductCode, exercising Windows Installer's actual major upgrade.
-    & "$PSScriptRoot/Build-Msi.ps1" -Version '0.0.1' -OutputDirectory 'artifacts/upgrade-fixture'
+    $fixtureDirectory = Join-Path $logs 'lock-fixture'
+    New-Item $fixtureDirectory -ItemType Directory -Force | Out-Null
+    $fixture = Join-Path $fixtureDirectory 'InstallerLockFixture.exe'
+    $compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
+    $fixtureSource = (Resolve-Path 'tests/installer/InstallerLockFixture.cs').Path
+    & $compiler /nologo /target:winexe /platform:x64 "/out:$fixture" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll $fixtureSource
+    if ($LASTEXITCODE -ne 0) { throw 'Installer lock fixture compilation failed.' }
+    # The older fixture has a lower-version executable and unchanged runtimes.
+    # This verifies real file replacement as well as reuse of stable components;
+    # the old executable is a test stub and is never launched as the application.
+    $fixturePayload = Join-Path $root 'artifacts/upgrade-payload'
+    New-Item $fixturePayload -ItemType Directory -Force | Out-Null
+    Copy-Item 'publish/*' $fixturePayload -Recurse -Force
+    Copy-Item $fixture (Join-Path $fixturePayload 'FluentControl.exe') -Force
+    & "$PSScriptRoot/Build-Msi.ps1" -Version '0.0.1' -PublishDirectory $fixturePayload -OutputDirectory 'artifacts/upgrade-fixture'
     $old = (Resolve-Path 'artifacts/upgrade-fixture/FluentControl-0.0.1-x64.msi').Path
     $current = (Resolve-Path "artifacts/installer/FluentControl-$Version-x64.msi").Path
     if ((MsiProperty $current 'MSIRESTARTMANAGERCONTROL') -ne 'Disable') {
@@ -108,13 +120,6 @@ try {
     [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($view)
     [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($database)
     [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($installer)
-    $fixtureDirectory = Join-Path $logs 'lock-fixture'
-    New-Item $fixtureDirectory -ItemType Directory -Force | Out-Null
-    $fixture = Join-Path $fixtureDirectory 'InstallerLockFixture.exe'
-    $compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
-    $fixtureSource = (Resolve-Path 'tests/installer/InstallerLockFixture.cs').Path
-    & $compiler /nologo /target:winexe /platform:x64 "/out:$fixture" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll $fixtureSource
-    if ($LASTEXITCODE -ne 0) { throw 'Installer lock fixture compilation failed.' }
     # Same native DLL bytes/name, separate directory and file identity. Other
     # applications can load their own runtime throughout all MSI operations.
     $unrelatedModule = Join-Path $fixtureDirectory 'coreclr.dll'
@@ -127,6 +132,9 @@ try {
     $installed = $oldCode
     AssertProduct $oldCode $true '0.0.1'
     if (-not (Test-Path "$target/FluentControl.exe")) { throw 'The per-user installation path is incorrect.' }
+    if ([Diagnostics.FileVersionInfo]::GetVersionInfo("$target/FluentControl.exe").FileVersion -ne '0.0.1.0') {
+        throw 'The old fixture must install a genuinely lower-version executable.'
+    }
     if (-not (Test-Path $shortcut)) { throw 'Start-menu shortcut is missing.' }
     $shell = New-Object -ComObject WScript.Shell
     $link = $shell.CreateShortcut($shortcut)
@@ -138,28 +146,10 @@ try {
     $loginLink.Save()
     AssertRetained
     Write-Host 'PASS: MSI installs per-user and registers the correct start-menu shortcut.'
-    $beforeLockedUpgrade = (Get-FileHash "$target/coreclr.dll" -Algorithm SHA256).Hash
     $locked = StartLockFixture "$target/coreclr.dll" 'installed'
-    $probeResult = Join-Path $logs 'locked-upgrade-result.txt'
-    $probeLog = Join-Path $logs 'locked-upgrade.log'
-    $probe = Start-Process $fixture -ArgumentList "probe `"$current`" `"$probeResult`" `"$probeLog`"" -PassThru
-    if (-not $probe.WaitForExit(120000)) { throw 'Locked upgrade failed to finish/cancel.' }
-    if ($probe.ExitCode -ne 0 -or -not (Test-Path $probeResult)) { throw 'Locked upgrade probe failed.' }
-    $result = Get-Content $probeResult -Raw
-    Write-Host $result
-    if ($result -notmatch '(?m)^Result=1602\r?$' -or $result -notmatch '(?m)^FilesInUse=' -or $result -match 'RMFilesInUse=') {
-        throw 'A genuine loaded payload must trigger standard FilesInUse and cancel safely.'
-    }
-    AssertProduct $oldCode $true '0.0.1'
-    AssertProduct $currentCode $false
-    AssertRetained
-    if ((Get-FileHash "$target/coreclr.dll" -Algorithm SHA256).Hash -ne $beforeLockedUpgrade) {
-        throw 'Canceled locked upgrade changed the installed runtime.'
-    }
-    if ($locked.HasExited -or $unrelated.HasExited) { throw 'Canceled upgrade closed a lock fixture.' }
-    StopLockFixture $locked
-    $locked = $null
-    Write-Host 'PASS: real payload lock prompts FilesInUse; cancel preserves the old product, files and running processes.'
+    # The runtime bytes/version are identical in the old/new payloads. A major
+    # upgrade must retain this component, including when it is mapped, instead
+    # of asking the old MSI to remove it under its previous RM policy.
     RunMsi "/i `"$current`"" 'upgrade'
     $installed = $currentCode
     AssertProduct $oldCode $false
@@ -174,6 +164,29 @@ try {
         }
     }
     Write-Host 'PASS: major upgrade replaces the old product, preserves data/startup and installs the complete payload.'
+    if ($locked.HasExited) { throw 'Upgrade unnecessarily closed the unchanged-runtime fixture.' }
+    Write-Host 'PASS: upgrade retains unchanged runtime components despite the legacy MSI Restart Manager policy.'
+    $beforeLockedUninstall = (Get-FileHash "$target/coreclr.dll" -Algorithm SHA256).Hash
+    $probeResult = Join-Path $logs 'locked-uninstall-result.txt'
+    $probeLog = Join-Path $logs 'locked-uninstall.log'
+    $probe = Start-Process $fixture -ArgumentList "uninstall $currentCode `"$probeResult`" `"$probeLog`"" -PassThru
+    if (-not $probe.WaitForExit(120000)) { throw 'Locked uninstall failed to finish/cancel.' }
+    if ($probe.ExitCode -ne 0 -or -not (Test-Path $probeResult)) { throw 'Locked uninstall probe failed.' }
+    $result = Get-Content $probeResult -Raw
+    Write-Host $result
+    if ($result -notmatch '(?m)^Result=1602\r?$' -or $result -notmatch '(?m)^FilesInUse=' -or $result -match 'RMFilesInUse=') {
+        Get-Content $probeLog -Tail 80
+        throw 'A genuine loaded payload must trigger standard FilesInUse and cancel safely.'
+    }
+    AssertProduct $currentCode $true $Version
+    AssertRetained
+    if ((Get-FileHash "$target/coreclr.dll" -Algorithm SHA256).Hash -ne $beforeLockedUninstall) {
+        throw 'Canceled locked uninstall changed the installed runtime.'
+    }
+    if ($locked.HasExited -or $unrelated.HasExited) { throw 'Canceled uninstall closed a lock fixture.' }
+    StopLockFixture $locked
+    $locked = $null
+    Write-Host 'PASS: real payload lock prompts FilesInUse; cancel preserves the product, files and running processes.'
     & "$PSScriptRoot/Test-Startup.ps1" -PublishDirectory $target
     & "$PSScriptRoot/Test-Startup.ps1" -PublishDirectory $target -UiTest
     & "$PSScriptRoot/Test-Startup.ps1" -PublishDirectory $target -Background
