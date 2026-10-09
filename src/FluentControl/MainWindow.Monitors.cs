@@ -33,6 +33,7 @@ public sealed partial class MainWindow
             {
                 var menu = new Button { Content = MonitorTitle(device) + " · " + device.Model + " · " + T("屏幕菜单", "On-screen menu") };
                 menu.Click += (_, _) => ShowMonitorOsd(device); body.Children.Add(menu);
+                body.Children.Add(CreateMonitorPresetRow(device));
             }
             AddFeatureSections(body, devices, version, true); CombinedRows.Children.Add(Card(body));
         }

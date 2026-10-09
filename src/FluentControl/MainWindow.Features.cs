@@ -114,6 +114,8 @@ public sealed partial class MainWindow
         ((NavigationViewItem)Navigation.MenuItems[0]).Content = T("显示器", "Displays");
         ((NavigationViewItem)Navigation.MenuItems[1]).Content = T("声音与麦克风", "Audio");
         ((NavigationViewItem)Navigation.MenuItems[2]).Content = T("鼠标与指针", "Mouse & pointer");
+        ((NavigationViewItem)Navigation.MenuItems[3]).Content = T("型号配置库", "Model preset library");
+        GlobalProfileTitle.Text = T("总配置", "Global profile");
         if (Navigation.SettingsItem is NavigationViewItem settingsItem) settingsItem.Content = T("设置", "Settings");
         var index = DisplayMode.SelectedIndex;
         DisplayMode.Items[0] = T("单独控制", "Individual"); DisplayMode.Items[1] = T("整体控制", "Overall control"); DisplayMode.SelectedIndex = index;
@@ -133,21 +135,22 @@ public sealed partial class MainWindow
         ToolTipService.SetToolTip(GroupActionsButton, T("管理分组", "Manage groups"));
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(GroupActionsButton, T("管理分组", "Manage groups"));
         NewGroupButton.Text = T("新建分组", "New group"); EditProfileButton.Content = T("信息 / 标签", "Info / tags"); FilterProfilesButton.Content = T("筛选配置", "Filter profiles");
-        ProfilePicker.PlaceholderText = T("选择配置", "Choose a profile");
-        SaveProfileButton.Content = T("保存为配置", "Save as profile"); UpdateProfileButton.Content = T("更新", "Update"); DeleteProfileButton.Content = T("删除", "Delete");
+        ProfilePicker.PlaceholderText = T("选择总配置", "Choose global profile");
+        SaveProfileButton.Content = T("保存总配置", "Save global profile"); UpdateProfileButton.Content = T("更新", "Update"); DeleteProfileButton.Content = T("删除", "Delete");
         ToolTipService.SetToolTip(PreviousProfileButton, T("上一个配置", "Previous profile")); ToolTipService.SetToolTip(NextProfileButton, T("下一个配置", "Next profile"));
         UpdatePageTitle();
     }
     private void UpdatePageTitle()
     {
         var tag = Navigation.SelectedItem == Navigation.SettingsItem ? "settings" : (Navigation.SelectedItem as NavigationViewItem)?.Tag as string ?? "monitors";
-        PageTitle.Text = tag switch { "audio" => T("声音与麦克风", "Audio"), "mouse" => T("鼠标与指针", "Mouse & pointer"), "settings" => T("设置", "Settings"), _ => T("显示器", "Displays") };
+        PageTitle.Text = tag switch { "audio" => T("声音与麦克风", "Audio"), "mouse" => T("鼠标与指针", "Mouse & pointer"), "library" => T("型号配置库", "Model preset library"), "settings" => T("设置", "Settings"), _ => T("显示器", "Displays") };
         Title = AppName + " · " + PageTitle.Text;
         PageDescription.Text = tag switch
         {
             "audio" => T("常用设备在前，其他设备按需展开。", "Your default devices first. Expand the rest when needed."),
             "mouse" => T("找到适合自己的移动速度与指针大小。", "Tune movement speed and pointer size."),
             "settings" => T("按自己的习惯使用聚合控制。", "Make Fluent Control work your way."),
+            "library" => T("按型号保存可复用的显示器参数；总配置保存整套桌面状态。", "Reusable monitor settings by model; global profiles save the whole desktop state."),
             _ => T("单独微调，或让所有屏幕一起变化。", "Tune each display, or adjust them together.")
         };
     }
@@ -167,7 +170,7 @@ public sealed partial class MainWindow
         GroupPicker.SelectedItem = state.Groups.First(x => x.Id == state.SelectedGroupId);
         DeleteGroupButton.IsEnabled = state.SelectedGroupId != ProfileGroup.LocalId;
         var profiles = VisibleProfiles();
-        foreach (var profile in profiles) profile.DisplayLabel = HasProfileFilters && filterAllGroups ? (state.Groups.FirstOrDefault(g => g.Id == profile.GroupId)?.DisplayName ?? "") + " / " + profile.Name : profile.Name;
+        foreach (var profile in profiles) profile.DisplayLabel = profile.Name;
         ProfilePicker.ItemsSource = null; ProfilePicker.ItemsSource = profiles;
         ProfilePicker.SelectedItem = profiles.FirstOrDefault(x => x.Id == state.SelectedProfileId);
         EditProfileButton.IsEnabled = UpdateProfileButton.IsEnabled = DeleteProfileButton.IsEnabled = ProfilePicker.SelectedItem is not null;
@@ -179,11 +182,8 @@ public sealed partial class MainWindow
     }
     private void UpdateDesktopProfile()
     {
-        var name = state.Profiles.FirstOrDefault(x => x.Id == state.SelectedProfileId && x.GroupId == state.SelectedGroupId)?.Name;
-        var profiles = ProfileGroups.Current(state);
-        desktopPanel?.SetNavigation(state.Groups.FirstOrDefault(g => g.Id == state.SelectedGroupId)?.DisplayName ?? "",
-            profiles.Count == 0 ? T("此分组暂无配置", "No profiles in this group") : name is null ? T("未选择配置", "No profile selected") : name + (profileDirty ? " *" : ""),
-            state.Groups.Count > 1, profiles.Count > 0);
+        var name = state.Profiles.FirstOrDefault(x => x.Id == state.SelectedProfileId)?.Name;
+        desktopPanel?.SetNavigation("", name is null ? T("未选择配置", "No profile selected") : name + (profileDirty ? " *" : ""), false, state.Profiles.Count > 0);
     }
     private async Task SwitchDesktopGroupAsync(int delta)
     {
@@ -192,7 +192,7 @@ public sealed partial class MainWindow
         var group = state.Groups[(Math.Max(0, current) + delta % state.Groups.Count + state.Groups.Count) % state.Groups.Count];
         await SelectGroupAsync(group.Id);
     }
-    private Task SwitchDesktopProfileAsync(int delta) => SwitchFromProfilesAsync(ProfileGroups.Current(state), delta);
+    private Task SwitchDesktopProfileAsync(int delta) => SwitchGlobalProfileAsync(delta);
     private Task SwitchGlobalProfileAsync(int delta) => SwitchFromProfilesAsync(ProfileGroups.AllOrdered(state), delta);
     private async Task SwitchFromProfilesAsync(IReadOnlyList<ControlProfile> profiles, int delta)
     {
@@ -257,8 +257,9 @@ public sealed partial class MainWindow
                 foreach (var device in displayDevices)
                     if (profile.BrightnessMappings.TryGetValue(device.Id, out var mapping)) { mapping.Validate(); device.Preference.Brightness = mapping.Copy(); BindBrightnessMapping(device); }
                 preferences?.Save();
+                state.ActiveMonitorPresets = new(profile.MonitorPresetIds);
                 state.SelectedGroupId = profile.GroupId; state.SelectedProfileId = profile.Id; profileDirty = result.errors.Count > 0 || result.missing > 0;
-                SaveState(); RefreshProfiles(); SynchronizeValues();
+                SaveState(); RefreshProfiles(); SynchronizeValues(); RenderMonitorControls(generation);
                 var message = F("配置「{0}」：已更新 {1} 项", "Profile '{0}': {1} controls applied", profile.Name, result.applied);
                 if (result.missing > 0) message += F("，跳过 {0} 个未连接或不可设置项", "; {0} unavailable controls skipped", result.missing);
                 if (result.errors.Count > 0) message += " · " + string.Join("; ", result.errors);
@@ -271,14 +272,14 @@ public sealed partial class MainWindow
     }
     private Dictionary<string, SavedValue> CaptureProfile() => AllChannels()
         .Where(x => !x.Value.CompatibilityOnly)
-        .Where(x => (!x.Key.StartsWith("audio/") || x.Value.IsDefaultAudio) && (!x.Key.StartsWith("monitor/") || ProfileExchange.CanApply(x.Value, x.Value.Value)))
+        .Where(x => !x.Key.StartsWith("monitor/") || ProfileExchange.CanApply(x.Value, x.Value.Value))
         .ToDictionary(x => x.Key, x => new SavedValue { Value = x.Value.Value, Muted = x.Value.WriteMute is null ? null : x.Value.IsMuted });
     private async void SaveProfile_Click(object sender, RoutedEventArgs e)
     {
         var input = new TextBox { Header = T("配置名称", "Profile name"), PlaceholderText = T("例如：阅读、游戏、夜间", "Reading, gaming, evening…"), MaxLength = 80 };
         var apps = new TextBox { Header = T("适用应用 / 游戏（逗号分隔）", "Apps / games (comma separated)"), MaxLength = 1500 };
         var contents = new StackPanel { Spacing = 12 }; contents.Children.Add(input); contents.Children.Add(apps);
-        var dialog = new ContentDialog { Title = T("保存当前配置", "Save current controls"), Content = contents, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), IsPrimaryButtonEnabled = false, XamlRoot = Root.XamlRoot };
+        var dialog = new ContentDialog { Title = T("保存总配置", "Save global profile"), Content = contents, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), IsPrimaryButtonEnabled = false, XamlRoot = Root.XamlRoot };
         input.TextChanged += (_, _) => dialog.IsPrimaryButtonEnabled = !string.IsNullOrWhiteSpace(input.Text);
         try
         {
@@ -287,11 +288,14 @@ public sealed partial class MainWindow
             try
             {
                 var name = input.Text.Trim();
-                if (state.Profiles.Any(x => x.GroupId == state.SelectedGroupId && string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase))) { ShowStatus(T("配置名称已存在，可用“更新”覆盖。", "That name exists. Use Update to replace it."), InfoBarSeverity.Warning); return; }
-                var profile = new ControlProfile { Name = name, GroupId = state.SelectedGroupId, Applications = ParseApplications(apps.Text), Monitors = CaptureMonitorMetadata(), Values = CaptureProfile(), BrightnessMappings = CaptureMappings() };
+                if (state.Profiles.Any(x => string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase))) { ShowStatus(T("配置名称已存在，可用“更新”覆盖。", "That name exists. Use Update to replace it."), InfoBarSeverity.Warning); return; }
+                var profile = CaptureGlobalProfile(name, ParseApplications(apps.Text));
                 if (profile.Values.Count == 0) { ShowStatus(T("没有可保存的控制项。", "No controls are available to save."), InfoBarSeverity.Warning); return; }
-                state.Profiles.Add(profile); state.SelectedProfileId = profile.Id; profileDirty = false;
-                if (SaveState()) ShowStatus(T("配置已保存。", "Profile saved."), InfoBarSeverity.Success);
+                var oldPresets = state.MonitorPresets.ToList(); var oldActive = state.ActiveMonitorPresets; var oldSelected = state.SelectedProfileId; var oldGroup = state.SelectedGroupId;
+                MonitorPresetLibrary.AttachSnapshots(state, profile); state.ActiveMonitorPresets = new(profile.MonitorPresetIds);
+                state.Profiles.Add(profile); state.SelectedProfileId = profile.Id; state.SelectedGroupId = profile.GroupId; profileDirty = false;
+                if (SaveState()) { BuildPresetLibrary(); RenderMonitorControls(generation); ShowStatus(T("配置已保存。", "Profile saved."), InfoBarSeverity.Success); }
+                else { state.Profiles.Remove(profile); state.MonitorPresets = oldPresets; state.ActiveMonitorPresets = oldActive; state.SelectedProfileId = oldSelected; state.SelectedGroupId = oldGroup; profileDirty = true; }
                 RefreshProfiles();
             }
             finally { gate.Release(); }
@@ -305,9 +309,11 @@ public sealed partial class MainWindow
         try
         {
             var values = profile.Values; var mappings = profile.BrightnessMappings; var metadata = profile.Monitors;
+            var oldRefs = new Dictionary<string, string>(profile.MonitorPresetIds); var oldPresets = state.MonitorPresets.ToList(); var oldActive = state.ActiveMonitorPresets;
             ProfileUpdates.Merge(profile, CaptureProfile(), CaptureMonitorMetadata(), CaptureMappings());
-            if (SaveState()) { profileDirty = false; ShowStatus(T("配置已更新。", "Profile updated."), InfoBarSeverity.Success); }
-            else { profile.Values = values; profile.BrightnessMappings = mappings; profile.Monitors = metadata; }
+            MonitorPresetLibrary.AttachSnapshots(state, profile); state.ActiveMonitorPresets = new(profile.MonitorPresetIds);
+            if (SaveState()) { profileDirty = false; BuildPresetLibrary(); RenderMonitorControls(generation); ShowStatus(T("配置已更新。", "Profile updated."), InfoBarSeverity.Success); }
+            else { profile.Values = values; profile.BrightnessMappings = mappings; profile.Monitors = metadata; profile.MonitorPresetIds = oldRefs; state.MonitorPresets = oldPresets; state.ActiveMonitorPresets = oldActive; }
             RefreshProfiles();
         }
         finally { gate.Release(); }
@@ -319,7 +325,10 @@ public sealed partial class MainWindow
         try
         {
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-            state.Profiles.Remove(profile); state.SelectedProfileId = null; SaveState(); RefreshProfiles();
+            var index = state.Profiles.IndexOf(profile); var selected = state.SelectedProfileId;
+            state.Profiles.Remove(profile); state.SelectedProfileId = null;
+            if (!SaveState()) { state.Profiles.Insert(index, profile); state.SelectedProfileId = selected; }
+            RefreshProfiles();
         }
         catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error); }
     }

@@ -74,6 +74,8 @@ public sealed partial class MainWindow : Window
         AudioPanel.Visibility = tag == "audio" ? Visibility.Visible : Visibility.Collapsed;
         MousePanel.Visibility = tag == "mouse" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPanel.Visibility = tag == "settings" ? Visibility.Visible : Visibility.Collapsed;
+        PresetLibraryPanel.Visibility = tag == "library" ? Visibility.Visible : Visibility.Collapsed;
+        if (tag == "library") BuildPresetLibrary();
         UpdatePageTitle();
     }
     private void DisplayMode_SelectionChanged(object sender, SelectionChangedEventArgs args)
@@ -212,6 +214,7 @@ public sealed partial class MainWindow : Window
         var actions = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
         actions.Children.Add(menu); actions.Children.Add(rename);
         Grid.SetColumn(actions, 1); header.Children.Add(actions); body.Children.Add(header);
+        body.Children.Add(CreateMonitorPresetRow(device));
         AddFeatureSections(body, new[] { device }, version, false);
         body.Children.Add(CreateMappingRow(device));
         return Card(body);

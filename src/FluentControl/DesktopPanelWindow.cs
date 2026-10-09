@@ -289,8 +289,10 @@ internal sealed class DesktopPanelWindow : Window
     }
     internal void SetNavigation(string group, string profile, bool canSwitchGroup, bool canSwitchProfile)
     {
-        groupName.Text = Strings.T("分组", "Group") + " · " + group;
-        profileName.Text = Strings.T("配置", "Profile") + " · " + profile;
+        previousGroup.Visibility = nextGroup.Visibility = groupName.Visibility = Visibility.Collapsed;
+        header.RowDefinitions[0].Height = new GridLength(0);
+        groupName.Text = group;
+        profileName.Text = Strings.T("总配置", "Global profile") + " · " + profile;
         ToolTipService.SetToolTip(groupName, groupName.Text); ToolTipService.SetToolTip(profileName, profileName.Text);
         void Label(Button button, string text, bool enabled)
         {
@@ -299,8 +301,8 @@ internal sealed class DesktopPanelWindow : Window
         }
         Label(previousGroup, Strings.T("上一个分组", "Previous group"), canSwitchGroup);
         Label(nextGroup, Strings.T("下一个分组", "Next group"), canSwitchGroup);
-        Label(previousProfile, Strings.T("组内上一个配置", "Previous profile in group"), canSwitchProfile);
-        Label(nextProfile, Strings.T("组内下一个配置", "Next profile in group"), canSwitchProfile);
+        Label(previousProfile, Strings.T("上一个总配置", "Previous global profile"), canSwitchProfile);
+        Label(nextProfile, Strings.T("下一个总配置", "Next global profile"), canSwitchProfile);
     }
     internal void RefreshValues() { foreach (var update in sync) update(); }
     internal void ShowPanel() { SetUnlocked(false); AppWindow.Show(false); layer.Lower(); }

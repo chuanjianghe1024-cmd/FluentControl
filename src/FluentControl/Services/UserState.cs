@@ -32,6 +32,7 @@ public sealed class ControlProfile
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Name { get; set; } = "";
     public string GroupId { get; set; } = ProfileGroup.LocalId;
+    public Dictionary<string, string> MonitorPresetIds { get; set; } = new();
     public Dictionary<string, MonitorDescriptor> Monitors { get; set; } = new();
     public List<string> Applications { get; set; } = new();
     [System.Text.Json.Serialization.JsonIgnore] public string DisplayLabel { get; set; } = "";
@@ -40,6 +41,9 @@ public sealed class ControlProfile
 }
 public sealed class UserState
 {
+    public int ProfileOrganizationVersion { get; set; }
+    public List<MonitorPreset> MonitorPresets { get; set; } = new();
+    public Dictionary<string, string> ActiveMonitorPresets { get; set; } = new();
     public AppSettings Settings { get; set; } = new();
     public List<ControlProfile> Profiles { get; set; } = new();
     public List<ProfileGroup> Groups { get; set; } = new();
@@ -57,6 +61,14 @@ public sealed class UserStateStore
         State = File.Exists(path) ? JsonSerializer.Deserialize<UserState>(File.ReadAllText(path)) ?? new() : new();
         State.Settings ??= new(); State.Profiles ??= new();
         ProfileGroups.Normalize(State);
+        if (State.ProfileOrganizationVersion < 1)
+        {
+            var backup = path + ".before-model-library-v1.bak";
+            if (File.Exists(path) && !File.Exists(backup)) File.Copy(path, backup, false);
+            MonitorPresetLibrary.Migrate(State);
+            Save();
+        }
+        else MonitorPresetLibrary.Migrate(State);
         State.Settings.DesktopRows ??= new();
         State.Settings.DesktopMaxRows = Math.Clamp(State.Settings.DesktopMaxRows, 1, 16);
         State.Settings.DesktopOpacity = double.IsFinite(State.Settings.DesktopOpacity) ? Math.Clamp(State.Settings.DesktopOpacity, 10, 85) : 30;

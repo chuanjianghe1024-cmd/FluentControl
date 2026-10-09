@@ -99,3 +99,13 @@ dotnet run --project tests/FluentControl.Tests -c Release
 [开发、验证与发布流程](docs/development.md) · [AI 协作指南 AGENTS.md](AGENTS.md) · [agent.md 兼容入口](agent.md)
 
 配置分享网站独立维护于 [FluentControl-Web](https://github.com/chuanjianghe1024-cmd/FluentControl-Web)，使用 Cloudflare Workers、PostgreSQL 和独立登录配置。官网计划使用 [fctrl.app](https://fctrl.app)，部署与桌面客户端接入分别进行；此 Release 不宣称在线服务已上线。
+
+## 总配置与型号配置库（主分支）
+
+顶部总配置保存全部已读取的显示器、声音/麦克风音量与静音、鼠标速度和指针大小；左右按钮、桌面面板和快捷键切换完整状态。暂时离线的设备参数继续保留，不修改系统默认音频路由。
+
+型号配置库按 PnP 型号自动分组。同型号屏幕可以共用预设，每屏也可选不同预设。每块屏幕提供“选用配置 / 保存当前”；允许选择其他型号的预设，先显示兼容数量，仅应用目标支持的参数与选项，再提示另存为本型号配置。建议名称为“型号 - 场景/应用 - 短简介”，可自行修改。
+
+总配置保存参数快照和来源引用；修改或删除型号库预设不会改变已有总配置。保存/更新总配置时自动复用或新增对应的显示器预设。首次迁移前自动保存 `user-state.json.before-model-library-v1.bak`，旧总配置和离线参数保留。
+
+分享/导入针对型号配置库；导入无需连接设备，按型号合并，相同内容去重。公开文件只含显示器参数和能力元数据，音频、鼠标和设备实例保留本地。

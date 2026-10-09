@@ -77,7 +77,7 @@ public sealed partial class MainWindow
         var group = new ProfileGroup { Name = "Imported file" }; state.Groups.Add(group);
         var profile = new ControlProfile { Name = "Game", GroupId = group.Id, Applications = new() { "Test Game" }, Monitors = CaptureMonitorMetadata(), Values = CaptureProfile() };
         state.Profiles.Add(profile); state.SelectedGroupId = group.Id; RefreshProfiles();
-        if (((IEnumerable<ControlProfile>)ProfilePicker.ItemsSource).Count() != 1) throw new InvalidOperationException("Group picker did not scope profiles.");
+        if (!((IEnumerable<ControlProfile>)ProfilePicker.ItemsSource).Any(p => p.Id == profile.Id)) throw new InvalidOperationException("Global selector omitted a legacy-group scene.");
         applicationFilter = "test game"; modelFilter = "TST0001"; filterAllGroups = true; RefreshProfiles();
         if (VisibleProfiles().Count != 1) throw new InvalidOperationException("Combined profile filters failed.");
         applicationFilter = modelFilter = ""; state.Profiles.Remove(profile); state.Groups.Remove(group); state.SelectedGroupId = ProfileGroup.LocalId; RefreshProfiles();
@@ -289,69 +289,49 @@ public sealed partial class MainWindow
     }
     private async Task CheckDesktopNavigationAsync()
     {
-        var groups = state.Groups; var profiles = state.Profiles;
-        var selectedGroup = state.SelectedGroupId; var selectedProfile = state.SelectedProfileId;
-        var appFilter = applicationFilter; var model = modelFilter; var brand = brandFilter;
-        var dirty = profileDirty;
-        var brightness = displayDevices[0].Channels.First(c => c.PropertyKey == "brightness"); var original = brightness.Value;
-        var a = new ProfileGroup { Id = ProfileGroup.LocalId }; var empty = new ProfileGroup { Name = "Empty group" }; var b = new ProfileGroup { Name = "Imported group" };
-        ControlProfile Scene(string name, string groupId, double value) => new() { Name = name, GroupId = groupId, Values = new() { [ProfileGroups.MonitorKey(displayDevices[0].Id, "brightness")] = new() { Value = value } } };
-        var first = Scene("First", a.Id, 21); var second = Scene("Second", b.Id, 42); var third = Scene("Third", b.Id, 63);
+        var groups = state.Groups; var profiles = state.Profiles; var selected = state.SelectedProfileId; var group = state.SelectedGroupId;
+        var appFilter = applicationFilter; var oldPresets = state.MonitorPresets; var active = state.ActiveMonitorPresets;
+        var channels = AllChannels(); var original = channels.ToDictionary(p => p.Key, p => p.Value.Value);
+        var firstGroup = new ProfileGroup { Id = ProfileGroup.LocalId }; var otherGroup = new ProfileGroup { Name = "Legacy group" };
+        var first = CaptureGlobalProfile("Global first", new()); var second = CaptureGlobalProfile("Global second", new()); second.GroupId = otherGroup.Id;
+        var brightnessKey = ProfileGroups.MonitorKey(displayDevices[0].Id, "brightness");
+        var microphone = channels.First(p => p.Key.StartsWith("audio/") && p.Value.DeviceId == "默认麦克风");
+        var mouse = channels.First(p => p.Key == "mouse/mouse-speed");
+        first.Values[brightnessKey].Value = 21; second.Values[brightnessKey].Value = 42;
+        first.Values[microphone.Key].Value = 25; second.Values[microphone.Key].Value = 75;
+        first.Values[mouse.Key].Value = 4; second.Values[mouse.Key].Value = 12;
         try
         {
-            state.Groups = new() { a, empty, b }; state.Profiles = new() { third, first, second };
-            state.SelectedGroupId = a.Id; state.SelectedProfileId = first.Id;
-            applicationFilter = "no matches"; modelFilter = brandFilter = ""; // desktop and global keys must ignore main-window search filters
-            RefreshProfiles(); desktopPanel!.SetUnlocked(false);
-            Button Button(string id) => Descendants<Button>(desktopPanel.Content).First(x => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(x) == id);
-            async Task Click(string id)
-            {
-                ((IInvokeProvider)new ButtonAutomationPeer(Button(id)).GetPattern(PatternInterface.Invoke)).Invoke();
-                await Task.Delay(75); while (applyingProfile) await Task.Delay(25);
-            }
-            await Click("desktop-next-group");
-            if (state.SelectedGroupId != a.Id) throw new InvalidOperationException("Locked desktop navigation accepted input.");
-            desktopPanel.SetUnlocked(true);
-            await Click("desktop-next-group");
-            if (state.SelectedGroupId != empty.Id || Button("desktop-next-profile").IsEnabled || brightness.Value != original)
-                throw new InvalidOperationException("Empty group navigation applied a profile or left arrows enabled.");
-            await Click("desktop-next-group");
-            if (state.SelectedGroupId != b.Id || state.SelectedProfileId != third.Id || brightness.Value != 63)
-                throw new InvalidOperationException("Desktop group change did not select and apply its first profile.");
-            await Click("desktop-next-profile"); await Click("desktop-next-profile");
-            if (state.SelectedProfileId != third.Id) throw new InvalidOperationException("Desktop profile arrows must wrap inside their group.");
-            await Click("desktop-next-group");
-            if (state.SelectedGroupId != a.Id || state.SelectedProfileId != first.Id || brightness.Value != 21) throw new InvalidOperationException("Group arrow did not wrap and apply the first profile.");
-            await Click("desktop-previous-group"); await Click("desktop-previous-profile");
-            if (state.SelectedGroupId != b.Id || state.SelectedProfileId != second.Id || brightness.Value != 42)
-                throw new InvalidOperationException("Previous group/profile arrows failed.");
-            applicationFilter = "no matches"; RefreshProfiles();
-            // Use the actual commands shared by tray entries and registered global hotkeys.
+            state.Groups = new() { firstGroup, otherGroup }; state.Profiles = new() { first, second }; state.MonitorPresets = new();
+            MonitorPresetLibrary.AttachSnapshots(state, first); MonitorPresetLibrary.AttachSnapshots(state, second);
+            await ApplyProfileAsync(first); applicationFilter = "no matches"; RefreshProfiles(); desktopPanel!.SetUnlocked(false);
+            var next = Descendants<Button>(desktopPanel.Content).Single(b => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(b) == "desktop-next-profile");
+            void Click() => ((IInvokeProvider)new ButtonAutomationPeer(next).GetPattern(PatternInterface.Invoke)).Invoke();
+            Click(); await Task.Delay(75);
+            if (state.SelectedProfileId != first.Id) throw new InvalidOperationException("Locked global navigation accepted input.");
+            desktopPanel.SetUnlocked(true); Click(); await Task.Delay(75); while (applyingProfile) await Task.Delay(25);
+            if (state.SelectedProfileId != second.Id || channels[brightnessKey].Value != 42 || microphone.Value.Value != 75 || mouse.Value.Value != 12)
+                throw new InvalidOperationException("Desktop navigation did not apply the complete global scene across legacy groups.");
             ShellCommand(3); while (applyingProfile) await Task.Delay(25);
-            if (state.SelectedProfileId != first.Id || state.SelectedGroupId != a.Id || brightness.Value != 21)
-                throw new InvalidOperationException("Global next did not wrap across groups.");
-            ShellCommand(2); while (applyingProfile) await Task.Delay(25);
-            if (state.SelectedProfileId != second.Id || state.SelectedGroupId != b.Id || brightness.Value != 42)
-                throw new InvalidOperationException("Global previous did not cross groups.");
-            GroupPicker.SelectedItem = a;
-            while (applyingProfile) await Task.Delay(25);
-            if (state.SelectedGroupId != a.Id || state.SelectedProfileId != first.Id || brightness.Value != 21)
-                throw new InvalidOperationException("Main group picker did not apply the first profile.");
-            GroupPicker.SelectedItem = b;
-            while (applyingProfile) await Task.Delay(25);
-            if (state.SelectedProfileId != third.Id || brightness.Value != 63) throw new InvalidOperationException("Main group picker did not follow profile order.");
-            if (!DeleteGroupButton.IsEnabled) throw new InvalidOperationException("Imported group cannot be deleted.");
-            state.SelectedGroupId = a.Id; RefreshProfiles();
-            if (DeleteGroupButton.IsEnabled) throw new InvalidOperationException("Default group must be retained.");
-            StartupLog.Write("PASS: separate desktop group/profile arrows, empty groups, locked input, cross-group hotkey commands and default-group protection");
+            if (state.SelectedProfileId != first.Id || microphone.Value.Value != 25 || mouse.Value.Value != 4) throw new InvalidOperationException("Global hotkey did not restore audio and mouse.");
+            var source = state.MonitorPresets.First(p => p.Monitor.ModelId == displayDevices[0].ModelId);
+            var snapshot = first.Values[brightnessKey].Value;
+            source.Values["brightness"] = 67;
+            var untouched = displayDevices[0].Channels.First(c => c.PropertyKey == "brightness").Value;
+            await ApplyMonitorPresetAsync(displayDevices[1], source, false);
+            if (displayDevices[1].Channels.First(c => c.PropertyKey == "brightness").Value != 67 || displayDevices[0].Channels.First(c => c.PropertyKey == "brightness").Value != untouched || first.Values[brightnessKey].Value != snapshot)
+                throw new InvalidOperationException("Cross-model preset leaked to another screen or modified a saved global snapshot.");
+            state.MonitorPresets.Remove(source); await ApplyProfileAsync(first);
+            if (channels[brightnessKey].Value != snapshot) throw new InvalidOperationException("Deleting a library preset invalidated the global snapshot.");
+            BuildPresetLibrary();
+            StartupLog.Write("PASS: complete global scene navigation, audio/mouse restoration, reusable model presets and cross-model isolation");
         }
         finally
         {
-            state.Groups = groups; state.Profiles = profiles; state.SelectedGroupId = selectedGroup; state.SelectedProfileId = selectedProfile;
-            applicationFilter = appFilter; modelFilter = model; brandFilter = brand; profileDirty = dirty;
-            await Task.Run(() => ControlOperations.Apply(new[] { brightness }, original));
-            RefreshProfiles(); SynchronizeValues(); SaveState(); desktopPanel?.SetUnlocked(false);
+            foreach (var item in original) ControlOperations.Apply(new[] { channels[item.Key] }, item.Value);
+            state.Groups = groups; state.Profiles = profiles; state.SelectedProfileId = selected; state.SelectedGroupId = group;
+            state.MonitorPresets = oldPresets; state.ActiveMonitorPresets = active; applicationFilter = appFilter;
+            RefreshProfiles(); SynchronizeValues(); RenderMonitorControls(generation); SaveState(); desktopPanel?.SetUnlocked(false);
         }
     }
-
 }

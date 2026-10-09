@@ -21,6 +21,7 @@
     <Compile Include="../../src/FluentControl/Services/MonitorService.cs" Link="MonitorService.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorColorTemperature.cs" Link="MonitorColorTemperature.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorHardwareInfo.cs" Link="MonitorHardwareInfo.cs" />
+    <Compile Include="../../src/FluentControl/Services/MonitorPresetLibrary.cs" Link="MonitorPresetLibrary.cs" />
     <Compile Include="../../src/FluentControl/Services/ProfileExchange.cs" Link="ProfileExchange.cs" />
     <Compile Include="../../src/FluentControl/Services/ProfileGroups.cs" Link="ProfileGroups.cs" />
     <Compile Include="../../src/FluentControl/Services/ProfileBundles.cs" Link="ProfileBundles.cs" />

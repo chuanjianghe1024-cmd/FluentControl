@@ -18,6 +18,8 @@ public static class ModelIdentity
 public class SharedScene
 {
     public string Name { get; set; } = "";
+    public string Scenario { get; set; } = "";
+    public string Summary { get; set; } = "";
     public List<SharedMonitorSlot> Monitors { get; set; } = new();
     public List<string> Applications { get; set; } = new();
 }
@@ -69,6 +71,7 @@ public static class ProfileExchange
     }
     public static void ValidateScene(SharedScene profile, bool allowUnknownModel = true)
     {
+        if (profile.Scenario is null || profile.Summary is null || profile.Scenario.Length > 80 || profile.Summary.Length > 160) throw new InvalidDataException("Invalid scene metadata.");
         if (profile.Applications is null || profile.Applications.Count > 32 || profile.Applications.Any(x => string.IsNullOrWhiteSpace(x) || x.Length > 80)) throw new InvalidDataException("Invalid application metadata.");
         if (string.IsNullOrWhiteSpace(profile.Name) || profile.Name.Length > 80 || profile.Monitors is null || profile.Monitors.Count is < 1 or > 16) throw new InvalidDataException("Invalid profile name or monitor count.");
         var slots = new HashSet<string>();
@@ -93,7 +96,7 @@ public static class ProfileExchange
         if (schema.GetString() == "fluentcontrol.monitor-profile")
         {
             var old = Parse(text);
-            return new() { Name = old.Name, Groups = new() { new() { Name = old.Name, Profiles = new() { new() { Name = old.Name, Applications = old.Applications, Monitors = old.Monitors } } } } };
+            return new() { Name = old.Name, Groups = new() { new() { Name = old.Name, Profiles = new() { new() { Name = old.Name, Scenario = old.Scenario, Summary = old.Summary, Applications = old.Applications, Monitors = old.Monitors } } } } };
         }
         var bundle = JsonSerializer.Deserialize<SharedProfileBundle>(text, Json) ?? throw new InvalidDataException("Empty bundle.");
         ValidateBundle(bundle); return bundle;

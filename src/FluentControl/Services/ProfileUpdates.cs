@@ -7,8 +7,7 @@ public static class ProfileUpdates
     public static void Merge(ControlProfile profile, IReadOnlyDictionary<string, SavedValue> snapshot,
         IReadOnlyDictionary<string, MonitorDescriptor> monitors, IReadOnlyDictionary<string, BrightnessMapping> mappings)
     {
-        var values = profile.Values.Where(x => ProfileGroups.TryMonitorKey(x.Key, out _, out _))
-            .ToDictionary(x => x.Key, x => new SavedValue { Value = x.Value.Value, Muted = x.Value.Muted });
+        var values = profile.Values.ToDictionary(x => x.Key, x => new SavedValue { Value = x.Value.Value, Muted = x.Value.Muted });
         foreach (var item in snapshot) values[item.Key] = new() { Value = item.Value.Value, Muted = item.Value.Muted };
         var metadata = profile.Monitors.ToDictionary(x => x.Key, x => x.Value.Copy());
         foreach (var item in monitors)

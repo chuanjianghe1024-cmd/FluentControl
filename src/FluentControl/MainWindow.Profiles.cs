@@ -9,7 +9,7 @@ public sealed partial class MainWindow
     private string applicationFilter = "", modelFilter = "", brandFilter = "";
     private bool filterAllGroups = true;
     private bool HasProfileFilters => applicationFilter.Length + modelFilter.Length + brandFilter.Length > 0;
-    private List<ControlProfile> VisibleProfiles() => (HasProfileFilters && filterAllGroups ? state.Profiles : ProfileGroups.Current(state))
+    private List<ControlProfile> VisibleProfiles() => ProfileGroups.AllOrdered(state)
         .Where(p => ProfileGroups.Matches(p, applicationFilter, modelFilter, brandFilter)).ToList();
     private static List<string> ParseApplications(string text)
     {
@@ -24,6 +24,8 @@ public sealed partial class MainWindow
         {
             pair.Value.Hardware ??= state.KnownMonitors.GetValueOrDefault(pair.Key)?.Hardware?.Copy();
             state.KnownMonitors[pair.Key] = pair.Value;
+            if (pair.Value.Hardware is not null)
+                foreach (var preset in state.MonitorPresets.Where(p => p.SourceDeviceId == pair.Key)) preset.Monitor.Hardware = pair.Value.Hardware.Copy();
             foreach (var profile in state.Profiles.Where(p => p.Values.Keys.Any(k => ProfileGroups.TryMonitorKey(k, out var id, out _) && id == pair.Key)))
             {
                 if (!profile.Monitors.ContainsKey(pair.Key)) profile.Monitors[pair.Key] = pair.Value.Copy();
@@ -96,11 +98,11 @@ public sealed partial class MainWindow
         var model = new TextBox { Header = T("显示器型号或名称", "Monitor model or name"), Text = modelFilter };
         var brand = new TextBox { Header = T("品牌", "Brand"), Text = brandFilter };
         var all = new CheckBox { Content = T("搜索所有分组", "Search all groups"), IsChecked = filterAllGroups };
-        panel.Children.Add(apps); panel.Children.Add(model); panel.Children.Add(brand); panel.Children.Add(all);
+        panel.Children.Add(apps); panel.Children.Add(model); panel.Children.Add(brand);
         var preview = new TextBlock { TextWrapping = TextWrapping.Wrap }; panel.Children.Add(preview);
         void Count()
         {
-            var source = all.IsChecked == true ? state.Profiles : ProfileGroups.Current(state);
+            var source = state.Profiles;
             preview.Text = F("筛选结果：{0} 个配置", "Filter results: {0} profiles", source.Count(p => ProfileGroups.Matches(p, apps.Text, model.Text, brand.Text)));
         }
         foreach (var box in new[] { apps, model, brand }) box.TextChanged += (_, _) => Count();
@@ -136,7 +138,7 @@ public sealed partial class MainWindow
         {
             if (await new ContentDialog { Title = T("配置信息", "Profile information"), Content = new ScrollViewer { Content = panel, MaxHeight = 420 }, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), XamlRoot = Root.XamlRoot }.ShowAsync() != ContentDialogResult.Primary) return;
             var updatedName = name.Text.Trim();
-            if (updatedName.Length == 0 || state.Profiles.Any(p => p.Id != profile.Id && p.GroupId == profile.GroupId && p.Name.Equals(updatedName, StringComparison.CurrentCultureIgnoreCase))) throw new ArgumentException(T("名称为空或在当前分组中重复。", "The name is empty or already exists in this group."));
+            if (updatedName.Length == 0 || state.Profiles.Any(p => p.Id != profile.Id && p.Name.Equals(updatedName, StringComparison.CurrentCultureIgnoreCase))) throw new ArgumentException(T("名称为空或在当前分组中重复。", "The name is empty or already exists in this group."));
             var applications = ParseApplications(apps.Text);
             profile.Name = updatedName; profile.Applications = applications;
             foreach (var field in fields) { field.Descriptor.ModelName = field.Model.Text.Trim(); field.Descriptor.Brand = field.Brand.Text.Trim(); field.Descriptor.DisplayName = field.Alias.Text.Trim(); }

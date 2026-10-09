@@ -15,6 +15,9 @@
             <NavigationViewItem Content="鼠标与指针" Tag="mouse" AutomationProperties.AutomationId="nav-mouse">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE962;"/></NavigationViewItem.Icon>
             </NavigationViewItem>
+            <NavigationViewItem Content="型号配置库" Tag="library" AutomationProperties.AutomationId="nav-library">
+                <NavigationViewItem.Icon><FontIcon Glyph="&#xE8F1;"/></NavigationViewItem.Icon>
+            </NavigationViewItem>
         </NavigationView.MenuItems>
         <Grid x:Name="Root" Padding="28,24,28,20" RowSpacing="20">
             <Grid.RowDefinitions>
@@ -32,8 +35,9 @@
             </Grid>
             <StackPanel Grid.Row="1" Spacing="8">
                 <Grid ColumnSpacing="8">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="3*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <Grid ColumnSpacing="4">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock x:Name="GlobalProfileTitle" Text="总配置" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <Grid ColumnSpacing="4" Visibility="Collapsed">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <ComboBox x:Name="GroupPicker" PlaceholderText="配置分组" DisplayMemberPath="DisplayName" HorizontalAlignment="Stretch" SelectionChanged="GroupPicker_SelectionChanged"/>
                         <Button x:Name="GroupActionsButton" Grid.Column="1" Padding="8" AutomationProperties.Name="管理分组">
@@ -95,6 +99,7 @@
                         <TextBlock x:Name="MouseDescription" Text="调整后立即生效。更多指针颜色与样式，可在 Windows 指针设置中选择。" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                         <HyperlinkButton x:Name="PointerSettingsLink" Content="Windows 指针设置" Tag="ms-settings:easeofaccess-mousepointer" Click="OpenSettings_Click" HorizontalAlignment="Left"/>
                     </StackPanel>
+                    <StackPanel x:Name="PresetLibraryPanel" Spacing="12" Visibility="Collapsed"/>
                     <StackPanel x:Name="SettingsPanel" Spacing="16" Visibility="Collapsed"/>
                 </Grid>
             </ScrollViewer>

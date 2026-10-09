@@ -14,6 +14,7 @@ Strings.ValidateCatalog();
 MonitorDiscoveryTests.Run();
 StartupTemperatureTests.Run();
 HardwareInfoTests.Run();
+PresetLibraryTests.Run();
 Check(Strings.SupportedLanguages.Count == 8, "Eight supported locales.");
 Check(Strings.ResolveLanguage("zh-HK") == "zh-TW" && Strings.ResolveLanguage("es-MX") == "es-ES", "Regional language fallback.");
 foreach (var locale in Strings.SupportedLanguages)
@@ -145,7 +146,7 @@ ProfileUpdates.Merge(offlineProfile,
     new Dictionary<string,BrightnessMapping> { ["left"] = new() { Enabled = true, Offset = 1 } });
 Check(offlineProfile.Values[ProfileGroups.MonitorKey("left", "brightness")].Value == 70 && offlineProfile.Values[ProfileGroups.MonitorKey("right", "brightness")].Value == 30 && offlineProfile.Values[ProfileGroups.MonitorKey("left", "color-preset")].Value == 5, "Update merges online values and preserves disconnected or temporarily unavailable monitor controls.");
 Check(offlineProfile.Monitors["left"].ModelName == "Custom model" && offlineProfile.Monitors["left"].DisplayName == "左屏" && offlineProfile.Monitors["right"].DisplayName == "右屏" && offlineProfile.BrightnessMappings["right"].Offset == 3, "Updating a scene retains custom metadata and offline brightness mapping.");
-Check(!offlineProfile.Values.ContainsKey("audio/old/volume") && offlineProfile.Values.ContainsKey("audio/new/volume"), "Only current default audio is captured, without retaining stale routes.");
+Check(offlineProfile.Values.ContainsKey("audio/old/volume") && offlineProfile.Values.ContainsKey("audio/new/volume"), "Global profiles preserve offline audio values without changing routes.");
 var offlineState = new UserState { Profiles = new() { offlineProfile } }; ProfileGroups.Normalize(offlineState);
 var offlineExport = ProfileBundles.Export(offlineState, offlineState.Profiles, "Offline export");
 Check(offlineExport.Groups[0].Profiles[0].Monitors.Count == 2 && offlineExport.Groups[0].Profiles[0].Monitors.Any(m => m.DisplayName == "右屏" && m.Values["brightness"] == 30), "Export includes retained offline displays after a partial update.");

@@ -2,7 +2,7 @@
 
 ## 批量配置 v2
 
-分享文件采用 `fluentcontrol.monitor-bundle` v2，包含多个分组与多套场景；读取兼容旧 `fluentcontrol.monitor-profile` v1。导出来源是**已保存**场景，可以导出全部分组、当前分组，或其中某一型号的全部场景。JSON 使用 UTF-8 可读 Unicode。
+分享文件采用 `fluentcontrol.monitor-bundle` v2，包含多个分组与多套场景；读取兼容旧 `fluentcontrol.monitor-profile` v1。导出来源是**型号配置库**，可导出全部型号或指定型号的全部预设；同型号自动共用分组。JSON 使用 UTF-8 可读 Unicode。
 
 ```json
 {
@@ -41,7 +41,7 @@
 
 示例型号只用于说明。`modelId` 是 PnP 厂商/产品码，不是设备实例或序列号；`modelName` 优先取 Windows DisplayConfig/EDID 友好名称，无法读取时保留驱动名称，可在信息页手动补充。品牌来自已知 PnP 厂商映射，未知值保留厂商码，可编辑。别名、场景名和应用标签属于用户填写的共享元数据。
 
-同一物理屏幕在整个文件使用稳定 slot，多个同型号屏幕使用不同 slot。导入时只能绑定到相同型号，未知型号保持未绑定；同一场景不允许两个 slot 覆盖同一目标。离线或目标当前不支持的值不会丢弃，重名场景加序号。导入为新分组时以文件名命名，把源文件中的场景汇入此组；合并模式汇入当前组。导入操作不向硬件写入。
+同一物理屏幕在整个文件使用稳定 slot，多个同型号屏幕使用不同 slot。新导入流程不绑定物理设备，按型号入库，文件名作为本地来源记录。相同名称与内容去重，同名不同内容加序号；离线型号仍可入库。应用时可选任意目标屏幕，按实际参数与选项取交集；跨型号使用后提示另存到目标型号组。旧批量导入解析保留兼容，导入操作不向硬件写入。
 
 连续属性单位为 0–100%；输入等枚举保留原始值；Gamma 使用已解析的 16 位指令值。`temperature` 是 Windows 高层 API 枚举，与 VCP `color-preset` 不同。缺失键表示不修改。只读信息、重置、电源、OSD 按键控制和未知码不分享。保存前及应用前校验当前允许的选项：显示器报告的当前色温值不等于可设置选项，不可重放的值不保存，旧配置中的无效选项跳过并报告数量。
 
@@ -106,3 +106,11 @@
 - [VESA MCCS 2.2a 标准副本](https://milek7.pl/ddcbacklight/mccs.pdf)
 - [Windows WM_MOUSEACTIVATE](https://learn.microsoft.com/en-us/windows/win32/inputdev/wm-mouseactivate)
 - [Windows SetWindowPos](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos)
+
+## 总配置与型号预设的本地关系
+
+`UserState.Profiles` 是总配置，保存全部可读取的监视器/音频/鼠标参数；`MonitorPresets` 是按型号分组的可复用显示器预设。总配置的 `MonitorPresetIds` 只记录来源，写入使用总配置自己的 `Values` 快照；修改/删除库项目不改变已有快照。保存总配置自动复用相同型号、参数及映射的预设，否则新增；每个屏幕独立绑定，可引用同一预设。失联设备保留在快照中。
+
+本地组织迁移版本 `ProfileOrganizationVersion=1`，首次升级先保存原始备份再拆分旧场景的各屏参数。旧组作为来源数据保留，界面总配置列表与切换统一跨组；不再把文件分组当作型号分组。
+
+共享 `SharedScene` 新增可选 `scenario`（场景/应用，80 字符）、`summary`（短简介，160 字符），与 `applications` 一起保留。型号预设名建议“型号 - 场景/应用 - 短简介”，不强制覆盖自定义名称。公共 API 只接受监视器库数据，总配置中音频、鼠标和设备路径不公开。
