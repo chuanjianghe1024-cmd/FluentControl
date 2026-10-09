@@ -128,6 +128,32 @@ class ReleaseTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "different source"):
                 release.verify_tag("repos/owner/repo", "v0.3.33", self.m["sourceCommit"])
 
+    @patch.dict(release.os.environ, {}, clear=True)
+    def test_creation_uses_returned_id_without_read_after_create_tag_lookup(self):
+        run, artifact = self.source()
+        expected = self.assets()
+        tag = "v" + self.m["version"]
+        draft = {"id": 42, "tag_name": tag, "draft": True, "prerelease": False, "assets": []}
+        uploaded = {**draft, "assets": expected}
+        published = {**uploaded, "draft": False, "html_url": "release URL"}
+        api_responses = [run, artifact, draft, uploaded, published]
+        def fake_gh(*args, **kwargs):
+            if "output" in kwargs:
+                return None
+            return json.dumps(expected.pop(0))
+        # Keep uploaded response independent from the queue consumed by fake_gh.
+        uploaded["assets"] = self.assets()
+        published["assets"] = self.assets()
+        with patch.object(release, "find_release", return_value=None) as find, \
+             patch.object(release, "verify_tag"), patch.object(release, "api", side_effect=api_responses) as api, \
+             patch.object(release, "gh", side_effect=fake_gh), \
+             patch.object(release, "unpack_msi", return_value=Path(self.m["fileName"])):
+            release.publish(self.m, self.repo)
+            find.assert_called_once()
+            writes = [c for c in api.call_args_list if c.kwargs.get("method") in ("POST", "PATCH")]
+            self.assertEqual([c.kwargs["method"] for c in writes], ["POST", "PATCH"])
+            self.assertTrue(writes[1].args[0].endswith("/releases/42"))
+
 
 if __name__ == "__main__":
     unittest.main()

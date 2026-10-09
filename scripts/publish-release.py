@@ -74,8 +74,12 @@ def gh(*args, output=None):
     return subprocess.check_output(["gh", *args], text=True)
 
 
-def api(endpoint, optional=False):
-    result = subprocess.run(["gh", "api", endpoint], capture_output=True, text=True)
+def api(endpoint, optional=False, method="GET", payload=None):
+    command = ["gh", "api", endpoint, "--method", method]
+    if payload is not None:
+        command.extend(["--input", "-"])
+    result = subprocess.run(command, input=json.dumps(payload) if payload is not None else None,
+                            capture_output=True, text=True)
     if optional and result.returncode and "HTTP 404" in result.stderr:
         return None
     if result.returncode:
@@ -162,21 +166,31 @@ def publish(m, repo):
         sums = work / "SHA256SUMS.txt"
         sums.write_bytes(checksum)
         if release is None:
-            gh("release", "create", tag, "--repo", repo, "--draft", "--target", m["sourceCommit"],
-               "--title", f'FluentControl {tag}', "--notes-file", str(ROOT / m["notes"]))
-            release = find_release(base, tag)
-            require(release is not None, "Created draft could not be found")
+            # Use the creation response ID directly: freshly created drafts
+            # need not appear immediately in tag/list queries.
+            release = api(f"{base}/releases", method="POST", payload={
+                "tag_name": tag, "target_commitish": m["sourceCommit"],
+                "name": f"FluentControl {tag}", "draft": True, "prerelease": False,
+                "body": (ROOT / m["notes"]).read_text(encoding="utf-8"),
+            })
+        require(release["tag_name"] == tag and release["draft"], "Expected matching release draft")
+        release_id = release["id"]
         present = {a["name"] for a in release["assets"]}
         for asset in (msi, sums):
             if asset.name not in present:
-                # No --clobber: a retry may resume, but never replace any asset.
-                gh("release", "upload", tag, str(asset), "--repo", repo)
-        release = api(f'{base}/releases/{release["id"]}')
+                # Address the draft by ID rather than resolving its tag again.
+                # POST refuses duplicate names; no delete/replace operation.
+                uploaded = json.loads(gh("api",
+                    f"https://uploads.github.com/{base}/releases/{release_id}/assets?name={asset.name}",
+                    "--method", "POST", "--input", str(asset), "-H", "Content-Type: application/octet-stream"))
+                validate_assets([uploaded], expected)
+        release = api(f"{base}/releases/{release_id}")
         validate_assets(release["assets"], expected, complete=True)
-        gh("release", "edit", tag, "--repo", repo, "--draft=false", "--latest",
-           "--notes-file", str(ROOT / m["notes"]))
+        release = api(f"{base}/releases/{release_id}", method="PATCH", payload={
+            "draft": False, "prerelease": False, "make_latest": "true",
+            "body": (ROOT / m["notes"]).read_text(encoding="utf-8"),
+        })
 
-    release = api(f"{base}/releases/tags/{tag}")
     require(not release["draft"] and not release["prerelease"], "Release was not published")
     verify_tag(base, tag, m["sourceCommit"])
     validate_assets(release["assets"], expected, complete=True)
