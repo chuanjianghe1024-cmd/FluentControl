@@ -100,7 +100,8 @@ internal static class PanelDiagnostics
                 var point = new Point { X = 24, Y = 50 }; ClientToScreen(panel.Handle, ref point);
                 var hit = GetAncestor(WindowFromPoint(point), 2);
                 var hitClass = new System.Text.StringBuilder(128); GetClassName(hit, hitClass, hitClass.Capacity);
-                StartupLog.Write($"Show Desktop check {i}: panel={panel.Handle}, hit={hit}, class={hitClass}, extendedStyle=0x{(long)GetWindowLongPtr(panel.Handle, -20):X}");
+                var foregroundClass = new System.Text.StringBuilder(128); GetClassName(GetForegroundWindow(), foregroundClass, foregroundClass.Capacity);
+                StartupLog.Write($"Show Desktop check {i}: panel={panel.Handle}, hit={hit}, class={hitClass}, foreground={foregroundClass}, extendedStyle=0x{(long)GetWindowLongPtr(panel.Handle, -20):X}");
                 if (hit != panel.Handle)
                     throw new InvalidOperationException("Show Desktop covered the panel with Explorer's desktop.");
                 shellType.InvokeMember("ToggleDesktop", System.Reflection.BindingFlags.InvokeMethod, null, shell, null); toggled = false;

@@ -10,7 +10,9 @@ internal sealed class DesktopLayer : IDisposable
     private readonly Func<Action, bool> dispatch;
     private readonly Action lockPanel;
     private readonly nint foregroundHook, minimizeHook;
-    private bool locked = true, disposed, placing, recoveryQueued, desktopBoosted;
+    private readonly nint desktopSentinel;
+    private const nuint DesktopTimer = 0x46434453;
+    private bool locked = true, disposed, placing, recoveryQueued, desktopBoosted, showDesktop;
     internal DesktopLayer(nint window, Func<Action, bool> dispatch, Action lockPanel)
     {
         this.window = window; this.dispatch = dispatch; this.lockPanel = lockPanel; callback = WindowProc;
@@ -18,6 +20,12 @@ internal sealed class DesktopLayer : IDisposable
         eventCallback = OnWinEvent;
         foregroundHook = SetWinEventHook(3, 3, 0, eventCallback, 0, 0, 0); // foreground (including Explorer's desktop)
         minimizeHook = SetWinEventHook(0x16, 0x17, 0, eventCallback, (uint)Environment.ProcessId, 0, 0);
+        // A hidden, disabled normal-band window marks the bottom of the app stack.
+        // Show Desktop puts the shell above this marker, even without a foreground event.
+        desktopSentinel = CreateWindowEx(0x08000080, "STATIC", "FluentControl.DesktopSentinel", 0x88000000,
+            0, 0, 0, 0, 0, 0, 0, 0);
+        if (desktopSentinel != 0) SetWindowPos(desktopSentinel, 1, 0, 0, 0, 0, 0x13);
+        SetTimer(window, DesktopTimer, 200, 0);
     }
     internal void SetLocked(bool value)
     {
@@ -29,6 +37,7 @@ internal sealed class DesktopLayer : IDisposable
     internal void Lower()
     {
         if (!locked || disposed) return;
+        showDesktop = IsDesktopRaised();
         // HWND_BOTTOM alone can put a window behind Explorer's wallpaper host.
         // Keep it immediately above that host, below ordinary application windows.
         nint anchor = 1, previous = 0, lastTopmost = 0;
@@ -44,9 +53,9 @@ internal sealed class DesktopLayer : IDisposable
         try
         {
             // Show Desktop raises Explorer over non-minimizable normal windows.
-            // Use the topmost band only while that desktop is foreground and no
-            // ordinary visible app is above it. Never activate or cover the taskbar.
-            if (anchor == 0 && IsDesktop(GetForegroundWindow()))
+            // Use the topmost band only while the shell covers the app stack.
+            // Never activate or cover the taskbar; leave this band on restoration.
+            if (showDesktop)
             {
                 desktopBoosted = true;
                 SetWindowPos(window, -1, 0, 0, 0, 0, 0x13);
@@ -77,8 +86,35 @@ internal sealed class DesktopLayer : IDisposable
         GetWindowThreadProcessId(hwnd, out var process);
         return shellProcess != 0 && process == shellProcess;
     }
+    private bool IsDesktopRaised()
+    {
+        if (desktopSentinel == 0) return IsDesktop(GetForegroundWindow());
+        var shell = GetShellWindow();
+        for (var item = GetTopWindow(0); item != 0; item = GetWindow(item, 2))
+        {
+            if (item == desktopSentinel) return false;
+            if (IsWindowVisible(item) && IsDesktop(item) &&
+                (item == shell || FindWindowEx(item, 0, "SHELLDLL_DefView", null) != 0)) return true;
+        }
+        return false;
+    }
     private nint WindowProc(nint hwnd, uint message, nuint wParam, nint lParam, nuint id, nuint data)
     {
+        if (message == 0x113 && wParam == DesktopTimer)
+        {
+            if (!disposed && IsWindowVisible(window))
+            {
+                var raised = IsDesktopRaised();
+                if (raised != showDesktop)
+                {
+                    showDesktop = raised;
+                    if (raised) QueueRecovery();
+                    else if (locked) Lower();
+                    else RemoveDesktopBoost();
+                }
+            }
+            return 0;
+        }
         // Disabling the caption's minimize button does not stop Win+D/Show Desktop.
         if (message == 0x112 && (wParam & 0xFFF0) == 0xF020) { QueueRecovery(); return 0; }
         if (message == 0x5 && wParam == 1) QueueRecovery(); // WM_SIZE / SIZE_MINIMIZED
@@ -117,17 +153,19 @@ internal sealed class DesktopLayer : IDisposable
     }
     private async Task RecheckDesktopAsync()
     {
-        // Explorer can finish reordering after its foreground event. Recheck once;
-        // no timer, global keyboard interception or permanent always-on-top mode.
+        // Explorer can finish reordering after its foreground event. Recheck once
+        // for a prompt response; the sentinel also detects transitions without focus.
         await Task.Delay(120);
         if (!disposed) dispatch(() => { if (!disposed && locked && IsWindowVisible(window)) Lower(); });
     }
     public void Dispose()
     {
         if (disposed) return; disposed = true;
+        KillTimer(window, DesktopTimer);
         if (foregroundHook != 0) UnhookWinEvent(foregroundHook);
         if (minimizeHook != 0) UnhookWinEvent(minimizeHook);
         RemoveWindowSubclass(window, callback, 920);
+        if (desktopSentinel != 0) DestroyWindow(desktopSentinel);
     }
     [StructLayout(LayoutKind.Sequential)] private struct WindowPosition { public nint Window, After; public int X, Y, Width, Height; public uint Flags; }
     private delegate nint SubclassProc(nint hwnd, uint message, nuint wParam, nint lParam, nuint id, nuint reference);
@@ -138,6 +176,11 @@ internal sealed class DesktopLayer : IDisposable
     [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
     [DllImport("user32.dll")] private static extern nint GetShellWindow();
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hwnd, out uint process);
+    [DllImport("user32.dll")] private static extern nuint SetTimer(nint hwnd, nuint id, uint milliseconds, nint callback);
+    [DllImport("user32.dll")] private static extern bool KillTimer(nint hwnd, nuint id);
+    [DllImport("user32.dll")] private static extern bool DestroyWindow(nint hwnd);
+    [DllImport("user32.dll", EntryPoint = "CreateWindowExW", CharSet = CharSet.Unicode)] private static extern nint CreateWindowEx(uint extendedStyle, string className, string name, uint style, int x, int y, int width, int height, nint parent, nint menu, nint instance, nint parameter);
+    [DllImport("user32.dll", EntryPoint = "FindWindowExW", CharSet = CharSet.Unicode)] private static extern nint FindWindowEx(nint parent, nint after, string className, string? title);
     [DllImport("user32.dll")] private static extern bool ShowWindow(nint hwnd, int command);
     [DllImport("comctl32.dll", SetLastError = true)] private static extern bool SetWindowSubclass(nint hwnd, SubclassProc proc, nuint id, nuint reference);
     [DllImport("comctl32.dll")] private static extern bool RemoveWindowSubclass(nint hwnd, SubclassProc proc, nuint id);
