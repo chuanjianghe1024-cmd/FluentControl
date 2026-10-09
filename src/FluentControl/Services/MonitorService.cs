@@ -15,6 +15,8 @@ public sealed class MonitorDevice
     public bool IsPrimary { get; init; }
     public string ModelId { get; init; } = "";
     public string CapabilitiesText { get; set; } = "";
+    public string FirmwareVersion { get; set; } = "";
+    public MonitorAdapter? InstalledAdapter { get; set; }
     public List<MonitorFeature> Features { get; } = new();
     public MonitorPreference Preference { get; set; } = new();
     public List<ControlChannel> Channels { get; } = new();
@@ -24,7 +26,9 @@ public sealed class MonitorDevice
 public sealed class MonitorService : IDisposable
 {
     private readonly List<nint> handles = new();
+    private readonly Dictionary<MonitorDevice, nint> diagnosticHandles = new();
     private readonly MonitorCapabilityCache capabilityCache;
+    private readonly MonitorAdapterStore adapters = new();
     private readonly Action<string>? diagnostic;
     public List<string> Errors { get; } = new();
 
@@ -121,7 +125,7 @@ public sealed class MonitorService : IDisposable
                     devices.Add(device);
                     if (physical.Length == 0)
                         device.Features.AddRange(VcpCatalog.All.Select(d => new MonitorFeature { Definition = d, Reason = Strings.T("DDC/CI 不可用", "DDC/CI unavailable") }));
-                    else pending.Add((device, item.Handle));
+                    else { diagnosticHandles.Add(device, item.Handle); pending.Add((device, item.Handle)); }
                 }
                 return true;
             }
@@ -181,7 +185,27 @@ public sealed class MonitorService : IDisposable
             diagnostic?.Invoke($"Monitor write [{device.Model}]: VCP=0x{code:X2}, value=0x{value:X4}");
             if (!SetVCPFeature(handle, code, value)) throw new Win32Exception(Marshal.GetLastWin32Error(), device.DisplayName + $" · VCP 0x{code:X2}: " + Strings.T("未接受指令，请检查 DDC/CI、HDR 或节能模式。", "Command rejected. Check DDC/CI, HDR or power-saving mode."));
         }
-        device.Features.AddRange(VcpDiscovery.Discover(device.Id, VcpCapabilities.Parse(device.CapabilitiesText), Read, Write));
+        // The known read-only firmware query is needed even when capabilities omit C9.
+        // Reuse this reply during discovery so each refresh reads it only once.
+        var firmware = Read(0xC9);
+        device.FirmwareVersion = firmware is VcpReply fw ? $"{fw.Current >> 8}.{fw.Current & 255}" : "";
+        device.InstalledAdapter = adapters.Find(device.ModelId, device.FirmwareVersion);
+        device.Features.AddRange(VcpDiscovery.Discover(device.Id, VcpCapabilities.Parse(device.CapabilitiesText), code => code == 0xC9 ? firmware : Read(code), Write, device.InstalledAdapter));
+        foreach (var command in device.InstalledAdapter?.NativeMenu ?? new())
+        {
+            var name = Strings.T("原厂菜单", "Native menu") + " · " + NativeMenuName(command.Action);
+            var keyName = "native-osd-" + command.Action;
+            device.Features.Add(new()
+            {
+                Definition = new(command.Code, keyName, name, name, "extensions", VcpKind.Action, true),
+                Channel = new()
+                {
+                    Name = name, Detail = device.InstalledAdapter!.Id, Glyph = "\uE700", DeviceId = device.Id, PropertyKey = keyName,
+                    VcpCode = command.Code, IsAction = true, CanSave = false, RequiresConfirmation = true, Minimum = 1, Maximum = 1, Value = 1,
+                    Write = value => { if (value != 1) throw new ArgumentOutOfRangeException(nameof(value)); Write(command.Code, command.Value); }
+                }
+            });
+        }
         device.Channels.AddRange(device.Features.Where(f => f.Channel is not null).Select(f => f.Channel!));
         // Prefer a single raw VCP read/write namespace over two competing color controls.
         var preset = device.Channels.FirstOrDefault(c => c.PropertyKey == "color-preset");
@@ -205,8 +229,54 @@ public sealed class MonitorService : IDisposable
     private static uint? ReadTemperatureFlags(nint handle) =>
         GetMonitorCapabilities(handle, out var flags, out var temperatures) ? (flags & 8) != 0 ? temperatures & 255 : 0 : null;
 
+    internal static string NativeMenuName(string action) => action switch
+    {
+        "open" => Strings.T("打开", "Open"), "close" => Strings.T("关闭", "Close"), "up" => Strings.T("上", "Up"),
+        "down" => Strings.T("下", "Down"), "left" => Strings.T("左", "Left"), "right" => Strings.T("右", "Right"),
+        "enter" => Strings.T("确认", "Confirm"), _ => action
+    };
+
+    // Caller holds the same gate as refresh/disposal and writes, until all native calls finish.
+    public MonitorDiagnosticSnapshot CaptureDiagnostics(MonitorDevice device, MonitorDiagnosticSnapshot? baseline,
+        CancellationToken token, IProgress<DiagnosticProgress>? progress = null)
+    {
+        token.ThrowIfCancellationRequested();
+        if (!diagnosticHandles.TryGetValue(device, out var handle))
+            throw new InvalidOperationException(Strings.T("DDC/CI 不可用", "DDC/CI unavailable"));
+        var watch = Stopwatch.StartNew();
+        DiagnosticCapabilities capabilities;
+        if (baseline is not null)
+        {
+            if (baseline.DeviceId != device.Id) throw new InvalidOperationException("Monitor connection changed.");
+            capabilities = new(baseline.RawCapabilities ?? "", "baseline", baseline.CapabilitiesErrorCode);
+        }
+        else
+        {
+            // Explicit diagnostic session reads hardware metadata once, bypassing the regular cache.
+            var text = ""; int? error = null;
+            if (!GetCapabilitiesStringLength(handle, out var length)) error = Marshal.GetLastWin32Error();
+            else if (length is 0 or > 65536) error = 13; // invalid data
+            else
+            {
+                token.ThrowIfCancellationRequested();
+                var buffer = new System.Text.StringBuilder((int)length);
+                if (CapabilitiesRequestAndCapabilitiesReply(handle, buffer, length)) text = buffer.ToString();
+                else error = Marshal.GetLastWin32Error();
+            }
+            capabilities = new(text, error.HasValue ? "unavailable" : "hardware", error);
+        }
+        var snapshot = MonitorDiagnostics.Capture(device, capabilities, code =>
+        {
+            var ok = GetVCPFeatureAndVCPFeatureReply(handle, code, out var type, out var current, out var maximum);
+            return new(type, current, maximum, ok ? null : Marshal.GetLastWin32Error());
+        }, token, progress);
+        diagnostic?.Invoke($"Monitor diagnostics: controls={snapshot.Readings.Count}, success={snapshot.Readings.Count(r => r.Status == "ok")}, total={watch.ElapsedMilliseconds}ms");
+        return snapshot;
+    }
+
     public void Dispose()
     {
+        diagnosticHandles.Clear();
         foreach (var handle in handles) DestroyPhysicalMonitor(handle);
         handles.Clear();
     }

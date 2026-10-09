@@ -5,16 +5,18 @@ public readonly record struct VcpReply(uint Current, uint Maximum);
 public static class VcpDiscovery
 {
     // Discovery only reads. Write-only reset becomes available only if advertised.
-    public static List<MonitorFeature> Discover(string deviceId, VcpCapabilities capabilities, Func<byte, VcpReply?> read, Action<byte, uint> write)
+    public static List<MonitorFeature> Discover(string deviceId, VcpCapabilities capabilities, Func<byte, VcpReply?> read, Action<byte, uint> write, MonitorAdapter? adapter = null)
     {
+        adapter?.Validate();
         var features = new List<MonitorFeature>();
         foreach (var definition in VcpCatalog.All)
         {
             var code = definition.Code;
+            var adaptedOptions = adapter?.Controls.FirstOrDefault(c => c.Key == definition.Key)?.Options;
             bool advertised = capabilities.Features.TryGetValue(code, out var values);
             values ??= Array.Empty<byte>();
             var missing = T("未报告支持", "Not advertised");
-            if (capabilities.HasVcpSection && !advertised && code is not 0x10 and not 0x12 and not 0x62)
+            if (capabilities.HasVcpSection && !advertised && adaptedOptions is null && code is not 0x10 and not 0x12 and not 0x62)
             { features.Add(new() { Definition = definition, Reason = missing }); continue; }
             if (definition.Kind == VcpKind.Action)
             {
@@ -48,7 +50,8 @@ public static class VcpDiscovery
             else
             {
                 if (lowByte) initial = data.Current & 255;
-                if (definition.Kind == VcpKind.Gamma) options = VcpCatalog.GammaOptions(values);
+                if (adaptedOptions is not null) options = adaptedOptions.Select(o => new ControlOption(o.Value, o.Label)).ToArray();
+                else if (definition.Kind == VcpKind.Gamma) options = VcpCatalog.GammaOptions(values);
                 else
                 {
                     IEnumerable<byte> known = values;

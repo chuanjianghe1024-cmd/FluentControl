@@ -33,6 +33,7 @@ public sealed partial class MainWindow
             {
                 var menu = new Button { Content = MonitorTitle(device) + " · " + device.Model + " · " + T("屏幕菜单", "On-screen menu") };
                 menu.Click += (_, _) => ShowMonitorOsd(device); body.Children.Add(menu);
+                body.Children.Add(CreateAdaptationButton(device));
                 body.Children.Add(CreateMonitorPresetRow(device));
             }
             AddFeatureSections(body, devices, version, true); CombinedRows.Children.Add(Card(body));
@@ -47,10 +48,10 @@ public sealed partial class MainWindow
         foreach (var category in VcpCatalog.All.Select(x => x.Category).Append("extensions").Distinct())
         {
             var rows = new StackPanel { Spacing = 6 };
-            var definitions = category == "extensions" ? devices.SelectMany(x => x.Features).Where(x => x.Definition.Category == category).Select(x => x.Definition).DistinctBy(x => x.Code) : VcpCatalog.All.Where(x => x.Category == category);
+            var definitions = category == "extensions" ? devices.SelectMany(x => x.Features).Where(x => x.Definition.Category == category).Select(x => x.Definition).DistinctBy(x => x.Key) : VcpCatalog.All.Where(x => x.Category == category);
             foreach (var definition in definitions)
             {
-                var entries = devices.Select(d => (Device: d, Feature: d.Features.FirstOrDefault(f => f.Definition.Code == definition.Code) ?? new MonitorFeature { Definition = definition, Channel = d.Channels.FirstOrDefault(c => c.PropertyKey == definition.Key), Reason = T("不支持或当前无法读取", "Unsupported or currently unreadable") })).ToArray();
+                var entries = devices.Select(d => (Device: d, Feature: d.Features.FirstOrDefault(f => f.Definition.Key == definition.Key) ?? new MonitorFeature { Definition = definition, Channel = d.Channels.FirstOrDefault(c => c.PropertyKey == definition.Key), Reason = T("不支持或当前无法读取", "Unsupported or currently unreadable") })).ToArray();
                 var targets = entries.Where(x => x.Feature.Channel is not null).Select(x => x.Feature.Channel!).ToArray();
                 if (state.Settings.HideUnavailableMonitorControls && targets.Length == 0) continue;
                 if (!linked || definition.Confirm || definition.Kind == VcpKind.ReadOnly || targets.Length == 0)
@@ -153,6 +154,7 @@ public sealed partial class MainWindow
     {
         var message = channel.PropertyKey switch
         {
+            var key when key.StartsWith("native-osd-", StringComparison.Ordinal) => T("将使用已安装的型号适配包向这台显示器发送原厂菜单指令。", "Send this native menu command to the display using the installed model adapter."),
             "factory-reset" => T("将恢复显示器的出厂设置，当前硬件设置可能丢失。此操作不会保存到场景配置。", "Restore factory settings on the display? Current hardware settings may be lost. This action is never saved in profiles."),
             "osd" => T("此操作可能禁用显示器的实体菜单按键。", "This may disable the display's physical menu buttons."),
             _ => T("切换输入源或电源状态可能断开当前画面与 DDC/CI 连接；之后可能需要用显示器按键切回。", "Changing input or power may disconnect the picture and DDC/CI. You may need the monitor's buttons to switch back.")

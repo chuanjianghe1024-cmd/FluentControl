@@ -21,6 +21,7 @@
 | 场景、导入导出 | `MainWindow.Profiles.cs`、`MainWindow.Exchange.cs` |
 | 设置、托盘、快捷键、主题 | `MainWindow.Features.cs`、`MainWindow.Theme.cs` |
 | 桌面面板 | `DesktopPanelWindow.cs`、`Services/DesktopLayer.cs`、`TransparentBackdrop.cs`（应用根目录） |
+| 型号适配、只读采集 | `MainWindow.Adapters.cs`、`MainWindow.Adaptation.cs`、`Services/MonitorAdapters.cs`、`MonitorDiagnostics.cs` |
 | DDC/CI 与能力 | `Services/MonitorService.cs`、`MonitorReadBatch.cs`、`MonitorCapabilityCache.cs`、`VcpCatalog.cs`、`VcpDiscovery.cs` |
 | 控制及联动 | `Services/ControlChannel.cs`、`MonitorLinking.cs`、`BrightnessMapping.cs` |
 | 数据与分享 | `Services/UserState.cs`、`ProfileUpdates.cs`、`ProfileGroups.cs`、`ProfileBundles.cs`、`ProfileExchange.cs` |
@@ -71,3 +72,8 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 - 已发布标签和附件不能移动或替换；修复用新版本。签名状态如实记录，域名、Manufacturer 和文件摘要不等于 Authenticode 签名。
 
 交付说明清楚写出改了什么、验证结果、提交/Release 链接和实际限制；尚未通过的 CI 或未部署的服务不能写成完成。
+
+
+## 型号适配包
+
+协议与操作流程见 `docs/monitor-adapters.md`。适配包与用户分享配置分离，固定官方 HTTPS 源、严格纯数据结构、完整型号和固件版本匹配；读取失败不授予写权限。只有显式安装的已审核包可提供已验证的私有原厂菜单指令，执行保留确认，不参与总配置、分享或聚合。不从未知私有码探测或采集差异猜测可写指令。报告仅供研究，不能自动发布为适配包。

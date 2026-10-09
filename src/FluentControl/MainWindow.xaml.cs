@@ -56,6 +56,7 @@ public sealed partial class MainWindow : Window
         Closed += async (_, _) =>
         {
             closed = true;
+            CloseMonitorAdaptation();
             ShutdownFeatures();
             generation++;
             CloseIdentification();
@@ -94,6 +95,7 @@ public sealed partial class MainWindow : Window
         RefreshButton.IsEnabled = false;
         IdentifyButton.IsEnabled = false;
         CloseMonitorOsd();
+        CloseMonitorAdaptation();
         var version = ++generation;
         var page = notificationContext;
         desktopPanel?.SetUnlocked(false);
@@ -212,7 +214,7 @@ public sealed partial class MainWindow : Window
         var menu = new Button { Content = T("屏幕菜单", "On-screen menu") };
         menu.Click += (_, _) => ShowMonitorOsd(device);
         var actions = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
-        actions.Children.Add(menu); actions.Children.Add(rename);
+        actions.Children.Add(menu); actions.Children.Add(CreateAdaptationButton(device)); actions.Children.Add(rename);
         Grid.SetColumn(actions, 1); header.Children.Add(actions); body.Children.Add(header);
         body.Children.Add(CreateMonitorPresetRow(device));
         AddFeatureSections(body, new[] { device }, version, false);

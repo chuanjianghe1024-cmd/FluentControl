@@ -220,7 +220,7 @@ public sealed partial class MainWindow
     }
     private async Task ApplyProfileAsync(ControlProfile profile)
     {
-        if (applyingProfile || refreshing || closed) return;
+        if (applyingProfile || refreshing || closed || monitorAdaptationDialog is not null) return;
         applyingProfile = true; var page = notificationContext;
         try
         {
@@ -230,7 +230,7 @@ public sealed partial class MainWindow
             await gate.WaitAsync();
             try
             {
-                if (closed) return;
+                if (closed || monitorAdaptationDialog is not null) return;
                 var available = AllChannels();
                 var result = await Task.Run(() =>
                 {
@@ -417,7 +417,7 @@ public sealed partial class MainWindow
                 await gate.WaitAsync();
                 try
                 {
-                    if (closed || version != generation) return;
+                    if (closed || version != generation || monitorAdaptationDialog is not null) return;
                     var errors = await Task.Run(() => ControlOperations.Apply(targets, value, linked));
                     if (closed) return;
                     MarkProfileModified(); SynchronizeValues();

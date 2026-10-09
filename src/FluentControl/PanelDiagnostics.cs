@@ -73,12 +73,44 @@ internal static class PanelDiagnostics
             if (!panel.IsUnlocked) throw new InvalidOperationException("A locked bottom-layer panel cannot unlock by double-click.");
             panel.SetUnlocked(false);
             StartupLog.Write("PASS: locked panel rejects activation/promotion; double-click still unlocks.");
+            await VerifyShowDesktopAsync(panel, background);
         }
         finally
         {
             mouse_event(4, 0, 0, 0, 0); SetCursorPos(originalPointer.X, originalPointer.Y);
             presenter.IsAlwaysOnTop = false; background.Close();
             foreach (var window in hiddenRunnerWindows) ShowWindow(window, 8);
+        }
+    }
+    private static async Task VerifyShowDesktopAsync(DesktopPanelWindow panel, Window background)
+    {
+        // Exercise actual Shell Show Desktop, not just WM_SYSCOMMAND. The runner is disposable.
+        var shellType = Type.GetTypeFromProgID("Shell.Application") ?? throw new InvalidOperationException("Explorer shell unavailable.");
+        var shell = Activator.CreateInstance(shellType) ?? throw new InvalidOperationException("Cannot create shell automation.");
+        var toggled = false;
+        try
+        {
+            for (var i = 0; i < 2; i++)
+            {
+                background.Activate(); panel.SetUnlocked(i == 1);
+                shellType.InvokeMember("ToggleDesktop", System.Reflection.BindingFlags.InvokeMethod, null, shell, null); toggled = true;
+                await Task.Delay(650);
+                if (IsIconic(panel.Handle) || !IsWindowVisible(panel.Handle) || panel.IsUnlocked || GetForegroundWindow() == panel.Handle)
+                    throw new InvalidOperationException("Show Desktop minimized, unlocked, hid or activated the desktop panel.");
+                var point = new Point { X = 24, Y = 50 }; ClientToScreen(panel.Handle, ref point);
+                if (GetAncestor(WindowFromPoint(point), 2) != panel.Handle)
+                    throw new InvalidOperationException("Show Desktop covered the panel with Explorer's desktop.");
+                shellType.InvokeMember("ToggleDesktop", System.Reflection.BindingFlags.InvokeMethod, null, shell, null); toggled = false;
+                await Task.Delay(350); background.Activate(); await Task.Delay(100);
+                if (IsAbove(panel.Handle, WinRT.Interop.WindowNative.GetWindowHandle(background)))
+                    throw new InvalidOperationException("Desktop panel covered an app after restoring Show Desktop.");
+            }
+            StartupLog.Write("PASS: Show Desktop toggles preserve panel visibility, lock, no-activation and bottom-layer ordering.");
+        }
+        finally
+        {
+            if (toggled) shellType.InvokeMember("ToggleDesktop", System.Reflection.BindingFlags.InvokeMethod, null, shell, null);
+            Marshal.FinalReleaseComObject(shell);
         }
     }
     private static bool IsAbove(nint first, nint second)
@@ -99,6 +131,9 @@ internal static class PanelDiagnostics
     }
     [DllImport("user32.dll")] private static extern nint WindowFromPoint(Point point);
     [DllImport("user32.dll")] private static extern bool ShowWindow(nint hwnd, int command);
+    [DllImport("user32.dll")] private static extern bool IsIconic(nint hwnd);
+    [DllImport("user32.dll")] private static extern bool IsWindowVisible(nint hwnd);
+    [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
     [DllImport("user32.dll")] private static extern nint GetAncestor(nint hwnd, uint flags);
     [DllImport("user32.dll", EntryPoint="GetClassNameW", CharSet=CharSet.Unicode)] private static extern int GetClassName(nint hwnd, System.Text.StringBuilder text, int length);
     [DllImport("user32.dll")] private static extern nint GetTopWindow(nint hwnd);

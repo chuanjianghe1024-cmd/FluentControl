@@ -54,6 +54,7 @@ public sealed partial class MainWindow
             throw new InvalidOperationException("Cross-model linked badge missing.");
         await CheckCrossModelControlsAsync();
         await CheckMonitorOsdAsync();
+        await CheckAdapterCaptureAsync();
         var otherModel = new MonitorDevice { Id = "unknown-model", Model = "Unknown model", Connection = "test" };
         otherModel.Channels.Add(new() { Name = "Unknown display brightness", Detail = "", Glyph = "", PropertyKey = "brightness", Value = 45, Write = _ => { } });
         displayDevices.Add(otherModel);
@@ -89,6 +90,47 @@ public sealed partial class MainWindow
         var slider = Descendants<Slider>(row).Single();
         ((IRangeValueProvider)new SliderAutomationPeer(slider).GetPattern(PatternInterface.RangeValue)).SetValue(value);
         await WaitForWritesAsync();
+    }
+    private async Task CheckAdapterCaptureAsync()
+    {
+        var device = displayDevices[0]; var channel = device.Channels.First(c => c.PropertyKey == "color-preset"); var original = channel.Value;
+        var show = ShowMonitorAdaptationAsync(device);
+        await Task.Delay(150);
+        try
+        {
+            var content = monitorAdaptationDialog?.Content as ScrollViewer ?? throw new InvalidOperationException("Adaptation dialog did not open.");
+            Button Button(string id) => Descendants<Button>(content).Single(b => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(b) == id);
+            void Invoke(Button button) => ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)).Invoke();
+            if (Button("diagnostic-sample").IsEnabled || Button("diagnostic-export").IsEnabled) throw new InvalidOperationException("Diagnostics enabled without a baseline.");
+            Invoke(Button("diagnostic-baseline")); await Task.Delay(50); await monitorDiagnosticCapture;
+            if (monitorDiagnosticBaseline is null || !Button("diagnostic-export").IsEnabled || monitorDiagnosticBaseline.Readings.Single(r => r.Code == 0x14).Current != original)
+                throw new InvalidOperationException("Diagnostic baseline or export unavailable.");
+            var label = Descendants<TextBox>(content).Single(t => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(t) == "diagnostic-label");
+            label.Text = "实体菜单：9300 K";
+            // Simulate a physical OSD change, bypassing the FC UI's cached value.
+            var changed = original == 8 ? 5u : 8u; channel.Write(changed);
+            Invoke(Button("diagnostic-sample")); await Task.Delay(50); await monitorDiagnosticCapture;
+            if (monitorDiagnosticObservations.Count != 1 || !monitorDiagnosticObservations[0].Differences.Any(d => d.Code == 0x14 && d.After?.Current == changed))
+                throw new InvalidOperationException("Labeled raw OSD change was not recorded.");
+            var saved = state.SelectedProfileId;
+            await ApplyProfileAsync(new ControlProfile { Name = "Must stay paused", Values = CaptureProfile() });
+            if (saved != state.SelectedProfileId) throw new InvalidOperationException("Profile switched during adaptation capture.");
+        }
+        finally { channel.Write(original); CloseMonitorAdaptation(); await show; }
+        // Closing while waiting for the lifecycle gate must cancel before any capture.
+        show = ShowMonitorAdaptationAsync(device); await Task.Delay(100);
+        await gate.WaitAsync();
+        try
+        {
+            var content = monitorAdaptationDialog!.Content as ScrollViewer;
+            var button = Descendants<Button>(content!).Single(b => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(b) == "diagnostic-baseline");
+            ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)).Invoke();
+            await Task.Delay(50); CloseMonitorAdaptation(); await Task.Delay(100);
+        }
+        finally { gate.Release(); }
+        await show;
+        if (monitorDiagnosticBaseline is not null || monitorAdaptationDialog is not null) throw new InvalidOperationException("Closed capture retained work or dialog state.");
+        StartupLog.Write("PASS: adaptation UI baseline, physical-menu difference, export readiness, paused profiles and close/cancel lifecycle.");
     }
     private async Task CheckMonitorOsdAsync()
     {

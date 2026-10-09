@@ -19,6 +19,8 @@
     <Compile Include="../../src/FluentControl/Services/MonitorCapabilityCache.cs" Link="MonitorCapabilityCache.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorReadBatch.cs" Link="MonitorReadBatch.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorService.cs" Link="MonitorService.cs" />
+    <Compile Include="../../src/FluentControl/Services/MonitorDiagnostics.cs" Link="MonitorDiagnostics.cs" />
+    <Compile Include="../../src/FluentControl/Services/MonitorAdapters.cs" Link="MonitorAdapters.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorColorTemperature.cs" Link="MonitorColorTemperature.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorHardwareInfo.cs" Link="MonitorHardwareInfo.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorPresetLibrary.cs" Link="MonitorPresetLibrary.cs" />

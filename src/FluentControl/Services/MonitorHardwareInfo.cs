@@ -18,7 +18,7 @@ public sealed class MonitorHardwareInfo
         var result = new MonitorHardwareInfo
         {
             ManufacturerCode = ModelIdentity.IsValid(device.ModelId) ? device.ModelId[..3] : "",
-            Firmware = VersionText(device.Features.FirstOrDefault(f => f.Definition.Key == "firmware")?.Information),
+            Firmware = VersionText(device.FirmwareVersion) is { Length: > 0 } firmware ? firmware : VersionText(device.Features.FirstOrDefault(f => f.Definition.Key == "firmware")?.Information),
             MccsVersion = VersionText(device.Features.FirstOrDefault(f => f.Definition.Key == "mccs")?.Information) is { Length: > 0 } version ? version : VersionText(caps.Version)
         };
         foreach (var feature in device.Features)

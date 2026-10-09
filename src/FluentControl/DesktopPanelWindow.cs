@@ -55,7 +55,7 @@ internal sealed class DesktopPanelWindow : Window
         SystemBackdrop = backdrop;
         Content = root;
         hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-        layer = new DesktopLayer(hwnd);
+        layer = new DesktopLayer(hwnd, action => DispatcherQueue.TryEnqueue(() => action()), () => SetUnlocked(false));
         AppWindow.IsShownInSwitchers = false;
         if (AppWindow.Presenter is OverlappedPresenter p)
         {

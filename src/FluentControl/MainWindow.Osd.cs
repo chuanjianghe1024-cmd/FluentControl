@@ -13,7 +13,7 @@ public sealed partial class MainWindow
     private void CloseMonitorOsd() { monitorOsd?.Close(); monitorOsd = null; }
     private void ShowMonitorOsd(MonitorDevice device)
     {
-        if (closed || refreshing || !displayDevices.Contains(device)) return;
+        if (closed || refreshing || monitorAdaptationDialog is not null || !displayDevices.Contains(device)) return;
         CloseMonitorOsd();
         var version = generation;
         var window = new Window { Title = MonitorTitle(device) + " · " + T("FC 屏幕菜单", "FC on-screen menu") };
@@ -65,7 +65,9 @@ public sealed partial class MainWindow
             var rows = new StackPanel { Spacing = 10 };
             if (category == "osd")
             {
-                rows.Children.Add(Empty(T("菜单开关只控制原厂 OSD 是否可用，不会弹出菜单。原厂菜单显示与导航需型号适配，当前未接入。", "The OSD switch enables the native menu; it does not open it. Native menu display and navigation need a model adapter and are not connected.")));
+                rows.Children.Add(Empty(device.InstalledAdapter?.NativeMenu.Count > 0 ?
+                    T("已安装原厂菜单适配；在主窗口的型号扩展中操作。", "Native menu adapter installed. Use Model extensions in the main window.") :
+                    T("菜单开关只控制原厂 OSD 是否可用，不会弹出菜单。可在型号适配中查找原厂菜单适配包。", "The OSD switch enables the native menu; it does not open it. Look for a native menu package in Model adapters.")));
                 if (channels.Length == 0) rows.Children.Add(Empty(T("未检测到可控制的原厂 OSD 设置。", "No controllable native OSD settings detected.")));
             }
             foreach (var channel in channels)

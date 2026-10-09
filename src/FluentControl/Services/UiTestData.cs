@@ -3,6 +3,10 @@ namespace FluentControl.Services;
 // Only used by --ui-test. These channels never change real hardware or settings.
 internal static class UiTestData
 {
+    private static readonly Dictionary<MonitorDevice, Func<byte, DiagnosticReply>> DiagnosticReaders = new();
+    internal static MonitorDiagnosticSnapshot CaptureDiagnostics(MonitorDevice device, MonitorDiagnosticSnapshot? baseline,
+        CancellationToken token, IProgress<DiagnosticProgress>? progress) => MonitorDiagnostics.Capture(device,
+            new(device.CapabilitiesText, baseline is null ? "simulated" : "baseline"), DiagnosticReaders[device], token, progress);
     private static ControlChannel Channel(string name, string key, double value, bool isDefault = false, string detail = "") => new()
     {
         Name = name, DeviceId = name, PropertyKey = key, Value = value, Glyph = "\uE7F4", Detail = detail,
@@ -22,6 +26,7 @@ internal static class UiTestData
                 [0x60] = new(15,0), [0x8D] = new(0x202,0x202), [0xD6] = new(1,0), [0xDC] = new(0,0), [0xC9] = new(0x0102,0)
             };
             if (i == 1) replies.Remove(0x62); // only the first screen exposes speaker volume
+            DiagnosticReaders[device] = code => replies.TryGetValue(code, out var reply) ? new(0, reply.Current, reply.Maximum) : new(0, 0, 0, 50);
             device.CapabilitiesText = "(prot(monitor) vcp(04 10 12 14(05 08) 16 18 1A 60(0F 11) 62 8D D6(01 04) DC(00 05) C9 E1) mccs_ver(2.2))";
             if (i == 1) device.CapabilitiesText = device.CapabilitiesText.Replace("14(05 08)", "14(08 0B)");
             device.Features.AddRange(VcpDiscovery.Discover(device.Id, VcpCapabilities.Parse(device.CapabilitiesText),

@@ -12,6 +12,8 @@ static ControlChannel Channel(string name, double initial, Action<double> write,
 
 Strings.ValidateCatalog();
 MonitorDiscoveryTests.Run();
+MonitorDiagnosticsTests.Run();
+MonitorAdapterTests.Run();
 StartupTemperatureTests.Run();
 HardwareInfoTests.Run();
 PresetLibraryTests.Run();
