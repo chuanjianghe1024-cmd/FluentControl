@@ -98,11 +98,14 @@ internal static class PanelDiagnostics
                 if (IsIconic(panel.Handle) || !IsWindowVisible(panel.Handle) || panel.IsUnlocked || GetForegroundWindow() == panel.Handle)
                     throw new InvalidOperationException("Show Desktop minimized, unlocked, hid or activated the desktop panel.");
                 var point = new Point { X = 24, Y = 50 }; ClientToScreen(panel.Handle, ref point);
-                if (GetAncestor(WindowFromPoint(point), 2) != panel.Handle)
+                var hit = GetAncestor(WindowFromPoint(point), 2);
+                var hitClass = new System.Text.StringBuilder(128); GetClassName(hit, hitClass, hitClass.Capacity);
+                StartupLog.Write($"Show Desktop check {i}: panel={panel.Handle}, hit={hit}, class={hitClass}, extendedStyle=0x{(long)GetWindowLongPtr(panel.Handle, -20):X}");
+                if (hit != panel.Handle)
                     throw new InvalidOperationException("Show Desktop covered the panel with Explorer's desktop.");
                 shellType.InvokeMember("ToggleDesktop", System.Reflection.BindingFlags.InvokeMethod, null, shell, null); toggled = false;
                 await Task.Delay(350); background.Activate(); await Task.Delay(100);
-                if (IsAbove(panel.Handle, WinRT.Interop.WindowNative.GetWindowHandle(background)))
+                if (((long)GetWindowLongPtr(panel.Handle, -20) & 8) != 0 || IsAbove(panel.Handle, WinRT.Interop.WindowNative.GetWindowHandle(background)))
                     throw new InvalidOperationException("Desktop panel covered an app after restoring Show Desktop.");
             }
             StartupLog.Write("PASS: Show Desktop toggles preserve panel visibility, lock, no-activation and bottom-layer ordering.");
@@ -134,6 +137,7 @@ internal static class PanelDiagnostics
     [DllImport("user32.dll")] private static extern bool IsIconic(nint hwnd);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(nint hwnd);
     [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern nint GetWindowLongPtr(nint hwnd, int index);
     [DllImport("user32.dll")] private static extern nint GetAncestor(nint hwnd, uint flags);
     [DllImport("user32.dll", EntryPoint="GetClassNameW", CharSet=CharSet.Unicode)] private static extern int GetClassName(nint hwnd, System.Text.StringBuilder text, int length);
     [DllImport("user32.dll")] private static extern nint GetTopWindow(nint hwnd);

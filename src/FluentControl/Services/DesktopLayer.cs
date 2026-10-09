@@ -10,7 +10,7 @@ internal sealed class DesktopLayer : IDisposable
     private readonly Func<Action, bool> dispatch;
     private readonly Action lockPanel;
     private readonly nint foregroundHook, minimizeHook;
-    private bool locked = true, disposed, placing, recoveryQueued;
+    private bool locked = true, disposed, placing, recoveryQueued, desktopBoosted;
     internal DesktopLayer(nint window, Func<Action, bool> dispatch, Action lockPanel)
     {
         this.window = window; this.dispatch = dispatch; this.lockPanel = lockPanel; callback = WindowProc;
@@ -24,23 +24,58 @@ internal sealed class DesktopLayer : IDisposable
         locked = value;
         ShellIntegration.ToolWindow(window, value);
         if (value) Lower();
+        else RemoveDesktopBoost();
     }
     internal void Lower()
     {
         if (!locked || disposed) return;
         // HWND_BOTTOM alone can put a window behind Explorer's wallpaper host.
         // Keep it immediately above that host, below ordinary application windows.
-        nint anchor = 1, previous = 0;
+        nint anchor = 1, previous = 0, lastTopmost = 0;
         for (var item = GetTopWindow(0); item != 0; item = GetWindow(item, 2))
         {
-            if (item == window || !IsWindowVisible(item)) continue;
+            if (item == window || !IsWindowVisible(item) || IsIconic(item)) continue;
             var name = new System.Text.StringBuilder(128); GetClassName(item, name, name.Capacity);
             if (name.ToString() is "Progman" or "WorkerW") { anchor = previous; break; }
-            if (((long)GetWindowLongPtr(item, -20) & 8) == 0) previous = item; // never anchor in the topmost band
+            if (((long)GetWindowLongPtr(item, -20) & 8) == 0) previous = item;
+            else lastTopmost = item;
         }
         placing = true;
-        try { SetWindowPos(window, -2, 0, 0, 0, 0, 0x13); SetWindowPos(window, anchor, 0, 0, 0, 0, 0x13); }
+        try
+        {
+            // Show Desktop raises Explorer over non-minimizable normal windows.
+            // Use the topmost band only while that desktop is foreground and no
+            // ordinary visible app is above it. Never activate or cover the taskbar.
+            if (anchor == 0 && IsDesktop(GetForegroundWindow()))
+            {
+                desktopBoosted = true;
+                SetWindowPos(window, -1, 0, 0, 0, 0, 0x13);
+                if (lastTopmost != 0) SetWindowPos(window, lastTopmost, 0, 0, 0, 0, 0x13);
+            }
+            else
+            {
+                desktopBoosted = false;
+                SetWindowPos(window, -2, 0, 0, 0, 0, 0x13);
+                SetWindowPos(window, anchor, 0, 0, 0, 0, 0x13);
+            }
+        }
         finally { placing = false; }
+    }
+    private void RemoveDesktopBoost()
+    {
+        if (!desktopBoosted || disposed) return;
+        desktopBoosted = false; placing = true;
+        try { SetWindowPos(window, -2, 0, 0, 0, 0, 0x13); }
+        finally { placing = false; }
+    }
+    private static bool IsDesktop(nint hwnd)
+    {
+        if (hwnd == 0) return false;
+        var name = new System.Text.StringBuilder(128); GetClassName(hwnd, name, name.Capacity);
+        if (name.ToString() is not ("Progman" or "WorkerW")) return false;
+        GetWindowThreadProcessId(GetShellWindow(), out var shellProcess);
+        GetWindowThreadProcessId(hwnd, out var process);
+        return shellProcess != 0 && process == shellProcess;
     }
     private nint WindowProc(nint hwnd, uint message, nuint wParam, nint lParam, nuint id, nuint data)
     {
@@ -63,9 +98,8 @@ internal sealed class DesktopLayer : IDisposable
         if (disposed) return;
         if (kind is 0x16 or 0x17 && hwnd == window) { QueueRecovery(); return; }
         if (kind != 3 || hwnd == 0) return;
-        var name = new System.Text.StringBuilder(128); GetClassName(hwnd, name, name.Capacity);
-        if (name.ToString() is "Progman" or "WorkerW") QueueRecovery();
-        else if (locked) dispatch(() => { if (!disposed && locked) Lower(); });
+        if (IsDesktop(hwnd)) QueueRecovery();
+        else if (locked) dispatch(() => { if (!disposed && locked) { Lower(); _ = RecheckDesktopAsync(); } });
     }
     private void QueueRecovery()
     {
@@ -78,7 +112,15 @@ internal sealed class DesktopLayer : IDisposable
             lockPanel();
             if (IsIconic(window)) ShowWindow(window, 4); // SW_SHOWNOACTIVATE; never take focus
             if (IsWindowVisible(window)) Lower();
+            _ = RecheckDesktopAsync();
         })) recoveryQueued = false;
+    }
+    private async Task RecheckDesktopAsync()
+    {
+        // Explorer can finish reordering after its foreground event. Recheck once;
+        // no timer, global keyboard interception or permanent always-on-top mode.
+        await Task.Delay(120);
+        if (!disposed) dispatch(() => { if (!disposed && locked && IsWindowVisible(window)) Lower(); });
     }
     public void Dispose()
     {
@@ -93,6 +135,9 @@ internal sealed class DesktopLayer : IDisposable
     [DllImport("user32.dll")] private static extern nint SetWinEventHook(uint min, uint max, nint module, WinEventProc callback, uint process, uint thread, uint flags);
     [DllImport("user32.dll")] private static extern bool UnhookWinEvent(nint hook);
     [DllImport("user32.dll")] private static extern bool IsIconic(nint hwnd);
+    [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
+    [DllImport("user32.dll")] private static extern nint GetShellWindow();
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hwnd, out uint process);
     [DllImport("user32.dll")] private static extern bool ShowWindow(nint hwnd, int command);
     [DllImport("comctl32.dll", SetLastError = true)] private static extern bool SetWindowSubclass(nint hwnd, SubclassProc proc, nuint id, nuint reference);
     [DllImport("comctl32.dll")] private static extern bool RemoveWindowSubclass(nint hwnd, SubclassProc proc, nuint id);
