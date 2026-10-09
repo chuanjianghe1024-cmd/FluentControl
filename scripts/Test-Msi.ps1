@@ -112,7 +112,8 @@ try {
     New-Item $fixtureDirectory -ItemType Directory -Force | Out-Null
     $fixture = Join-Path $fixtureDirectory 'InstallerLockFixture.exe'
     $compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
-    & $compiler /nologo /target:winexe /platform:x64 "/out:$fixture" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll tests/installer/InstallerLockFixture.cs
+    $fixtureSource = (Resolve-Path 'tests/installer/InstallerLockFixture.cs').Path
+    & $compiler /nologo /target:winexe /platform:x64 "/out:$fixture" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll $fixtureSource
     if ($LASTEXITCODE -ne 0) { throw 'Installer lock fixture compilation failed.' }
     # Same native DLL bytes/name, separate directory and file identity. Other
     # applications can load their own runtime throughout all MSI operations.
