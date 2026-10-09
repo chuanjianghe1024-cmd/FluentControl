@@ -35,7 +35,7 @@ internal static class StartupService
         lock (ShortcutLock)
         {
             path = Path.GetFullPath(path);
-            if (!enabled) { RetrySharingViolation(() => File.Delete(path)); return; }
+            if (!enabled) { RetrySharingViolation(() => File.Delete(path), retryAccessDenied: true); return; }
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             // A unique non-.lnk staging file avoids collisions and never becomes
             // a second executable startup entry while Explorer observes the folder.
@@ -47,7 +47,9 @@ internal static class StartupService
                 {
                     if (!ShortcutMatches(temporary, executable)) throw new IOException("Startup shortcut verification failed.");
                 }); // the verification reader is also released before the move
-                RetrySharingViolation(() => File.Move(temporary, path, true));
+                // MoveFileEx can report ERROR_ACCESS_DENIED (not only a sharing
+                // violation) when an existing destination is open without delete sharing.
+                RetrySharingViolation(() => File.Move(temporary, path, true), retryAccessDenied: true);
             }
             finally
             {
@@ -72,12 +74,14 @@ internal static class StartupService
         }
         finally { Marshal.FinalReleaseComObject(instance); }
     }
-    internal static void RetrySharingViolation(Action operation, Action<int>? delay = null)
+    internal static void RetrySharingViolation(Action operation, Action<int>? delay = null, bool retryAccessDenied = false)
     {
         for (var attempt = 0; ; attempt++)
         {
             try { operation(); return; }
-            catch (Exception ex) when (attempt < 5 && (ex is IOException or COMException) && (ex.HResult & 0xFFFF) is 32 or 33)
+            catch (Exception ex) when (attempt < 5 &&
+                ((ex is IOException or COMException) && (ex.HResult & 0xFFFF) is 32 or 33 ||
+                 retryAccessDenied && ex is UnauthorizedAccessException && (ex.HResult & 0xFFFF) == 5))
             { (delay ?? Thread.Sleep)(40 * (attempt + 1)); }
         }
     }

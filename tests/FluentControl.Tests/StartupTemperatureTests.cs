@@ -18,6 +18,12 @@ internal static class StartupTemperatureTests
         catch (UnauthorizedAccessException) { }
         Check(attempts == 1, "Permissions are not treated as transient file locks.");
         attempts = 0;
+        StartupService.RetrySharingViolation(() =>
+        {
+            if (++attempts < 3) throw new UnauthorizedAccessException("MoveFileEx destination is temporarily open");
+        }, _ => { }, retryAccessDenied: true);
+        Check(attempts == 3, "Rename/delete can retry access-denied file locks without changing permissions.");
+        attempts = 0;
         try { StartupService.RetrySharingViolation(() => { attempts++; throw new IOException("busy", unchecked((int)0x80070020)); }, _ => { }); }
         catch (IOException) { }
         Check(attempts == 6, "A permanent lock must stop retrying.");
@@ -97,7 +103,8 @@ internal static class StartupTemperatureTests
                     using (var permanent = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
                         var rejected = false;
-                        try { StartupService.SetShortcut(path, executable, true); } catch (IOException) { rejected = true; }
+                        try { StartupService.SetShortcut(path, executable, true); }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { rejected = true; }
                         Check(rejected && File.ReadAllBytes(path).SequenceEqual(original), "A permanent target lock preserves the existing startup entry.");
                     }
                     Check(!Directory.EnumerateFiles(directory, "*.tmp").Any(), "Staging files must be cleaned after success or failure.");
