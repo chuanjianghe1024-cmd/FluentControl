@@ -93,6 +93,19 @@ public sealed partial class MainWindow
     }
     private async Task CheckAdapterCaptureAsync()
     {
+        async Task InvokeReadyAsync(Button button)
+        {
+            // ContentDialog opening and TextChanged can defer enablement until
+            // the next XAML layout pass. Exercise the real enabled button.
+            button.StartBringIntoView();
+            var peer = new ButtonAutomationPeer(button);
+            for (var attempt = 0; attempt < 30 && (!button.IsLoaded || !peer.IsEnabled()); attempt++) await Task.Delay(100);
+            var id = Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(button);
+            if (!button.IsLoaded || !peer.IsEnabled()) throw new InvalidOperationException("Diagnostic button did not become ready: " + id);
+            StartupLog.Write("Invoking diagnostic button: " + id);
+            ((IInvokeProvider)peer.GetPattern(PatternInterface.Invoke)).Invoke();
+            await Task.Delay(50);
+        }
         var device = displayDevices[0]; var channel = device.Channels.First(c => c.PropertyKey == "color-preset"); var original = channel.Value;
         var show = ShowMonitorAdaptationAsync(device);
         await Task.Delay(150);
@@ -100,16 +113,15 @@ public sealed partial class MainWindow
         {
             var content = monitorAdaptationDialog?.Content as ScrollViewer ?? throw new InvalidOperationException("Adaptation dialog did not open.");
             Button Button(string id) => Descendants<Button>(content).Single(b => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(b) == id);
-            void Invoke(Button button) => ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)).Invoke();
             if (Button("diagnostic-sample").IsEnabled || Button("diagnostic-export").IsEnabled) throw new InvalidOperationException("Diagnostics enabled without a baseline.");
-            Invoke(Button("diagnostic-baseline")); await Task.Delay(50); await monitorDiagnosticCapture;
+            await InvokeReadyAsync(Button("diagnostic-baseline")); await monitorDiagnosticCapture;
             if (monitorDiagnosticBaseline is null || !Button("diagnostic-export").IsEnabled || monitorDiagnosticBaseline.Readings.Single(r => r.Code == 0x14).Current != original)
                 throw new InvalidOperationException("Diagnostic baseline or export unavailable.");
             var label = Descendants<TextBox>(content).Single(t => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(t) == "diagnostic-label");
             label.Text = "实体菜单：9300 K";
             // Simulate a physical OSD change, bypassing the FC UI's cached value.
             var changed = original == 8 ? 5u : 8u; channel.Write(changed);
-            Invoke(Button("diagnostic-sample")); await Task.Delay(50); await monitorDiagnosticCapture;
+            await InvokeReadyAsync(Button("diagnostic-sample")); await monitorDiagnosticCapture;
             if (monitorDiagnosticObservations.Count != 1 || !monitorDiagnosticObservations[0].Differences.Any(d => d.Code == 0x14 && d.After?.Current == changed))
                 throw new InvalidOperationException("Labeled raw OSD change was not recorded.");
             var saved = state.SelectedProfileId;
@@ -124,8 +136,7 @@ public sealed partial class MainWindow
         {
             var content = monitorAdaptationDialog!.Content as ScrollViewer;
             var button = Descendants<Button>(content!).Single(b => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(b) == "diagnostic-baseline");
-            ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)).Invoke();
-            await Task.Delay(50); CloseMonitorAdaptation(); await Task.Delay(100);
+            await InvokeReadyAsync(button); CloseMonitorAdaptation(); await Task.Delay(100);
         }
         finally { gate.Release(); }
         await show;
