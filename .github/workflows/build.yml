@@ -1,9 +1,7 @@
 name: Windows build
 on:
   push:
-    paths-ignore: ['web/**', '.github/workflows/web.yml']
   pull_request:
-    paths-ignore: ['web/**', '.github/workflows/web.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -13,8 +11,8 @@ jobs:
     env:
       PACKAGE_VERSION: 0.3.${{ github.run_number }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-dotnet@v6.0.0
         with:
           dotnet-version: '8.0.x'
       - name: Validate release scripts
@@ -46,7 +44,7 @@ jobs:
       - name: Verify MSI install, upgrade, installed UI, tray and uninstall
         shell: pwsh
         run: ./scripts/Test-Msi.ps1 -Version $env:PACKAGE_VERSION
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: FluentControl-MSI-x64
           path: artifacts/installer/*.msi
@@ -54,7 +52,7 @@ jobs:
           if-no-files-found: error
       - name: Upload installer diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: FluentControl-installer-logs
           path: |
@@ -65,7 +63,7 @@ jobs:
           if-no-files-found: ignore
       - name: Upload startup diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: FluentControl-startup-logs
           path: ~/AppData/Local/FluentControl/Logs/

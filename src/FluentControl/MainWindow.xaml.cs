@@ -84,10 +84,11 @@ public sealed partial class MainWindow : Window
     }
     private async void Refresh_Click(object sender, RoutedEventArgs e) => await RefreshAsync();
 
-    private async Task RefreshAsync()
+    private async Task RefreshAsync(bool forceMonitorCapabilities = false)
     {
         if (refreshing || closed) return;
         refreshing = true;
+        var refreshWatch = System.Diagnostics.Stopwatch.StartNew();
         RefreshButton.IsEnabled = false;
         IdentifyButton.IsEnabled = false;
         var version = ++generation;
@@ -110,9 +111,23 @@ public sealed partial class MainWindow : Window
                 var m = new List<MonitorDevice>();
                 var mouse = new List<ControlChannel>();
                 if (uiTest) return (a: UiTestData.Audio(), m: UiTestData.Monitors(), mouse: UiTestData.Mouse(), errors);
-                try { audio = new AudioService(); a = audio.Enumerate(); } catch (Exception ex) { errors.Add(T("音频：", "Audio: ") + ex.Message); }
-                try { monitors = new MonitorService(); m = monitors.Enumerate(); } catch (Exception ex) { errors.Add(T("显示器：", "Display: ") + ex.Message); }
-                try { mouse = MouseService.Enumerate(); } catch (Exception ex) { errors.Add(T("鼠标：", "Mouse: ") + ex.Message); }
+                void ReadDevices(string label, Action read)
+                {
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
+                    try { read(); }
+                    catch (Exception ex) { lock (errors) errors.Add(label + ex.Message); }
+                    finally { StartupLog.Write($"Device enumeration [{label}]: {watch.ElapsedMilliseconds}ms"); }
+                }
+                // Audio endpoints (including virtual mixers) must not delay
+                // the start of monitor I/O. All workers finish under gate.
+                Parallel.Invoke(new ParallelOptions { MaxDegreeOfParallelism = 3 },
+                    () => ReadDevices(T("音频：", "Audio: "), () => { audio = new AudioService(); a = audio.Enumerate(); }),
+                    () => ReadDevices(T("显示器：", "Display: "), () =>
+                    {
+                        monitors = new MonitorService(StartupLog.Write); m = monitors.Enumerate(forceMonitorCapabilities);
+                        lock (errors) errors.AddRange(monitors.Errors);
+                    }),
+                    () => ReadDevices(T("鼠标：", "Mouse: "), () => { mouse = MouseService.Enumerate(); }));
                 return (a, m, mouse, errors);
             });
             if (closed) return;
@@ -149,6 +164,7 @@ public sealed partial class MainWindow : Window
         }
         finally
         {
+            StartupLog.Write($"Device refresh complete: {refreshWatch.ElapsedMilliseconds}ms; forceMonitorCapabilities={forceMonitorCapabilities}");
             refreshing = false; gate.Release();
             if (!closed)
             {

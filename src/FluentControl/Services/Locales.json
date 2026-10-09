@@ -313,7 +313,10 @@
     "Across models · {0} linked displays": "跨型號 · {0} 台連動",
     "All": "整體",
     "Monitor controls": "顯示器控制",
-    "Limits automatic height; scroll to see additional controls": "限制自動高度，超出的控制項可捲動查看"
+    "Limits automatic height; scroll to see additional controls": "限制自動高度，超出的控制項可捲動查看",
+    "Detect again": "重新偵測",
+    "Display capability scan": "顯示器功能偵測",
+    "Normally reuses cached capabilities. Detect again after changing connections or monitor modes.": "通常重用功能快取；更換連接或顯示器模式後，可重新完整偵測"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -629,7 +632,10 @@
     "Across models · {0} linked displays": "モデルを問わず {0} 台を連動",
     "All": "すべて",
     "Monitor controls": "モニター操作",
-    "Limits automatic height; scroll to see additional controls": "自動サイズの高さを制限します。残りの項目はスクロールで表示します"
+    "Limits automatic height; scroll to see additional controls": "自動サイズの高さを制限します。残りの項目はスクロールで表示します",
+    "Detect again": "再検出",
+    "Display capability scan": "ディスプレイ機能の検出",
+    "Normally reuses cached capabilities. Detect again after changing connections or monitor modes.": "通常は機能のキャッシュを使用します。接続やモニターモードの変更後は再検出してください。"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -945,7 +951,10 @@
     "Across models · {0} linked displays": "모델에 관계없이 {0}대 연동",
     "All": "전체",
     "Monitor controls": "모니터 제어",
-    "Limits automatic height; scroll to see additional controls": "자동 높이를 제한합니다. 나머지 항목은 스크롤하여 확인하세요"
+    "Limits automatic height; scroll to see additional controls": "자동 높이를 제한합니다. 나머지 항목은 스크롤하여 확인하세요",
+    "Detect again": "다시 검색",
+    "Display capability scan": "디스플레이 기능 검색",
+    "Normally reuses cached capabilities. Detect again after changing connections or monitor modes.": "평소에는 캐시된 기능 정보를 사용합니다. 연결이나 모니터 모드를 변경한 후 다시 검색하세요."
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -1261,7 +1270,10 @@
     "Across models · {0} linked displays": "Modellübergreifend · {0} Anzeigen gekoppelt",
     "All": "Alle",
     "Monitor controls": "Monitorsteuerung",
-    "Limits automatic height; scroll to see additional controls": "Begrenzt die automatische Höhe; weitere Regler sind durch Scrollen erreichbar"
+    "Limits automatic height; scroll to see additional controls": "Begrenzt die automatische Höhe; weitere Regler sind durch Scrollen erreichbar",
+    "Detect again": "Erneut erkennen",
+    "Display capability scan": "Bildschirmfunktionen erkennen",
+    "Normally reuses cached capabilities. Detect again after changing connections or monitor modes.": "Nutzt normalerweise zwischengespeicherte Funktionen. Nach Änderungen am Anschluss oder Monitormodus erneut erkennen."
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -1577,7 +1589,10 @@
     "Across models · {0} linked displays": "Tous modèles · {0} écrans liés",
     "All": "Tous",
     "Monitor controls": "Commandes des écrans",
-    "Limits automatic height; scroll to see additional controls": "Limite la hauteur automatique ; faites défiler pour voir les autres commandes"
+    "Limits automatic height; scroll to see additional controls": "Limite la hauteur automatique ; faites défiler pour voir les autres commandes",
+    "Detect again": "Détecter à nouveau",
+    "Display capability scan": "Détection des fonctions de l’écran",
+    "Normally reuses cached capabilities. Detect again after changing connections or monitor modes.": "Réutilise les fonctions en cache. Relancez la détection après un changement de connexion ou de mode du moniteur."
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -1893,6 +1908,9 @@
     "Across models · {0} linked displays": "Entre modelos · {0} pantallas vinculadas",
     "All": "Todas",
     "Monitor controls": "Controles de monitores",
-    "Limits automatic height; scroll to see additional controls": "Limita la altura automática; desplázate para ver más controles"
+    "Limits automatic height; scroll to see additional controls": "Limita la altura automática; desplázate para ver más controles",
+    "Detect again": "Detectar de nuevo",
+    "Display capability scan": "Detección de funciones de pantalla",
+    "Normally reuses cached capabilities. Detect again after changing connections or monitor modes.": "Normalmente reutiliza las funciones en caché. Vuelva a detectar tras cambiar la conexión o el modo del monitor."
   }
 }

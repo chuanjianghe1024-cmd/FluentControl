@@ -16,6 +16,9 @@
     <Compile Include="../../src/FluentControl/Services/BrightnessMapping.cs" Link="BrightnessMapping.cs" />
     <Compile Include="../../src/FluentControl/Services/VcpCatalog.cs" Link="VcpCatalog.cs" />
     <Compile Include="../../src/FluentControl/Services/VcpDiscovery.cs" Link="VcpDiscovery.cs" />
+    <Compile Include="../../src/FluentControl/Services/MonitorCapabilityCache.cs" Link="MonitorCapabilityCache.cs" />
+    <Compile Include="../../src/FluentControl/Services/MonitorReadBatch.cs" Link="MonitorReadBatch.cs" />
+    <Compile Include="../../src/FluentControl/Services/MonitorService.cs" Link="MonitorService.cs" />
     <Compile Include="../../src/FluentControl/Services/ProfileExchange.cs" Link="ProfileExchange.cs" />
     <Compile Include="../../src/FluentControl/Services/ProfileGroups.cs" Link="ProfileGroups.cs" />
     <Compile Include="../../src/FluentControl/Services/ProfileBundles.cs" Link="ProfileBundles.cs" />

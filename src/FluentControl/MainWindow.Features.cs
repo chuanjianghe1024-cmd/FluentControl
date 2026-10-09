@@ -447,6 +447,15 @@ public sealed partial class MainWindow
         var startupSettings = new HyperlinkButton { Content = T("Windows 启动应用设置", "Windows Startup Apps"), Tag = "ms-settings:startupapps" };
         startupSettings.Click += OpenSettings_Click; SettingsPanel.Children.Add(startupSettings);
         SettingsPanel.Children.Add(new HyperlinkButton { Content = "fctrl.app", NavigateUri = new Uri("https://fctrl.app") });
+        var rescanDisplays = new Button { Content = T("重新检测", "Detect again") };
+        rescanDisplays.Click += async (_, _) =>
+        {
+            if (refreshing) return;
+            rescanDisplays.IsEnabled = false;
+            try { await RefreshAsync(forceMonitorCapabilities: true); }
+            finally { if (!closed) rescanDisplays.IsEnabled = true; }
+        };
+        SettingsPanel.Children.Add(SettingsRow(T("显示器功能检测", "Display capability scan"), T("通常复用能力缓存；更换连接或显示器模式后，可重新完整检测", "Normally reuses cached capabilities. Detect again after changing connections or monitor modes."), rescanDisplays));
         Heading(T("全局快捷键", "Global shortcuts"));
         Toggle(T("启用快捷键", "Enable shortcuts"), T("若组合已被占用，会显示冲突而不抢占", "Conflicts are reported without taking over other shortcuts"), state.Settings.HotkeysEnabled, value =>
         {

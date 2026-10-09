@@ -1,8 +1,0 @@
-APP_URL=http://localhost:3000
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/fluentcontrol
-# Generate an independent random secret, at least 32 characters.
-AUTH_SECRET=
-AUTH_GITHUB_ID=
-AUTH_GITHUB_SECRET=
-AUTH_GOOGLE_ID=
-AUTH_GOOGLE_SECRET=
