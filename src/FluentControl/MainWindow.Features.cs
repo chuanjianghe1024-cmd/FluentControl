@@ -609,6 +609,9 @@ public sealed partial class MainWindow
                 if (!Title.Contains(AppName) || Navigation.PaneTitle != AppName || PageTitle.Text != T("设置", "Settings")) throw new InvalidOperationException("Title or menu language failed: " + language);
             }
             SetLanguage("zh-CN"); LocalizeUi();
+            // Match the real language picker: rebuild localized channel rows
+            // before exercising the system audio controls below.
+            await RefreshAsync();
             await CheckProfilesAndThemeAsync();
             var profile = new ControlProfile { Name = "UI test profile", Values = CaptureProfile() };
             state.Profiles.Add(profile);
