@@ -54,7 +54,7 @@ FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控�
 
 ### 兼容性与当前进展
 
-显示器可用功能取决于型号、固件、连接方式和当前模式。HDR、节能模式、转接器及扩展坞可能限制调节；带有音频输出也不一定支持显示器硬件音量遥控。FC 软件菜单已提供，**直接打开和导航显示器原厂 OSD 仍需经过验证的型号适配**。
+显示器可用功能取决于型号、固件、连接方式和当前模式。HDR、节能模式、转接器及扩展坞可能限制调节；带有音频输出也不一定支持显示器硬件音量遥控。FC 软件菜单已提供，**直接打开和导航显示器原厂 OSD 仍需经过验证的型号适配**。测试构建新增[本地 OSD 配对助手](docs/osd-pairing.md)：无需上传，确认效果后绑定遥控，支持部分配对和可选文件分享。
 
 **本地预设、JSON 导入导出已可用。** 配置分享站与在线型号适配库尚未部署，在线查询及报告提交暂不可用。计划域名为 [fctrl.app](https://fctrl.app)，配套网站独立维护于 [FluentControl-Web](https://github.com/chuanjianghe1024-cmd/FluentControl-Web)。
 
@@ -126,7 +126,7 @@ Primarily designed for **Windows 11 x64**. Fully exit the previous version from 
 
 ### Compatibility and current status
 
-Available monitor controls depend on the model, firmware, connection and active mode. HDR, power-saving modes, adapters and docks may restrict adjustments. An audio output does not necessarily provide remote control of the monitor's hardware volume. The FC software menu is available; **opening and navigating a monitor's native OSD requires a verified model-specific adapter**.
+Available monitor controls depend on the model, firmware, connection and active mode. HDR, power-saving modes, adapters and docks may restrict adjustments. An audio output does not necessarily provide remote control of the monitor's hardware volume. The FC software menu is available; **opening and navigating a monitor's native OSD requires a verified model-specific adapter**. Test builds include a [local OSD pairing assistant](docs/osd-pairing.md): confirm effects, bind partial remote controls and optionally exchange files without uploading or signing in.
 
 **Local presets and JSON import/export are available.** The sharing service and online adapter catalog have not been deployed, so online lookup and report submission are not available yet. The planned domain is [fctrl.app](https://fctrl.app); the companion website is maintained separately in [FluentControl-Web](https://github.com/chuanjianghe1024-cmd/FluentControl-Web).
 

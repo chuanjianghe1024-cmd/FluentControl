@@ -18,7 +18,9 @@ public sealed partial class MainWindow
             T("原厂菜单导航尚未适配。可使用 FC 屏幕菜单调节已支持的参数；OSD 启用指令是否弹出原厂菜单取决于显示器固件。", "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.");
         var status = Empty((showDevice ? MonitorTitle(device) + " · " + device.Model + "\n" : "") + message);
         AutomationProperties.SetAutomationId(status, "native-osd-status-" + device.Id);
-        return status;
+        var panel = new StackPanel { Spacing = 8 };
+        panel.Children.Add(status); panel.Children.Add(CreateOsdPairingButton(device));
+        return panel;
     }
     private void ShowMonitorOsd(MonitorDevice device)
     {

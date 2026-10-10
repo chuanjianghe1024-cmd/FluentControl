@@ -16,6 +16,7 @@ await ReleaseUpdateTests.RunAsync();
 WindowGeometryTests.Run();
 MonitorDiscoveryTests.Run();
 MonitorDiagnosticsTests.Run();
+OsdPairingTests.Run();
 MonitorAdapterTests.Run();
 StartupTemperatureTests.Run();
 HardwareInfoTests.Run();

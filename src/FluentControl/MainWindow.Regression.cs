@@ -145,6 +145,7 @@ public sealed partial class MainWindow
         await CheckRepeatablePresetChoicesAsync();
         await CheckSystemAudioAsync();
         await CheckAdapterCaptureAsync();
+        await CheckOsdPairingAsync();
         var otherModel = new MonitorDevice { Id = "unknown-model", Model = "Unknown model", Connection = "test" };
         otherModel.Channels.Add(new() { Name = "Unknown display brightness", Detail = "", Glyph = "", PropertyKey = "brightness", Value = 45, Write = _ => { } });
         displayDevices.Add(otherModel);

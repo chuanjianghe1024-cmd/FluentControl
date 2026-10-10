@@ -279,6 +279,30 @@ public sealed class MonitorService : IDisposable
         return snapshot;
     }
 
+    // Explicit pairing only. The caller holds the lifecycle gate through completion.
+    internal DiagnosticReply ReadPairing(MonitorDevice device, byte code)
+    {
+        if (!diagnosticHandles.TryGetValue(device, out var handle))
+            throw new InvalidOperationException(Strings.T("DDC/CI 不可用", "DDC/CI unavailable"));
+        var timer = Stopwatch.StartNew();
+        var ok = GetVCPFeatureAndVCPFeatureReply(handle, code, out var type, out var current, out var maximum);
+        int? error = ok ? null : Marshal.GetLastWin32Error();
+        diagnostic?.Invoke($"OSD pairing read [{device.Model} / {device.ModelId}]: VCP=0x{code:X2}, current=0x{current:X4}, maximum=0x{maximum:X4}, success={ok}, error=0x{unchecked((uint)(error ?? 0)):X8}, duration={timer.ElapsedMilliseconds}ms");
+        return new(type, current, maximum, error);
+    }
+
+    internal void WritePairing(MonitorDevice device, byte code, uint value)
+    {
+        if (value > 65535 || !(code == 0xCA && (value & 255) is >= 1 and <= 3 || code == 0x03 || code >= 0xE0))
+            throw new InvalidDataException("Invalid pairing command.");
+        if (!diagnosticHandles.TryGetValue(device, out var handle))
+            throw new InvalidOperationException(Strings.T("DDC/CI 不可用", "DDC/CI unavailable"));
+        var timer = Stopwatch.StartNew(); var ok = SetVCPFeature(handle, code, value);
+        var error = ok ? 0 : Marshal.GetLastWin32Error();
+        diagnostic?.Invoke($"OSD pairing write [{device.Model} / {device.ModelId}]: VCP=0x{code:X2}, value=0x{value:X4}, success={ok}, error=0x{unchecked((uint)error):X8}, duration={timer.ElapsedMilliseconds}ms");
+        if (!ok) throw new System.ComponentModel.Win32Exception(error);
+    }
+
     public void Dispose()
     {
         diagnosticHandles.Clear();

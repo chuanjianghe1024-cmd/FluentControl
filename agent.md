@@ -55,6 +55,7 @@ README 保留产品层面的计划，详细实现步骤、模块路径和验收�
 | 设置、托盘、快捷键、主题 | `MainWindow.Features.cs`、`MainWindow.Theme.cs` |
 | 设置导航、手动更新 | `MainWindow.Settings.cs`、`MainWindow.Updates.cs`、`Services/ReleaseUpdates.cs`；界面回归 `MainWindow.SettingsChecks.cs` |
 | 桌面面板 | `DesktopPanelWindow.cs`、`Services/DesktopLayer.cs`、`TransparentBackdrop.cs` |
+| 本地 OSD 配对 | `MainWindow.OsdPairing.cs`、`Services/OsdPairing.cs`；界面回归 `MainWindow.OsdPairingChecks.cs` |
 | 型号适配、只读采集 | `MainWindow.Adapters.cs`、`MainWindow.Adaptation.cs`、`Services/MonitorAdapters.cs`、`Services/MonitorDiagnostics.cs` |
 | DDC/CI 与能力 | `Services/MonitorService.cs`、`Services/MonitorReadBatch.cs`、`Services/MonitorCapabilityCache.cs`、`Services/VcpCatalog.cs`、`Services/VcpDiscovery.cs` |
 | 控制及联动 | `Services/ControlChannel.cs`、`Services/MonitorLinking.cs`、`Services/BrightnessMapping.cs` |
@@ -68,7 +69,7 @@ README 保留产品层面的计划，详细实现步骤、模块路径和验收�
 
 ## 硬件控制约束
 
-1. 功能发现只能读取，不以写入、重置或电源切换探测支持情况。未知私有码只做占位，不能猜测后下发。
+1. 功能发现只能读取，不以写入、重置或电源切换探测支持情况。未知私有码只做占位，不能猜测后下发。用户授权的本地 OSD 配对是独立的显式实验入口：用户输入具体 `0x03` 或 `0xE0–0xFF` 候选、值与来源，逐次点击发送并确认效果；禁止自动扫描、穷举或把事件读值转换成写命令。
 2. 同一物理屏幕的读取保持顺序，当前最多两台不同屏幕并行。所有任务结束后才能释放物理句柄；不能用超时返回后任由原生调用继续运行并销毁其句柄。
 3. 能力缓存仅保存经过校验的能力元数据，不保存句柄或当前控制值。键包含设备实例/连接身份，不能仅按型号复用；保留失效回退和强制重新检测。
 4. 保留刷新与写入的生命周期保护，旧队列不能写入已替换或已释放的设备。某台失败不能阻止其他设备；准确报告部分完成、跳过和失败。
@@ -77,7 +78,7 @@ README 保留产品层面的计划，详细实现步骤、模块路径和验收�
 7. 输入、电源、重置和按键锁保留确认。场景不存重置、电源和按键锁；输入切换最后执行。不宣称 VCP 支持等于厂商所有模式可控。
 8. 色温预设 `0x14` 和场景模式 `0xDC` 保留有限次数的写后回读。只重读、不重复写入；不一致时显示原始请求值和实际值，保留硬件回读结果，不伪造成功或按猜测交换编码。
 9. FC 软件菜单、原厂 OSD 启用状态和原厂菜单导航是三种不同能力。未声明但可读的 `0xCA` 仅展示只读状态，不授予写入权限；无已验证的型号指令时仍显示适配状态。Windows 音频端点音量与显示器 DDC/CI 音量分别处理，不按设备名称猜测绑定。
-10. OSD `0xCA` 的选择器是可重复发送的指令入口，不能用上次读数选中当前指令；完成、失败或取消后清空选择。写成功后读回失败须说明“已发送，状态未确认”，不伪造硬件状态，也不自动重复写入；写前读取失败仍阻止覆盖其他按键字段。启用 OSD 是否弹出原厂菜单由型号固件决定，不能据此推断完整导航能力。
+10. OSD `0xCA` 的选择器是可重复发送的指令入口，不能用上次读数选中当前指令；完成、失败或取消后清空选择。写成功后读回失败须说明“已发送，状态未确认”，不伪造硬件状态，也不自动重复写入；常规入口写前读取失败仍阻止覆盖其他按键字段。独立配对窗口可由用户明确选择沿用当前会话已经成功读取的高字节；不从磁盘或其他屏幕继承，关闭窗口即失效，并记录这一选择。启用 OSD 是否弹出原厂菜单由型号固件决定，不能据此推断完整导航能力。
 11. 色温、颜色预设及场景模式也采用独立的重复选择入口，真实读回值单独展示。写入后读回失败将该通道标为未确认；不保存旧值到新的总配置快照或型号预设，合并更新保留已有配置字段。成功读回后解除未确认；不一致仍保留真实值，不猜测编码。
 
 ## 数据和界面约束
@@ -125,6 +126,17 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 协议与操作流程见 `docs/monitor-adapters.md`。适配包与用户分享配置分离，固定官方 HTTPS 源、严格纯数据结构、完整型号和固件版本匹配；读取失败不授予写权限。只有显式安装的已审核包可提供已验证的私有原厂菜单指令，执行保留确认，不参与总配置、分享或聚合。不从未知私有码探测或采集差异猜测可写指令。报告仅供研究，不能自动发布为适配包。
 
+## 本地 OSD 配对实验
+
+用户授权范围：离线测试、确认、映射、遥控与本地文件交换。上传不是前置条件，不自动访问网站。协议见 `docs/osd-pairing.md`。新的 `fluentcontrol.osd-pairing` 格式与场景、型号适配包独立，不修改既有数据兼容约束。
+
+- 默认三条 `0xCA` 候选；第三条按 MCCS 版本或明确能力值开放，每次二次确认。原厂菜单是否弹出由用户观察；传输成功和回读成功分别记录。
+- 候选来自明确安装的型号适配包、精确匹配的本地文件或手工输入。远程操作只使用本机用户确认产生的绑定，不与总配置、聚合或快捷键混用。
+- 导入不下发指令、不导入可执行绑定，保留来源试验记录并要求当前屏幕重新验证；相同型号的两台连接不自动共享本机绑定。
+- `0x02 / 0x52 / 0x03` 采集仅在用户点击后短时运行，不写应答；`0x03` 是事件报告，不能当作通用按键注入。私有码没有值和来源时仅展示占位。
+- 操作共用生命周期 gate；关闭/刷新取消排队操作并等待在途原生调用完成；保存已完成写入的证据。单个文件限 4 MiB；64 条候选、512 次试验、64 个会话、32 次事件采集，重新配对前本地归档。
+- 本机记录默认不含原始能力串与设备实例；导出原始串需要显式勾选。连接/HDR/环境说明为用户填写；不能宣称已在实体 HKC 或 HWV 显示器上验证。
+
 ## 当前交互与持久化约定
 
 - 显示器、音频、鼠标并行初始化；显示器读取按前述同屏顺序和最多两屏并发执行。能力缓存有效期 7 天、最多 32 个条目；“重新检测”绕过缓存。当前值始终从设备读取。
@@ -143,6 +155,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 | 设置和总配置、型号预设 | `%LOCALAPPDATA%\FluentControl\user-state.json` |
 | 屏幕名称 | `%LOCALAPPDATA%\FluentControl\monitor-names.json` |
 | 能力缓存 | `%LOCALAPPDATA%\FluentControl\monitor-capabilities.json` |
+| 本地 OSD 配对 | `%LOCALAPPDATA%\FluentControl\OsdPairings\`，型号/固件/能力指纹与连接身份的哈希文件名；重新配对时保留 archive 文件 |
 | 诊断日志 | `%LOCALAPPDATA%\FluentControl\Logs\startup.log` |
 | 型号库首次迁移备份 | `%LOCALAPPDATA%\FluentControl\user-state.json.before-model-library-v1.bak` |
 

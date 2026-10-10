@@ -4,6 +4,13 @@
 
 ## 未发布 / Unreleased
 
+- 新增离线 OSD 配对助手：先测试启用/禁用，再由用户确认真实效果并绑定开关、上下、返回、确认等操作；未配齐也可保存和重新配对。禁用 OSD 与按键事件需要二次确认。
+- 配对、诊断基线、发送/读回结果及按键事件记录自动保存在本机；不登录、不上传。支持按型号、固件、能力指纹校验的 JSON 导入导出，导入只提供候选，当前显示器确认后才能遥控。
+- 菜单打开后 `0xCA` 读回失败时，可主动允许沿用本次窗口已读取的按键字段进行恢复测试；不使用磁盘旧状态。支持手工候选与只读事件采集，没有通用方向命令，也不将事件编号当作可写按键。
+- Add offline OSD pairing with user-confirmed actions, partial mappings, repeatable remote controls and a second confirmation before disabling OSD and button events.
+- Keep diagnostic baselines, trials, observations and event captures locally without sign-in or upload. JSON imports require matching model, firmware and capability fingerprints, followed by local verification.
+- Allow explicit reuse of live-session button fields when OSD readback fails. Manual candidates and read-only event capture support investigation; no universal direction commands or automatic conversion of event numbers into writes.
+
 - 色温与场景模式同样支持重复选择；单屏、整体、FC 菜单和桌面面板分开展示待发送选项与真实读回值。读回不一致继续报告原始编码；读回失败标为未确认，保存总配置或型号预设时跳过旧值。
 - Color and picture presets also allow explicit replay, with actual readback shown separately across main, linked, FC and desktop controls. Mismatches retain raw hardware values; failed readback is marked unconfirmed and excluded from new snapshots.
 

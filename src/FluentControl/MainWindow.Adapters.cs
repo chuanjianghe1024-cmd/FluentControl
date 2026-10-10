@@ -10,7 +10,7 @@ public sealed partial class MainWindow
     private async Task ShowAdapterManagerAsync(MonitorDevice device)
     {
         if (closed || refreshing || applyingProfile || monitorAdaptationDialog is not null || !displayDevices.Contains(device)) return;
-        var version = generation; var refreshAfter = false; var collectAfter = false;
+        var version = generation; var refreshAfter = false; var collectAfter = false; var pairAfter = false;
         CloseMonitorOsd(); desktopPanel?.SetUnlocked(false); await WaitForWritesAsync();
         if (closed || refreshing || generation != version || monitorAdaptationDialog is not null) return;
         var firmware = MonitorHardwareInfo.Capture(device)?.Firmware ?? "";
@@ -27,8 +27,9 @@ public sealed partial class MainWindow
         var install = new Button { Content = T("安装并使用", "Install and use"), IsEnabled = false };
         var remove = new Button { Content = T("移除适配包", "Remove adapter"), IsEnabled = installed is not null };
         var collect = new Button { Content = T("采集 / 提交适配报告", "Collect / submit an adaptation report") };
+        var pair = new Button { Content = T("OSD 配对 / 遥控", "OSD pairing / remote") };
         var status = new TextBlock { TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true, Text = store.LoadError ?? "" };
-        foreach (var item in new FrameworkElement[] { query, choices, description, install, remove, collect, status }) body.Children.Add(item);
+        foreach (var item in new FrameworkElement[] { pair, query, choices, description, install, remove, collect, status }) body.Children.Add(item);
         var dialog = new ContentDialog { Title = T("型号适配", "Model adapters"), Content = new ScrollViewer { Content = body, MaxHeight = 460 }, XamlRoot = Root.XamlRoot, CloseButtonText = T("关闭", "Close") };
         monitorAdaptationDialog = dialog;
         bool Active() => open && !closed && version == generation && ReferenceEquals(monitorAdaptationDialog, dialog);
@@ -68,6 +69,7 @@ public sealed partial class MainWindow
             catch (Exception ex) { status.Text = ex.Message; }
         };
         collect.Click += (_, _) => { if (!Active()) return; collectAfter = true; dialog.Hide(); };
+        pair.Click += (_, _) => { if (!Active() || busy) return; pairAfter = true; dialog.Hide(); };
         dialog.Closing += (_, _) => { open = false; lifetime.Cancel(); };
         try { await dialog.ShowAsync(); }
         catch (Exception ex) { if (!closed) ShowStatus(ex.Message, InfoBarSeverity.Error); }
@@ -75,5 +77,6 @@ public sealed partial class MainWindow
         if (closed || version != generation) return;
         if (refreshAfter) await RefreshAsync();
         else if (collectAfter) await ShowMonitorAdaptationAsync(device);
+        else if (pairAfter) await ShowOsdPairingAsync(device);
     }
 }
