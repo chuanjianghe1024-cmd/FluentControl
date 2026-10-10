@@ -19,6 +19,8 @@ public sealed class ControlChannel
     // OSD enable/disable can act like menu commands on some firmware. Keep the
     // command picker independent from readback so the same command is replayable.
     public bool IsCommandChoice => VcpCode == 0xCA && Options is not null;
+    public bool IsRepeatableChoice => Options is not null && (IsCommandChoice || PropertyKey is "color-preset" or "display-mode" or "temperature");
+    public bool ReadbackUnconfirmed { get; set; }
     public bool RequiresConfirmation { get; init; }
     public int ApplyOrder { get; init; } = 50;
     public Func<double, double>? LinkedToDevice { get; set; }
@@ -51,7 +53,13 @@ public static class ControlOperations
                     throw new ArgumentOutOfRangeException(nameof(value), "Unsupported option");
                 channel.Write(target);
                 sent = true;
-                channel.Value = channel.Read?.Invoke() ?? target;
+                if (channel.Read is not null)
+                {
+                    channel.ReadbackUnconfirmed = true;
+                    channel.Value = channel.Read();
+                    channel.ReadbackUnconfirmed = false;
+                }
+                else { channel.Value = target; channel.ReadbackUnconfirmed = false; }
                 if (channel.VerifyChoiceReadback && channel.Value != target)
                 {
                     string Label(double value) => channel.Options?.FirstOrDefault(o => o.Value == value)?.Label is { } label ? $"{label} (0x{(uint)value:X2})" : $"0x{(uint)value:X2}";
@@ -60,12 +68,23 @@ public static class ControlOperations
             }
             catch (Exception ex)
             {
-                errors.Add(channel.Name + "：" + (sent && channel.IsCommandChoice
+                errors.Add(channel.Name + "：" + (sent && channel.IsRepeatableChoice
                     ? Strings.F("指令已发送，显示器状态未确认：{0}", "Command sent; display state unconfirmed: {0}", ex.Message)
                     : ex.Message));
             }
         }
         return errors;
+    }
+    public static string ChoiceReadbackText(IEnumerable<ControlChannel> channels)
+    {
+        var targets = channels.ToArray();
+        if (targets.Length == 0 || targets.Any(c => c.ReadbackUnconfirmed || !c.IsAvailable))
+            return Strings.T("当前读值未确认", "Current readback unconfirmed");
+        var first = targets[0];
+        var value = targets.All(c => c.Value == first.Value)
+            ? (first.Options?.FirstOrDefault(o => o.Value == first.Value)?.Label is { } label ? label + " · " : "") + $"0x{(uint)first.Value:X2}"
+            : Strings.T("不同", "Mixed");
+        return Strings.F("当前读值：{0}", "Current readback: {0}", value);
     }
     public static double DisplayValue(ControlChannel channel, bool linked) => linked ? channel.DeviceToLinked?.Invoke(channel.Value) ?? channel.Value : channel.Value;
     public static void SetMute(ControlChannel channel, bool muted)

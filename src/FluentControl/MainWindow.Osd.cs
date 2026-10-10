@@ -92,12 +92,16 @@ public sealed partial class MainWindow
                 {
                     var choice = new ComboBox { ItemsSource = options, DisplayMemberPath = "Label", HorizontalAlignment = HorizontalAlignment.Stretch };
                     AutomationProperties.SetName(choice, Channel(channel)); panel.Children.Add(choice);
+                    var readback = new TextBlock { FontSize = 12, Opacity = .7, TextWrapping = TextWrapping.Wrap };
+                    if (channel.IsRepeatableChoice && !channel.IsCommandChoice) panel.Children.Add(readback);
                     void Sync()
                     {
                         syncing = true;
-                        choice.SelectedItem = channel.IsCommandChoice ? null : options.FirstOrDefault(o => o.Value == channel.Value);
+                        choice.SelectedItem = channel.IsRepeatableChoice ? null : options.FirstOrDefault(o => o.Value == channel.Value);
                         choice.PlaceholderText = channel.IsCommandChoice ? T("选择 OSD 指令（可重复发送）", "Choose an OSD command (repeatable)") :
+                            channel.IsRepeatableChoice ? T("选择要应用的选项（可重复发送）", "Choose an option to apply (repeatable)") :
                             F("当前值 0x{0}（不可重放）", "Current 0x{0} (not replayable)", ((uint)channel.Value).ToString("X"));
+                        readback.Text = ControlOperations.ChoiceReadbackText(new[] { channel });
                         syncing = false;
                     }
                     syncs.Add(Sync); Sync();

@@ -82,10 +82,10 @@ internal static class StartupTemperatureTests
     {
         foreach (var code in new byte[] { 0x14, 0xDC })
         {
-            var reads = 0; var writes = 0; var actual = code == 0x14 ? 8u : 0u;
+            var reads = 0; var writes = 0; var actual = code == 0x14 ? 8u : 0u; var unreadable = false;
             var caps = VcpCapabilities.Parse("(vcp(14(05 08) DC(00 02 03 05)))");
             var channel = VcpDiscovery.Discover("ignored-write", caps,
-                c => { if (c != code) return null; reads++; return new VcpReply(actual, 255); },
+                c => { if (c != code) return null; reads++; return unreadable ? null : new VcpReply(actual, 255); },
                 (_, _) => writes++).Single(f => f.Definition.Code == code).Channel!;
             reads = 0;
             var errors = ControlOperations.Apply(new[] { channel }, 5);
@@ -94,6 +94,18 @@ internal static class StartupTemperatureTests
             Check(writes == 1 && reads == 4, "Readback is bounded and never resends a rejected preset.");
             channel.Read!();
             Check(reads == 5, "A later refresh must not repeat a consumed write verification.");
+            Check(channel.IsRepeatableChoice && !channel.ReadbackUnconfirmed && ControlOperations.ChoiceReadbackText(new[] { channel }).Contains($"0x{actual:X2}"),
+                "Preset selection must be repeatable while showing the real mismatched readback.");
+            var device = new MonitorDevice { Id = "ignored-write", ModelId = "TST0005", Model = "Readback fixture", Connection = "test" };
+            device.Channels.Add(channel);
+            unreadable = true;
+            Check(ControlOperations.Apply(new[] { channel }, 5).Count == 1 && channel.ReadbackUnconfirmed && channel.Value == actual,
+                "Failed preset readback must be marked unconfirmed, not replaced with the requested value.");
+            Check(!MonitorPresetLibrary.Capture(device, "test", "test", Array.Empty<string>()).Values.ContainsKey(channel.PropertyKey),
+                "Unconfirmed stale values must not be saved as current monitor presets.");
+            unreadable = false;
+            Check(ControlOperations.Apply(new[] { channel }, actual).Count == 0 && !channel.ReadbackUnconfirmed && writes == 3,
+                "An explicit choice equal to the old actual value can be resent and restore confirmed state.");
         }
         var delayedReads = 0; var delayedWrites = 0;
         var delayed = VcpDiscovery.Discover("delayed-mode", VcpCapabilities.Parse("(vcp(DC(00 02 03 05)))"),

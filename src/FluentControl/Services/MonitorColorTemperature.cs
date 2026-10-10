@@ -25,12 +25,13 @@ internal static class MonitorColorTemperature
                 Options = supported.Select(p => new ControlOption(p.Windows, p.Kelvin + " K")).ToArray(),
                 CompatibilityOnly = true, VerifyChoiceReadback = true,
                 // Keep old scenes working without displaying/saving a second control.
-                Read = () => { preset.Value = preset.Read?.Invoke() ?? preset.Value; return Decode(preset.Value); },
+                Read = () => { preset.Value = preset.Read?.Invoke() ?? preset.Value; preset.ReadbackUnconfirmed = false; return Decode(preset.Value); },
                 Write = value =>
                 {
                     var match = supported.FirstOrDefault(p => p.Windows == value);
                     if (match.Windows == 0) throw new ArgumentOutOfRangeException(nameof(value));
                     preset.Write(match.Vcp);
+                    preset.ReadbackUnconfirmed = true;
                 }
             };
         }

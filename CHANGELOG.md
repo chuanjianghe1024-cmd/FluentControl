@@ -4,6 +4,9 @@
 
 ## 未发布 / Unreleased
 
+- 色温与场景模式同样支持重复选择；单屏、整体、FC 菜单和桌面面板分开展示待发送选项与真实读回值。读回不一致继续报告原始编码；读回失败标为未确认，保存总配置或型号预设时跳过旧值。
+- Color and picture presets also allow explicit replay, with actual readback shown separately across main, linked, FC and desktop controls. Mismatches retain raw hardware values; failed readback is marked unconfirmed and excluded from new snapshots.
+
 - 修复 OSD 写入成功、读回失败后下拉框退回旧状态，导致无法再次选择禁用的问题。单屏、整体控制与 FC 屏幕菜单中的 OSD 下拉框改为可重复发送的指令入口，执行或取消后清空选择，不将旧状态当成当前选择。
 - 区分“指令已发送但状态未确认”和真正的写入失败；保留确认、写前读取及其他按键字段保护。原厂菜单是否弹出按显示器固件实际行为说明，不再一概宣称不会弹出。
 - Fix OSD selectors reverting to stale state after successful writes with failed readback. Individual, overall and FC menus now allow explicit command replay, clearing the selection after completion or cancellation.

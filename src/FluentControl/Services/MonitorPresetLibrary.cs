@@ -78,7 +78,7 @@ public static class MonitorPresetLibrary
         SourceDeviceId = device.Id,
         Monitor = new() { ModelId = device.ModelId, ModelName = device.Model, DisplayName = device.DisplayName, Brand = ModelIdentity.Brand(device.ModelId), Hardware = MonitorHardwareInfo.Capture(device) },
         Scenario = scenario, Summary = summary, Applications = applications.ToList(), Brightness = device.Preference.Brightness.Copy(),
-        Values = device.Channels.Where(c => !c.CompatibilityOnly && ProfileExchange.IsShareable(c.PropertyKey) && ProfileExchange.CanApply(c, c.Value)).ToDictionary(c => c.PropertyKey, c => c.Value)
+        Values = device.Channels.Where(c => !c.CompatibilityOnly && !c.ReadbackUnconfirmed && ProfileExchange.IsShareable(c.PropertyKey) && ProfileExchange.CanApply(c, c.Value)).ToDictionary(c => c.PropertyKey, c => c.Value)
     };
     public static MonitorPresetPlan Plan(MonitorPreset preset, MonitorDevice device)
     {

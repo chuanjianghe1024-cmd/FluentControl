@@ -440,7 +440,10 @@
     "Choose an OSD command (repeatable)": "選擇 OSD 指令（可重複傳送）",
     "Command sent; display state unconfirmed: {0}": "指令已傳送，顯示器狀態未確認：{0}",
     "OSD command sent. Check the display's response.": "OSD 指令已傳送，請以顯示器實際回應為準。",
-    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "原廠選單導覽尚未適配。可使用 FC 螢幕選單調整已支援的參數；OSD 啟用指令是否開啟原廠選單取決於顯示器韌體。"
+    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "原廠選單導覽尚未適配。可使用 FC 螢幕選單調整已支援的參數；OSD 啟用指令是否開啟原廠選單取決於顯示器韌體。",
+    "Choose an option to apply (repeatable)": "選擇要套用的選項（可重複傳送）",
+    "Current readback unconfirmed": "目前讀值未確認",
+    "Current readback: {0}": "目前讀值：{0}"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -883,7 +886,10 @@
     "Choose an OSD command (repeatable)": "OSD コマンドを選択（再送信可能）",
     "Command sent; display state unconfirmed: {0}": "コマンドを送信しましたが、ディスプレイの状態は未確認です：{0}",
     "OSD command sent. Check the display's response.": "OSD コマンドを送信しました。ディスプレイの反応を確認してください。",
-    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "本体メニューの操作には未対応です。対応する設定は FC 画面メニューで調整できます。OSD の有効化で本体メニューが開くかどうかは、ディスプレイのファームウェアによります。"
+    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "本体メニューの操作には未対応です。対応する設定は FC 画面メニューで調整できます。OSD の有効化で本体メニューが開くかどうかは、ディスプレイのファームウェアによります。",
+    "Choose an option to apply (repeatable)": "適用する項目を選択（再送信可能）",
+    "Current readback unconfirmed": "現在の読み取り値は未確認です",
+    "Current readback: {0}": "現在の読み取り値：{0}"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -1326,7 +1332,10 @@
     "Choose an OSD command (repeatable)": "OSD 명령 선택(반복 전송 가능)",
     "Command sent; display state unconfirmed: {0}": "명령을 전송했으나 디스플레이 상태를 확인하지 못했습니다: {0}",
     "OSD command sent. Check the display's response.": "OSD 명령을 전송했습니다. 디스플레이의 반응을 확인하세요.",
-    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "모니터 자체 메뉴 탐색은 아직 지원하지 않습니다. 지원되는 설정은 FC 화면 메뉴에서 조절할 수 있습니다. OSD 활성화 시 자체 메뉴가 열리는지는 디스플레이 펌웨어에 따라 다릅니다."
+    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "모니터 자체 메뉴 탐색은 아직 지원하지 않습니다. 지원되는 설정은 FC 화면 메뉴에서 조절할 수 있습니다. OSD 활성화 시 자체 메뉴가 열리는지는 디스플레이 펌웨어에 따라 다릅니다.",
+    "Choose an option to apply (repeatable)": "적용할 옵션 선택(반복 전송 가능)",
+    "Current readback unconfirmed": "현재 읽기 값 미확인",
+    "Current readback: {0}": "현재 읽기 값: {0}"
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -1769,7 +1778,10 @@
     "Choose an OSD command (repeatable)": "OSD-Befehl wählen (erneut sendbar)",
     "Command sent; display state unconfirmed: {0}": "Befehl gesendet; Monitorzustand unbestätigt: {0}",
     "OSD command sent. Check the display's response.": "OSD-Befehl gesendet. Prüfen Sie die Reaktion des Monitors.",
-    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "Die Navigation im Monitormenü wird noch nicht unterstützt. Unterstützte Einstellungen können Sie im FC-Bildschirmmenü ändern. Ob das Aktivieren des OSD das Monitormenü öffnet, hängt von der Monitor-Firmware ab."
+    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "Die Navigation im Monitormenü wird noch nicht unterstützt. Unterstützte Einstellungen können Sie im FC-Bildschirmmenü ändern. Ob das Aktivieren des OSD das Monitormenü öffnet, hängt von der Monitor-Firmware ab.",
+    "Choose an option to apply (repeatable)": "Option anwenden (erneut sendbar)",
+    "Current readback unconfirmed": "Aktueller Auslesewert unbestätigt",
+    "Current readback: {0}": "Aktueller Auslesewert: {0}"
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -2212,7 +2224,10 @@
     "Choose an OSD command (repeatable)": "Choisir une commande OSD (répétable)",
     "Command sent; display state unconfirmed: {0}": "Commande envoyée ; état de l’écran non confirmé : {0}",
     "OSD command sent. Check the display's response.": "Commande OSD envoyée. Vérifiez la réaction de l’écran.",
-    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "La navigation dans le menu natif n’est pas encore prise en charge. Utilisez le menu FC pour les réglages compatibles. L’ouverture du menu natif lors de l’activation de l’OSD dépend du micrologiciel de l’écran."
+    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "La navigation dans le menu natif n’est pas encore prise en charge. Utilisez le menu FC pour les réglages compatibles. L’ouverture du menu natif lors de l’activation de l’OSD dépend du micrologiciel de l’écran.",
+    "Choose an option to apply (repeatable)": "Choisir une option à appliquer (répétable)",
+    "Current readback unconfirmed": "Valeur actuelle lue non confirmée",
+    "Current readback: {0}": "Valeur actuelle lue : {0}"
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -2655,6 +2670,9 @@
     "Choose an OSD command (repeatable)": "Elegir comando OSD (repetible)",
     "Command sent; display state unconfirmed: {0}": "Comando enviado; estado de la pantalla sin confirmar: {0}",
     "OSD command sent. Check the display's response.": "Comando OSD enviado. Compruebe la respuesta de la pantalla.",
-    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "La navegación por el menú nativo aún no está adaptada. Use el menú de FC para los ajustes compatibles. Que la activación del OSD abra el menú nativo depende del firmware de la pantalla."
+    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "La navegación por el menú nativo aún no está adaptada. Use el menú de FC para los ajustes compatibles. Que la activación del OSD abra el menú nativo depende del firmware de la pantalla.",
+    "Choose an option to apply (repeatable)": "Elegir opción para aplicar (repetible)",
+    "Current readback unconfirmed": "Lectura actual sin confirmar",
+    "Current readback: {0}": "Lectura actual: {0}"
   }
 }

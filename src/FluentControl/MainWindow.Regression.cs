@@ -142,6 +142,7 @@ public sealed partial class MainWindow
         await CheckMonitorOsdAsync();
         await CheckReadOnlyOsdAndLibraryAsync();
         await CheckRepeatableOsdCommandsAsync();
+        await CheckRepeatablePresetChoicesAsync();
         await CheckSystemAudioAsync();
         await CheckAdapterCaptureAsync();
         var otherModel = new MonitorDevice { Id = "unknown-model", Model = "Unknown model", Connection = "test" };
@@ -305,6 +306,20 @@ public sealed partial class MainWindow
             Navigation.SelectedItem = navigation; DisplayMode.SelectedIndex = mode; RenderMonitorControls(generation);
         }
     }
+    private static async Task<FrameworkElement> WaitForChoiceRowAsync(DependencyObject root, string? id = null)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(3);
+        do
+        {
+            if (root is FrameworkElement element) element.UpdateLayout();
+            foreach (var expander in Descendants<Expander>(root).ToArray()) expander.IsExpanded = true;
+            var row = id is null ? root as FrameworkElement : Descendants<FrameworkElement>(root)
+                .SingleOrDefault(e => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(e) == id);
+            if (row is not null && Descendants<ComboBox>(row).Any(c => c.IsLoaded)) return row;
+            await Task.Delay(30);
+        } while (DateTime.UtcNow < deadline);
+        throw new InvalidOperationException("Choice row was not realized: " + (id ?? root.GetType().Name));
+    }
     private async Task CheckRepeatableOsdCommandsAsync()
     {
         var fixture = new MonitorDevice { Id = "ui-osd-command", ModelId = "TST0004", Model = "OSD command fixture", Connection = "test" };
@@ -326,9 +341,7 @@ public sealed partial class MainWindow
         displayDevices.Add(fixture);
         async Task ExerciseAsync(DependencyObject root, string rowId)
         {
-            foreach (var expander in Descendants<Expander>(root).ToArray()) expander.IsExpanded = true;
-            await Task.Delay(80);
-            var row = Descendants<FrameworkElement>(root).Single(e => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(e) == rowId);
+            var row = await WaitForChoiceRowAsync(root, rowId);
             var combo = Descendants<ComboBox>(row).Single();
             var options = (IReadOnlyList<ControlOption>)combo.ItemsSource;
             if (combo.SelectedItem is not null || writes.Count != 0) throw new InvalidOperationException("OSD command picker must not select or send the initial disabled state.");
@@ -367,6 +380,70 @@ public sealed partial class MainWindow
         {
             CloseMonitorOsd(); displayDevices.Remove(fixture);
             DisplayMode.SelectedIndex = mode; RenderMonitorControls(generation);
+        }
+    }
+    private async Task CheckRepeatablePresetChoicesAsync()
+    {
+        var mode = DisplayMode.SelectedIndex;
+        var panelEnabled = state.Settings.DesktopPanelEnabled;
+        var fixture = new MonitorDevice { Id = "ui-preset-replay", ModelId = "TST0005", Model = "Preset readback fixture", Connection = "test" };
+        var writes = new List<double>(); var unreadable = false;
+        var channel = new ControlChannel
+        {
+            Name = "Color preset", Detail = "VCP 0x14", Glyph = "", DeviceId = fixture.Id, PropertyKey = "color-preset", VcpCode = 0x14,
+            Value = 8, Minimum = 0, Maximum = 255, VerifyChoiceReadback = true,
+            Options = new[] { new ControlOption(5, "6500 K"), new ControlOption(8, "9300 K") },
+            Write = value => writes.Add(value), Read = () => unreadable ? throw new IOException("simulated readback failure") : 8
+        };
+        fixture.Channels.Add(channel); displayDevices.Add(fixture);
+        async Task ExerciseAsync(DependencyObject row)
+        {
+            await WaitForChoiceRowAsync(row);
+            var combo = Descendants<ComboBox>(row).Single();
+            bool Has(string text) => Descendants<TextBlock>(row).Any(t => t.Text.Contains(text));
+            if (combo.SelectedItem is not null || !Has("0x08")) throw new InvalidOperationException("Preset choice must be separate from real readback.");
+            foreach (var value in new[] { 5d, 5d, 8d })
+            {
+                var count = writes.Count;
+                combo.SelectedItem = channel.Options.Single(o => o.Value == value);
+                await WaitForWritesAsync();
+                if (writes.Count != count + 1 || writes.Last() != value || combo.SelectedItem is not null || !Has("0x08") || channel.Value != 8)
+                    throw new InvalidOperationException("Preset replay lost real readback or failed to send exactly once.");
+            }
+            unreadable = true;
+            combo.SelectedItem = channel.Options[0]; await WaitForWritesAsync();
+            if (!Has(T("当前读值未确认", "Current readback unconfirmed")) || combo.SelectedItem is not null ||
+                CaptureProfile().ContainsKey(ProfileGroups.MonitorKey(fixture.Id, channel.PropertyKey)))
+                throw new InvalidOperationException("Failed preset readback was shown or saved as a confirmed value.");
+            unreadable = false;
+            combo.SelectedItem = channel.Options[1]; await WaitForWritesAsync();
+            if (channel.ReadbackUnconfirmed || combo.SelectedItem is not null || !Has("0x08")) throw new InvalidOperationException("Preset did not recover after failed readback.");
+        }
+        try
+        {
+            DisplayMode.SelectedIndex = 0;
+            foreach (var linked in new[] { false, true })
+            {
+                var row = CreateChoiceRow(channel, generation, linked ? new[] { channel } : null);
+                var sync = refreshRows.Last();
+                MonitorRows.Children.Add(row);
+                try { await ExerciseAsync(row); } finally { MonitorRows.Children.Remove(row); refreshRows.Remove(sync); }
+            }
+            ShowMonitorOsd(fixture);
+            var osdRow = await WaitForChoiceRowAsync((DependencyObject)monitorOsd!.Content, "osd-color-preset");
+            await ExerciseAsync(osdRow); CloseMonitorOsd();
+            state.Settings.DesktopPanelEnabled = true; RefreshDesktopPanel();
+            desktopPanel!.UpdateRows(new[] { new PanelRow { Key = "test-preset", Name = "Color preset", Group = "test", Targets = new[] { channel } } }, state.Settings,
+                async (targets, value, linked) => { await Task.Run(() => ControlOperations.Apply(targets, value, linked)); });
+            desktopPanel.SetUnlocked(true);
+            await ExerciseAsync(desktopPanel.Content);
+            StartupLog.Write("PASS: repeated color choices, genuine mismatched readback, failed-read recovery and skipped unconfirmed snapshots in main, linked, FC and desktop controls.");
+        }
+        finally
+        {
+            CloseMonitorOsd(); displayDevices.Remove(fixture);
+            DisplayMode.SelectedIndex = mode;
+            state.Settings.DesktopPanelEnabled = panelEnabled; RefreshDesktopPanel(); desktopPanel?.SetUnlocked(false);
         }
     }
     private async Task CheckCrossModelControlsAsync()

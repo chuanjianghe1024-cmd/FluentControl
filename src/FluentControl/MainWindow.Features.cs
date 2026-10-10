@@ -276,7 +276,7 @@ public sealed partial class MainWindow
         finally { applyingProfile = false; }
     }
     private Dictionary<string, SavedValue> CaptureProfile() => AllChannels()
-        .Where(x => !x.Value.CompatibilityOnly && x.Value.IsAvailable)
+        .Where(x => !x.Value.CompatibilityOnly && x.Value.IsAvailable && !x.Value.ReadbackUnconfirmed)
         .Where(x => !x.Key.StartsWith("monitor/") || ProfileExchange.CanApply(x.Value, x.Value.Value))
         .ToDictionary(x => x.Key, x => new SavedValue { Value = x.Value.Value, Muted = x.Value.WriteMute is null ? null : x.Value.IsMuted });
     private async void SaveProfile_Click(object sender, RoutedEventArgs e)
@@ -460,14 +460,17 @@ public sealed partial class MainWindow
         var targets = group ?? new[] { channel };
         var options = channel.Options!;
         var combo = new ComboBox { ItemsSource = options, DisplayMemberPath = "Label", MinWidth = 150, MaxWidth = 340, PlaceholderText = T("不同", "Mixed") };
+        var readback = new TextBlock { FontSize = 12, Opacity = .7, TextWrapping = TextWrapping.Wrap, MaxWidth = 340 };
         var syncing = false;
         void Update()
         {
             syncing = true;
             var same = targets.All(x => x.Value == targets[0].Value);
-            combo.SelectedItem = !channel.IsCommandChoice && same ? options.FirstOrDefault(x => x.Value == targets[0].Value) : null;
+            combo.SelectedItem = !channel.IsRepeatableChoice && same ? options.FirstOrDefault(x => x.Value == targets[0].Value) : null;
             combo.PlaceholderText = channel.IsCommandChoice ? T("选择 OSD 指令（可重复发送）", "Choose an OSD command (repeatable)") :
+                channel.IsRepeatableChoice ? T("选择要应用的选项（可重复发送）", "Choose an option to apply (repeatable)") :
                 same && combo.SelectedItem is null ? F("当前值 0x{0}（不可重放）", "Current 0x{0} (not replayable)", ((uint)targets[0].Value).ToString("X")) : T("不同", "Mixed");
+            readback.Text = ControlOperations.ChoiceReadbackText(targets);
             syncing = false;
         }
         refreshRows.Add(Update); Update();
@@ -490,7 +493,13 @@ public sealed partial class MainWindow
             catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error, page); }
             finally { pendingWrites--; if (entered) gate.Release(); if (!closed && version == generation) { Update(); combo.IsEnabled = true; } }
         };
-        return SettingsRow((group is null ? "" : T("统一", "Linked ")) + Channel(channel), channel.Detail, combo);
+        FrameworkElement control = combo;
+        if (channel.IsRepeatableChoice && !channel.IsCommandChoice)
+        {
+            var stack = new StackPanel { Spacing = 3 };
+            stack.Children.Add(combo); stack.Children.Add(readback); control = stack;
+        }
+        return SettingsRow((group is null ? "" : T("统一", "Linked ")) + Channel(channel), channel.Detail, control);
     }
     private async Task RunFeatureChecksAsync()
     {
