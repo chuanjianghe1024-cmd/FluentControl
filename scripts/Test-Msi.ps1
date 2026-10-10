@@ -9,6 +9,7 @@ $probe = $null
 try {
     $logs = Join-Path $root 'artifacts/msi-logs'
     New-Item $logs -ItemType Directory -Force | Out-Null
+    Add-Type -Path (Join-Path $root 'tests/installer/InstallerShortcutFixture.cs')
     $defaultTarget = [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'Programs/FluentControl'))
     $target = [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'FC installer checks/自定义 安装/FluentControl'))
     $shortcut = Join-Path ([Environment]::GetFolderPath('Programs')) 'FluentControl.lnk'
@@ -53,16 +54,11 @@ try {
     function AssertStartup([bool]$enabled) {
         if ((Test-Path $startup) -ne $enabled) { throw "Startup link presence does not match the chosen option: $enabled." }
         if ($enabled) {
-            $shell = New-Object -ComObject WScript.Shell
-            try {
-                $link = $shell.CreateShortcut($startup)
-                $expected = [IO.Path]::GetFullPath((Join-Path $target 'FluentControl.exe'))
-                if ([IO.Path]::GetFullPath($link.TargetPath) -ne $expected -or $link.Arguments -ne '--background') {
-                    throw "Startup target '$($link.TargetPath)' / '$($link.Arguments)' does not match '$expected' / '--background'."
-                }
-                [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($link)
+            $link = [InstallerShortcutFixture]::Read($startup)
+            $expected = [IO.Path]::GetFullPath((Join-Path $target 'FluentControl.exe'))
+            if ([IO.Path]::GetFullPath($link[0]) -ne $expected -or $link[1] -ne '--background') {
+                throw "Startup target '$($link[0])' / '$($link[1])' does not match '$expected' / '--background'."
             }
-            finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) }
         }
     }
     function AssertNoApp {
@@ -170,16 +166,12 @@ try {
         throw 'The old fixture must install a genuinely lower-version executable.'
     }
     if (-not (Test-Path $shortcut)) { throw 'Start-menu shortcut is missing.' }
-    $shell = New-Object -ComObject WScript.Shell
-    $link = $shell.CreateShortcut($shortcut)
+    $link = [InstallerShortcutFixture]::Read($shortcut)
     $expectedTarget = [IO.Path]::GetFullPath((Join-Path $target 'FluentControl.exe'))
-    Write-Host "Start-menu target: '$($link.TargetPath)'; expected: '$expectedTarget'."
-    if ([IO.Path]::GetFullPath($link.TargetPath) -ne $expectedTarget) { throw 'Start-menu shortcut target is incorrect.' }
+    Write-Host "Start-menu target: '$($link[0])'; expected: '$expectedTarget'."
+    if ([IO.Path]::GetFullPath($link[0]) -ne $expectedTarget) { throw 'Start-menu shortcut target is incorrect.' }
     # Simulate the application's opt-in login shortcut; upgrade must keep it.
-    $loginLink = $shell.CreateShortcut($startup)
-    $loginLink.TargetPath = Join-Path $target 'FluentControl.exe'
-    $loginLink.Arguments = '--background'
-    $loginLink.Save()
+    [InstallerShortcutFixture]::Create($startup, (Join-Path $target 'FluentControl.exe'))
     AssertRetained
     Write-Host 'PASS: MSI installs per-user and registers the correct start-menu shortcut.'
     $locked = StartLockFixture "$target/coreclr.dll" 'installed'
