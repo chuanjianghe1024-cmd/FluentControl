@@ -33,7 +33,7 @@ public static class VcpDiscovery
             if (reply is not VcpReply data)
             {
                 features.Add(new() { Definition = definition, Reason = code == 0x62 ?
-                    T("DDC/CI 音量不可用。可在“声音与麦克风”中调节对应的 Windows 播放设备。", "DDC/CI volume unavailable. Use Audio to adjust the corresponding Windows playback device.") :
+                    T("DDC/CI 音量不可用。可在“音量与输入”中调节系统音量。", "DDC/CI volume unavailable. Use Volume & input to adjust system volume.") :
                     T("不支持或当前无法读取", "Unsupported or currently unreadable") });
                 continue;
             }

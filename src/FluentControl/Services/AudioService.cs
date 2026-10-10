@@ -1,59 +1,126 @@
 using NAudio.CoreAudioApi;
+using NAudio.CoreAudioApi.Interfaces;
+using System.Runtime.InteropServices;
 namespace FluentControl.Services;
 
-public sealed class AudioService : IDisposable
+internal sealed class AudioService : ISystemAudioBackend, IMMNotificationClient
 {
+    private sealed record Endpoint(string Id, MMDevice Device, AudioEndpointVolume Volume);
     private readonly MMDeviceEnumerator enumerator = new();
-    private readonly List<MMDevice> devices = new();
+    private readonly Dictionary<SystemAudioTarget, Endpoint> endpoints = new();
+    private readonly object lifecycle = new();
+    private volatile bool disposed;
+    public event Action? Changed;
 
-    public List<ControlChannel> Enumerate()
+    internal AudioService()
     {
-        var channels = new List<ControlChannel>();
-        foreach (var flow in new[] { DataFlow.Render, DataFlow.Capture })
+        try { Marshal.ThrowExceptionForHR(enumerator.RegisterEndpointNotificationCallback(this)); }
+        catch { enumerator.Dispose(); throw; }
+    }
+
+    // Resolve the current system default for every action, even when its change
+    // notification has not reached the UI yet. Never change Windows routing.
+    private Endpoint Current(SystemAudioTarget target)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        MMDevice device;
+        try
         {
-            var console = DefaultId(flow, Role.Console);
-            var multimedia = DefaultId(flow, Role.Multimedia);
-            var communications = DefaultId(flow, Role.Communications);
-            foreach (var device in enumerator.EnumerateAudioEndPoints(flow, DeviceState.Active))
+            device = enumerator.GetDefaultAudioEndpoint(
+                target == SystemAudioTarget.Output ? DataFlow.Render : DataFlow.Capture, Role.Console);
+        }
+        catch { Release(target); throw; }
+        try
+        {
+            var id = device.ID;
+            if (endpoints.TryGetValue(target, out var current) && current.Id == id)
+            { device.Dispose(); return current; }
+            Release(target);
+            var endpoint = new Endpoint(id, device, device.AudioEndpointVolume);
+            endpoint.Volume.OnVolumeNotification += OnVolumeChanged;
+            endpoints[target] = endpoint;
+            return endpoint;
+        }
+        catch { device.Dispose(); throw; }
+    }
+
+    private static SystemAudioValue Snapshot(Endpoint endpoint) =>
+        new(endpoint.Volume.MasterVolumeLevelScalar * 100d, endpoint.Volume.Mute);
+
+    public SystemAudioValue Read(SystemAudioTarget target)
+    {
+        lock (lifecycle)
+        {
+            try { return Snapshot(Current(target)); }
+            catch
             {
-                devices.Add(device);
-                try
-                {
-                    var volume = device.AudioEndpointVolume;
-                    var isDefault = device.ID == console || device.ID == multimedia;
-                    var isCommunication = device.ID == communications;
-                    var labels = new List<string> { flow == DataFlow.Render ? Strings.T("声音输出", "Output") : Strings.T("麦克风输入", "Input") };
-                    if (isDefault) labels.Add(Strings.T("默认设备", "Default"));
-                    if (isCommunication) labels.Add(Strings.T("默认通话", "Communications"));
-                    channels.Add(new ControlChannel
-                    {
-                        Name = device.FriendlyName, DeviceId = device.ID,
-                        Detail = string.Join(" · ", labels),
-                        IsDefaultAudio = isDefault || isCommunication,
-                        Glyph = flow == DataFlow.Render ? "\uE767" : "\uE720",
-                        Value = volume.MasterVolumeLevelScalar * 100,
-                        IsMuted = volume.Mute,
-                        Read = () => volume.MasterVolumeLevelScalar * 100,
-                        Write = value => volume.MasterVolumeLevelScalar = (float)Math.Clamp(value / 100, 0, 1),
-                        WriteMute = value => volume.Mute = value
-                    });
-                }
-                catch (Exception ex) { StartupLog.Write("Audio endpoint unavailable: " + ex.Message); }
+                // A driver may invalidate a handle without changing its ID.
+                // Reopen and retry this read once; writes are never replayed.
+                Release(target);
+                return Snapshot(Current(target));
             }
         }
-        return channels;
+    }
+    public SystemAudioValue SetVolume(SystemAudioTarget target, double volume)
+    {
+        if (!double.IsFinite(volume)) throw new ArgumentOutOfRangeException(nameof(volume));
+        lock (lifecycle)
+        {
+            var endpoint = Current(target);
+            try
+            {
+                endpoint.Volume.MasterVolumeLevelScalar = (float)(Math.Clamp(volume, 0, 100) / 100);
+                return Snapshot(endpoint);
+            }
+            catch { Release(target); Notify(); throw; }
+        }
+    }
+    public SystemAudioValue SetMute(SystemAudioTarget target, bool muted)
+    {
+        lock (lifecycle)
+        {
+            var endpoint = Current(target);
+            try { endpoint.Volume.Mute = muted; return Snapshot(endpoint); }
+            catch { Release(target); Notify(); throw; }
+        }
     }
 
-    private string? DefaultId(DataFlow flow, Role role)
+    private void Release(SystemAudioTarget target)
     {
-        try { using var device = enumerator.GetDefaultAudioEndpoint(flow, role); return device.ID; }
-        catch { return null; } // A PC can legitimately have no default endpoint for a role.
+        if (!endpoints.Remove(target, out var endpoint)) return;
+        endpoint.Volume.OnVolumeNotification -= OnVolumeChanged;
+        try { endpoint.Device.Dispose(); }
+        catch (Exception ex) { StartupLog.Write("Audio endpoint release: " + ex.Message); }
     }
+
+    private void Notify()
+    {
+        // Subscribers only enqueue UI work. Do not lock or call Core Audio here.
+        if (!disposed)
+        {
+            try { Changed?.Invoke(); }
+            catch { /* The UI dispatcher can be gone during shutdown. */ }
+        }
+    }
+    private void OnVolumeChanged(AudioVolumeNotificationData _) => Notify();
+    public void OnDefaultDeviceChanged(DataFlow flow, Role role, string defaultDeviceId)
+    { if (role == Role.Console && flow is DataFlow.Render or DataFlow.Capture) Notify(); }
+    public void OnDeviceStateChanged(string deviceId, DeviceState newState) => Notify();
+    public void OnDeviceAdded(string deviceId) => Notify();
+    public void OnDeviceRemoved(string deviceId) => Notify();
+    public void OnPropertyValueChanged(string deviceId, PropertyKey key) { }
 
     public void Dispose()
     {
-        foreach (var device in devices) device.Dispose();
-        devices.Clear();
-        enumerator.Dispose();
+        lock (lifecycle)
+        {
+            if (disposed) return;
+            disposed = true;
+            Changed = null;
+            try { Marshal.ThrowExceptionForHR(enumerator.UnregisterEndpointNotificationCallback(this)); }
+            catch (Exception ex) { StartupLog.Write("Audio notification release: " + ex.Message); }
+            foreach (var target in endpoints.Keys.ToArray()) Release(target);
+            enumerator.Dispose();
+        }
     }
 }

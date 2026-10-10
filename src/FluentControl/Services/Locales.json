@@ -127,7 +127,7 @@
     "Mouse speed": "滑鼠速度",
     "Pointer size": "指標大小",
     "Output": "聲音輸出",
-    "Input": "麥克風輸入",
+    "Input": "輸入",
     "Default": "預設裝置",
     "Communications": "預設通話",
     "Toggle desktop panel": "顯示／隱藏桌面面板",
@@ -408,7 +408,15 @@
     "Write failed (Windows error {0}): {1}": "寫入失敗（Windows 錯誤 {0}）：{1}",
     "Save current settings from {0}": "儲存 {0} 目前參數",
     "No presets saved for this model yet.": "此型號尚未儲存設定。",
-    "DDC/CI volume unavailable. Use Audio to adjust the corresponding Windows playback device.": "DDC/CI 音量無法使用。可在「音效與麥克風」中調整對應的 Windows 播放裝置。"
+    "Volume": "音量",
+    "Volume & input": "音量與輸入",
+    "Follows the current Windows sound output and input.": "跟隨 Windows 目前的音效輸出和輸入。",
+    "Volume is unavailable. Check Windows sound settings.": "音量無法使用，請檢查 Windows 音效設定。",
+    "Input is unavailable. Check Windows sound settings.": "輸入無法使用，請檢查 Windows 音效設定。",
+    "Audio service is unavailable. Check Windows sound settings.": "音效服務無法使用，請檢查 Windows 音效設定。",
+    "Unavailable. Check Windows sound settings.": "無法使用，請檢查 Windows 音效設定。",
+    "Legacy device levels were skipped. Update this profile to save the current volume and input.": "已略過舊版裝置音量，更新設定檔可儲存目前的音量與輸入。",
+    "DDC/CI volume unavailable. Use Volume & input to adjust system volume.": "DDC/CI 音量無法使用。可在「音量與輸入」中調整系統音量。"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -819,7 +827,15 @@
     "Write failed (Windows error {0}): {1}": "書き込み失敗（Windows エラー {0}）：{1}",
     "Save current settings from {0}": "{0} の現在の設定を保存",
     "No presets saved for this model yet.": "このモデルのプリセットはまだ保存されていません。",
-    "DDC/CI volume unavailable. Use Audio to adjust the corresponding Windows playback device.": "DDC/CI 音量を利用できません。「音声とマイク」で対応する Windows 再生デバイスを調整してください。"
+    "Volume": "音量",
+    "Volume & input": "音量と入力",
+    "Follows the current Windows sound output and input.": "Windows で現在選択されている音声の出力と入力に従います。",
+    "Volume is unavailable. Check Windows sound settings.": "音量を調整できません。Windows のサウンド設定を確認してください。",
+    "Input is unavailable. Check Windows sound settings.": "入力を調整できません。Windows のサウンド設定を確認してください。",
+    "Audio service is unavailable. Check Windows sound settings.": "音声サービスを利用できません。Windows のサウンド設定を確認してください。",
+    "Unavailable. Check Windows sound settings.": "利用できません。Windows のサウンド設定を確認してください。",
+    "Legacy device levels were skipped. Update this profile to save the current volume and input.": "旧形式のデバイス音量はスキップしました。現在の音量と入力を保存するにはプロファイルを更新してください。",
+    "DDC/CI volume unavailable. Use Volume & input to adjust system volume.": "DDC/CI 音量を利用できません。「音量と入力」でシステム音量を調整してください。"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -1230,7 +1246,15 @@
     "Write failed (Windows error {0}): {1}": "쓰기 실패(Windows 오류 {0}): {1}",
     "Save current settings from {0}": "{0}의 현재 설정 저장",
     "No presets saved for this model yet.": "이 모델에 저장된 프리셋이 아직 없습니다.",
-    "DDC/CI volume unavailable. Use Audio to adjust the corresponding Windows playback device.": "DDC/CI 볼륨을 사용할 수 없습니다. 오디오에서 해당 Windows 재생 장치를 조절하세요."
+    "Volume": "볼륨",
+    "Volume & input": "볼륨 및 입력",
+    "Follows the current Windows sound output and input.": "현재 Windows의 사운드 출력과 입력을 따릅니다.",
+    "Volume is unavailable. Check Windows sound settings.": "볼륨을 사용할 수 없습니다. Windows 소리 설정을 확인하세요.",
+    "Input is unavailable. Check Windows sound settings.": "입력을 사용할 수 없습니다. Windows 소리 설정을 확인하세요.",
+    "Audio service is unavailable. Check Windows sound settings.": "오디오 서비스를 사용할 수 없습니다. Windows 소리 설정을 확인하세요.",
+    "Unavailable. Check Windows sound settings.": "사용할 수 없습니다. Windows 소리 설정을 확인하세요.",
+    "Legacy device levels were skipped. Update this profile to save the current volume and input.": "이전 장치 볼륨은 건너뛰었습니다. 현재 볼륨과 입력을 저장하려면 프로필을 업데이트하세요.",
+    "DDC/CI volume unavailable. Use Volume & input to adjust system volume.": "DDC/CI 볼륨을 사용할 수 없습니다. 볼륨 및 입력에서 시스템 볼륨을 조절하세요."
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -1641,7 +1665,15 @@
     "Write failed (Windows error {0}): {1}": "Schreiben fehlgeschlagen (Windows-Fehler {0}): {1}",
     "Save current settings from {0}": "Aktuelle Einstellungen von {0} speichern",
     "No presets saved for this model yet.": "Für dieses Modell sind noch keine Voreinstellungen gespeichert.",
-    "DDC/CI volume unavailable. Use Audio to adjust the corresponding Windows playback device.": "DDC/CI-Lautstärke nicht verfügbar. Passen Sie unter Audio das entsprechende Windows-Wiedergabegerät an."
+    "Volume": "Lautstärke",
+    "Volume & input": "Lautstärke und Eingang",
+    "Follows the current Windows sound output and input.": "Folgt der aktuellen Audioausgabe und -eingabe von Windows.",
+    "Volume is unavailable. Check Windows sound settings.": "Lautstärke nicht verfügbar. Prüfen Sie die Windows-Soundeinstellungen.",
+    "Input is unavailable. Check Windows sound settings.": "Eingang nicht verfügbar. Prüfen Sie die Windows-Soundeinstellungen.",
+    "Audio service is unavailable. Check Windows sound settings.": "Audiodienst nicht verfügbar. Prüfen Sie die Windows-Soundeinstellungen.",
+    "Unavailable. Check Windows sound settings.": "Nicht verfügbar. Prüfen Sie die Windows-Soundeinstellungen.",
+    "Legacy device levels were skipped. Update this profile to save the current volume and input.": "Alte Gerätelautstärken wurden übersprungen. Aktualisieren Sie das Profil, um die aktuelle Lautstärke und den Eingang zu speichern.",
+    "DDC/CI volume unavailable. Use Volume & input to adjust system volume.": "DDC/CI-Lautstärke nicht verfügbar. Passen Sie unter Lautstärke und Eingang die Systemlautstärke an."
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -2052,7 +2084,15 @@
     "Write failed (Windows error {0}): {1}": "Échec de l’écriture (erreur Windows {0}) : {1}",
     "Save current settings from {0}": "Enregistrer les réglages actuels de {0}",
     "No presets saved for this model yet.": "Aucun préréglage enregistré pour ce modèle.",
-    "DDC/CI volume unavailable. Use Audio to adjust the corresponding Windows playback device.": "Volume DDC/CI indisponible. Dans Audio, réglez le périphérique de lecture Windows correspondant."
+    "Volume": "Volume",
+    "Volume & input": "Volume et entrée",
+    "Follows the current Windows sound output and input.": "Suit la sortie et l’entrée audio actuelles de Windows.",
+    "Volume is unavailable. Check Windows sound settings.": "Volume indisponible. Vérifiez les paramètres audio de Windows.",
+    "Input is unavailable. Check Windows sound settings.": "Entrée indisponible. Vérifiez les paramètres audio de Windows.",
+    "Audio service is unavailable. Check Windows sound settings.": "Service audio indisponible. Vérifiez les paramètres audio de Windows.",
+    "Unavailable. Check Windows sound settings.": "Indisponible. Vérifiez les paramètres audio de Windows.",
+    "Legacy device levels were skipped. Update this profile to save the current volume and input.": "Les anciens niveaux par périphérique ont été ignorés. Mettez ce profil à jour pour enregistrer le volume et l’entrée actuels.",
+    "DDC/CI volume unavailable. Use Volume & input to adjust system volume.": "Volume DDC/CI indisponible. Réglez le volume système dans Volume et entrée."
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -2463,6 +2503,14 @@
     "Write failed (Windows error {0}): {1}": "Error de escritura (error de Windows {0}): {1}",
     "Save current settings from {0}": "Guardar los ajustes actuales de {0}",
     "No presets saved for this model yet.": "Aún no hay ajustes guardados para este modelo.",
-    "DDC/CI volume unavailable. Use Audio to adjust the corresponding Windows playback device.": "Volumen DDC/CI no disponible. En Audio, ajuste el dispositivo de reproducción de Windows correspondiente."
+    "Volume": "Volumen",
+    "Volume & input": "Volumen y entrada",
+    "Follows the current Windows sound output and input.": "Sigue la salida y entrada de sonido actuales de Windows.",
+    "Volume is unavailable. Check Windows sound settings.": "Volumen no disponible. Comprueba la configuración de sonido de Windows.",
+    "Input is unavailable. Check Windows sound settings.": "Entrada no disponible. Comprueba la configuración de sonido de Windows.",
+    "Audio service is unavailable. Check Windows sound settings.": "Servicio de audio no disponible. Comprueba la configuración de sonido de Windows.",
+    "Unavailable. Check Windows sound settings.": "No disponible. Comprueba la configuración de sonido de Windows.",
+    "Legacy device levels were skipped. Update this profile to save the current volume and input.": "Se omitieron los niveles antiguos por dispositivo. Actualiza este perfil para guardar el volumen y la entrada actuales.",
+    "DDC/CI volume unavailable. Use Volume & input to adjust system volume.": "Volumen DDC/CI no disponible. Ajusta el volumen del sistema en Volumen y entrada."
   }
 }

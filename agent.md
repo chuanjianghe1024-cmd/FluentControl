@@ -59,6 +59,7 @@ README 保留产品层面的计划，详细实现步骤、模块路径和验收�
 | 控制及联动 | `Services/ControlChannel.cs`、`Services/MonitorLinking.cs`、`Services/BrightnessMapping.cs` |
 | 数据与分享 | `Services/UserState.cs`、`Services/ProfileUpdates.cs`、`Services/ProfileGroups.cs`、`Services/ProfileBundles.cs`、`Services/ProfileExchange.cs` |
 | 名称、音频、鼠标、自启动 | `Services/MonitorNames.cs`、`Services/AudioService.cs`、`Services/MouseService.cs`、`Services/StartupService.cs` |
+| 系统音量与输入 | `MainWindow.Audio.cs`、`Services/SystemAudioControls.cs`；原生后端为 `Services/AudioService.cs` |
 | 本地化 | `Services/Strings.cs`、`Services/Locales.json` |
 | 模拟设备与原生界面回归 | `Services/UiTestData.cs`、`MainWindow.Regression.cs`、`MainWindow.Features.cs` |
 
@@ -122,6 +123,8 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 - 显示器、音频、鼠标并行初始化；显示器读取按前述同屏顺序和最多两屏并发执行。能力缓存有效期 7 天、最多 32 个条目；“重新检测”绕过缓存。当前值始终从设备读取。
 - 总配置保存全部设备快照；型号预设用于单屏复用。总配置保留来源引用和独立参数副本，不能因预设后续编辑或删除而改变。库视图合并已连接型号与已有预设型号，不为展示空分组创建伪预设。
+- 声音页面只显示「音量」「输入」两个逻辑控制，不显示或选择具体音频设备，不合并默认通话设备。原生后端每次操作解析 `Role.Console` 的 Render/Capture 默认端点；同等处理物理和虚拟端点，不修改系统路由。设备及音量通知只排队，200ms 合并后在生命周期门控内读取，禁止在 COM 回调中读写、注销或释放端点。
+- 音频配置键固定为 `audio/system-output/volume`、`audio/system-input/volume`，保存前刷新真实音量与静音；不可用项不写入快照，更新总配置时保留已存值。旧端点音量数据留存但不执行，缺少系统控制快照时提示更新配置。旧桌面音频选项备份到 `.before-system-audio-v1.bak` 后迁移为两个系统项，不能从不透明端点 ID 猜测方向。
 - 启动不自动应用上次配置。导入仅保存，用户选择应用时才写入设备；应用标签目前用于筛选，不自动监控进程或切换场景。
 - 桌面面板不透明度为 10%–85%，默认 30%；整体与单独模式各自保留控制项，离线选择不丢失。自动尺寸的可见行数上限为 1–16，更多内容滚动查看。
 - 关闭主窗口默认隐藏到托盘；彻底退出在托盘菜单中。单实例重复启动唤起已有窗口。自启动默认关闭，使用当前用户启动目录快捷方式；便携版迁移后需更新路径。
@@ -157,7 +160,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 | HKC 色温和场景模式排查 | `Services/VcpDiscovery.cs`、`Services/ControlChannel.cs`、`Services/MonitorService.cs`、采集助手 | 对 P272U PRO / HKC2752 与 PG271U / HKC2701 分别记录固件、连接、HDR/节能状态、请求原始码、回读原始码和实体 OSD 结果；区分延迟、未接受与编码差异，再决定是否发布适配 |
 | 原厂 OSD 遥控适配 | `Services/MonitorAdapters.cs`、`MainWindow.Adapters.cs`、`MainWindow.Osd.cs` | 先取得型号及固件的协议或实机证据；逐项确认打开、关闭、方向及确认动作，未验证的动作保持不可用；不能用其他品牌命令试写 HKC |
 | USB/HID 通道研究 | 现有适配与设备识别边界；尚无通用 HID 适配实现 | 确认目标提供可用的 USB 控制接口、身份和协议后再设计传输层；保持 DDC 与 USB 能力独立，扩展协议前同步桌面、网站校验和测试 |
-| 音量能力说明与反馈 | `Services/AudioService.cs`、`MainWindow.Monitors.cs` | 区分 Windows 播放音量与 DDC/CI 硬件音量，准确显示支持范围；无可靠设备关联时不自动把音频端点绑定给某块屏幕 |
+| 系统音量与虚拟线路实测 | `MainWindow.Audio.cs`、`Services/SystemAudioControls.cs`、`Services/AudioService.cs` | 验证切换默认输出/输入、Voicemeeter/NVIDIA Broadcast 等虚拟端点、外部静音、设备断开恢复和总配置重放；保持仅两个系统控制，不绑定显示器、不干预用户路由；真实虚拟音频驱动仍需本机验证 |
 | 4K / 150% 与混合 DPI 实测 | `WindowPlacement.cs`、`MonitorIdentificationWindow.cs`、`DesktopPanelWindow.cs` | 在实体多屏验证主窗、软件 OSD、识别提示与桌面面板的换屏、文字、缩放和可点击区域；记录实测环境 |
 | 安装占用问题复测 | `installer/`、`scripts/Test-Msi.ps1` | 用用户实际日志确认占用来源；保持当前用户安装、稳定组件、事务回滚及不关闭无关程序的行为 |
 

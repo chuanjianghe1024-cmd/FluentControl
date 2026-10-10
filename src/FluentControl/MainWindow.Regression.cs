@@ -8,6 +8,56 @@ namespace FluentControl;
 
 public sealed partial class MainWindow
 {
+    private async Task CheckSystemAudioAsync()
+    {
+        var backend = (UiTestData.AudioBackend)audio!;
+        var output = audioChannels.Single(c => c.DeviceId == SystemAudioControls.OutputId);
+        var input = audioChannels.Single(c => c.DeviceId == SystemAudioControls.InputId);
+        var beforeOutput = backend.Read(SystemAudioTarget.Output);
+        var beforeInput = backend.Read(SystemAudioTarget.Input);
+        async Task WaitForAudioAsync(Func<bool> ready)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(3);
+            while (!ready() && DateTime.UtcNow < deadline) await Task.Delay(25);
+        }
+        try
+        {
+            Navigation.SelectedItem = Navigation.MenuItems[1];
+            if (AudioRows.Children.Count != 2 || !Descendants<TextBlock>(AudioRows).Any(x => x.Text == Strings.T("音量", "Volume")) ||
+                !Descendants<TextBlock>(AudioRows).Any(x => x.Text == Strings.T("输入", "Input")) || Descendants<Expander>(AudioPanel).Any())
+                throw new InvalidOperationException("Audio must expose only Volume and Input, without endpoint names or lists.");
+            var profile = new ControlProfile { Name = "System audio fixture", Values = CaptureProfile() };
+            if (!profile.Values.ContainsKey(SystemAudioControls.OutputKey) || !profile.Values.ContainsKey(SystemAudioControls.InputKey) || profile.Values.Keys.Any(SystemAudioControls.IsLegacyKey))
+                throw new InvalidOperationException("Audio profile keys depend on endpoint identities.");
+            backend.ChangeDefault(SystemAudioTarget.Output, 18, true);
+            backend.ChangeDefault(SystemAudioTarget.Input, 24, true);
+            await WaitForAudioAsync(() => output.Value == 18 && output.IsMuted && input.Value == 24 && input.IsMuted);
+            if (output.Value != 18 || !output.IsMuted || input.Value != 24 || !input.IsMuted)
+                throw new InvalidOperationException("System audio change notifications were not reflected in the controls.");
+            // The old snapshot must target the new defaults through the same keys.
+            await ApplyProfileAsync(profile);
+            if (backend.Read(SystemAudioTarget.Output) != beforeOutput || backend.Read(SystemAudioTarget.Input) != beforeInput)
+                throw new InvalidOperationException("Global profile failed to apply volume/mute to current defaults.");
+            backend.InputAvailable = false; backend.ChangeDefault(SystemAudioTarget.Output, 22, false);
+            await WaitForAudioAsync(() => !input.IsAvailable && output.Value == 22);
+            if (!output.IsAvailable || input.IsAvailable || Descendants<Slider>(AudioRows).Count(s => s.IsEnabled) != 1 || CaptureProfile().ContainsKey(SystemAudioControls.InputKey))
+                throw new InvalidOperationException("Missing input must be disabled without blocking output or saving a stale input value.");
+            var legacy = new ControlProfile { Name = "Legacy audio", Values = new() { ["audio/old-device/volume"] = new() { Value = 99 } } };
+            await ApplyProfileAsync(legacy);
+            if (output.Value != 22 || !profileDirty || Status.Severity != Microsoft.UI.Xaml.Controls.InfoBarSeverity.Warning)
+                throw new InvalidOperationException("Legacy endpoint values were rebound or skipped silently.");
+            StartupLog.Write("PASS: two system audio controls, live default/volume/mute changes, logical profile keys, missing input and legacy profile guard");
+        }
+        finally
+        {
+            backend.InputAvailable = true;
+            backend.ChangeDefault(SystemAudioTarget.Output, beforeOutput.Volume, beforeOutput.Muted);
+            backend.ChangeDefault(SystemAudioTarget.Input, beforeInput.Volume, beforeInput.Muted);
+            await RefreshSystemAudioAsync();
+            Navigation.SelectedItem = Navigation.MenuItems[0];
+        }
+    }
+
     private async Task CheckWindowSizingAsync()
     {
         var area = WindowPlacement.Area(this);
@@ -91,6 +141,7 @@ public sealed partial class MainWindow
         await CheckCrossModelControlsAsync();
         await CheckMonitorOsdAsync();
         await CheckReadOnlyOsdAndLibraryAsync();
+        await CheckSystemAudioAsync();
         await CheckAdapterCaptureAsync();
         var otherModel = new MonitorDevice { Id = "unknown-model", Model = "Unknown model", Connection = "test" };
         otherModel.Channels.Add(new() { Name = "Unknown display brightness", Detail = "", Glyph = "", PropertyKey = "brightness", Value = 45, Write = _ => { } });
@@ -439,7 +490,7 @@ public sealed partial class MainWindow
         var firstGroup = new ProfileGroup { Id = ProfileGroup.LocalId }; var otherGroup = new ProfileGroup { Name = "Legacy group" };
         var first = CaptureGlobalProfile("Global first", new()); var second = CaptureGlobalProfile("Global second", new()); second.GroupId = otherGroup.Id;
         var brightnessKey = ProfileGroups.MonitorKey(displayDevices[0].Id, "brightness");
-        var microphone = channels.First(p => p.Key.StartsWith("audio/") && p.Value.DeviceId == "默认麦克风");
+        var microphone = channels.First(p => p.Key == SystemAudioControls.InputKey);
         var mouse = channels.First(p => p.Key == "mouse/mouse-speed");
         first.Values[brightnessKey].Value = 21; second.Values[brightnessKey].Value = 42;
         first.Values[microphone.Key].Value = 25; second.Values[microphone.Key].Value = 75;

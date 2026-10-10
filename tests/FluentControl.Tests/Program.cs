@@ -11,6 +11,7 @@ static ControlChannel Channel(string name, double initial, Action<double> write,
 };
 
 Strings.ValidateCatalog();
+SystemAudioTests.Run();
 WindowGeometryTests.Run();
 MonitorDiscoveryTests.Run();
 MonitorDiagnosticsTests.Run();

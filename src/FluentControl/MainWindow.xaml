@@ -9,7 +9,7 @@
             <NavigationViewItem Content="显示器" Tag="monitors" AutomationProperties.AutomationId="nav-monitors">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE7F4;"/></NavigationViewItem.Icon>
             </NavigationViewItem>
-            <NavigationViewItem Content="声音与麦克风" Tag="audio" AutomationProperties.AutomationId="nav-audio">
+            <NavigationViewItem Content="音量与输入" Tag="audio" AutomationProperties.AutomationId="nav-audio">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE767;"/></NavigationViewItem.Icon>
             </NavigationViewItem>
             <NavigationViewItem Content="鼠标与指针" Tag="mouse" AutomationProperties.AutomationId="nav-mouse">
@@ -87,11 +87,8 @@
                         </Expander>
                     </StackPanel>
                     <StackPanel x:Name="AudioPanel" Spacing="16" Visibility="Collapsed">
-                        <TextBlock x:Name="DefaultAudioTitle" Text="Windows 当前默认设备" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                        <TextBlock x:Name="DefaultAudioTitle" Text="音量与输入" Style="{StaticResource SubtitleTextBlockStyle}"/>
                         <StackPanel x:Name="AudioRows" Spacing="10"/>
-                        <Expander x:Name="OtherAudioExpander" Header="其他音频设备" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                            <StackPanel x:Name="OtherAudioRows" Spacing="10" HorizontalAlignment="Stretch"/>
-                        </Expander>
                         <HyperlinkButton x:Name="SoundSettingsLink" Content="Windows 声音设置" Tag="ms-settings:sound" Click="OpenSettings_Click" HorizontalAlignment="Left"/>
                     </StackPanel>
                     <StackPanel x:Name="MousePanel" Spacing="16" Visibility="Collapsed">

@@ -112,7 +112,7 @@ public sealed partial class MainWindow
         Navigation.PaneTitle = AppName;
         shell?.UpdateLanguage();
         ((NavigationViewItem)Navigation.MenuItems[0]).Content = T("显示器", "Displays");
-        ((NavigationViewItem)Navigation.MenuItems[1]).Content = T("声音与麦克风", "Audio");
+        ((NavigationViewItem)Navigation.MenuItems[1]).Content = T("音量与输入", "Volume & input");
         ((NavigationViewItem)Navigation.MenuItems[2]).Content = T("鼠标与指针", "Mouse & pointer");
         ((NavigationViewItem)Navigation.MenuItems[3]).Content = T("型号配置库", "Model preset library");
         GlobalProfileTitle.Text = T("总配置", "Global profile");
@@ -120,7 +120,7 @@ public sealed partial class MainWindow
         var index = DisplayMode.SelectedIndex;
         DisplayMode.Items[0] = T("单独控制", "Individual"); DisplayMode.Items[1] = T("整体控制", "Overall control"); DisplayMode.SelectedIndex = index;
         RefreshButton.Content = T("刷新", "Refresh"); IdentifyButton.Content = T("识别显示器", "Identify");
-        DefaultAudioTitle.Text = T("Windows 当前默认设备", "Current Windows default devices");
+        DefaultAudioTitle.Text = T("音量与输入", "Volume & input");
         SoundSettingsLink.Content = T("Windows 声音设置", "Windows sound settings");
         PointerSettingsLink.Content = T("Windows 指针设置", "Windows pointer settings");
         MouseDescription.Text = T("调整后立即生效。更多指针颜色与样式，可在 Windows 指针设置中选择。", "Changes apply immediately. More pointer colors and styles are available in Windows Settings.");
@@ -143,11 +143,11 @@ public sealed partial class MainWindow
     private void UpdatePageTitle()
     {
         var tag = Navigation.SelectedItem == Navigation.SettingsItem ? "settings" : (Navigation.SelectedItem as NavigationViewItem)?.Tag as string ?? "monitors";
-        PageTitle.Text = tag switch { "audio" => T("声音与麦克风", "Audio"), "mouse" => T("鼠标与指针", "Mouse & pointer"), "library" => T("型号配置库", "Model preset library"), "settings" => T("设置", "Settings"), _ => T("显示器", "Displays") };
+        PageTitle.Text = tag switch { "audio" => T("音量与输入", "Volume & input"), "mouse" => T("鼠标与指针", "Mouse & pointer"), "library" => T("型号配置库", "Model preset library"), "settings" => T("设置", "Settings"), _ => T("显示器", "Displays") };
         Title = AppName + " · " + PageTitle.Text;
         PageDescription.Text = tag switch
         {
-            "audio" => T("常用设备在前，其他设备按需展开。", "Your default devices first. Expand the rest when needed."),
+            "audio" => T("跟随 Windows 当前的声音输出和输入。", "Follows the current Windows sound output and input."),
             "mouse" => T("找到适合自己的移动速度与指针大小。", "Tune movement speed and pointer size."),
             "settings" => T("按自己的习惯使用聚合控制。", "Make Fluent Control work your way."),
             "library" => T("按型号保存可复用的显示器参数；总配置保存整套桌面状态。", "Reusable monitor settings by model; global profiles save the whole desktop state."),
@@ -237,6 +237,8 @@ public sealed partial class MainWindow
                     var errors = new List<string>(); var missing = 0; var applied = 0;
                     foreach (var entry in profile.Values.OrderBy(x => available.TryGetValue(x.Key, out var c) ? c.ApplyOrder : 50))
                     {
+                        // Retained for compatibility, never rebound by guessed device identity.
+                        if (SystemAudioControls.IsLegacyKey(entry.Key)) continue;
                         if (!available.TryGetValue(entry.Key, out var channel)) { missing++; continue; }
                         if (MonitorColorTemperature.IsSuperseded(channel, profile.Values, available)) continue;
                         if (entry.Key.StartsWith("monitor/") && !ProfileExchange.CanApply(channel, entry.Value.Value)) { missing++; continue; }
@@ -247,7 +249,7 @@ public sealed partial class MainWindow
                         applied++;
                         if (entry.Value.Muted is bool muted && channel.WriteMute is not null)
                         {
-                            try { channel.WriteMute(muted); channel.IsMuted = muted; }
+                            try { ControlOperations.SetMute(channel, muted); }
                             catch (Exception ex) { errors.Add(channel.Name + ": " + ex.Message); }
                         }
                     }
@@ -258,12 +260,14 @@ public sealed partial class MainWindow
                     if (profile.BrightnessMappings.TryGetValue(device.Id, out var mapping)) { mapping.Validate(); device.Preference.Brightness = mapping.Copy(); BindBrightnessMapping(device); }
                 preferences?.Save();
                 state.ActiveMonitorPresets = new(profile.MonitorPresetIds);
-                state.SelectedGroupId = profile.GroupId; state.SelectedProfileId = profile.Id; profileDirty = result.errors.Count > 0 || result.missing > 0;
+                var legacyAudio = SystemAudioControls.NeedsProfileUpdate(profile);
+                state.SelectedGroupId = profile.GroupId; state.SelectedProfileId = profile.Id; profileDirty = result.errors.Count > 0 || result.missing > 0 || legacyAudio;
                 SaveState(); RefreshProfiles(); SynchronizeValues(); RenderMonitorControls(generation);
                 var message = F("配置「{0}」：已更新 {1} 项", "Profile '{0}': {1} controls applied", profile.Name, result.applied);
                 if (result.missing > 0) message += F("，跳过 {0} 个未连接或不可设置项", "; {0} unavailable controls skipped", result.missing);
                 if (result.errors.Count > 0) message += " · " + string.Join("; ", result.errors);
-                ShowStatus(message, result.errors.Count > 0 || result.missing > 0 ? InfoBarSeverity.Warning : InfoBarSeverity.Success, page);
+                if (legacyAudio) message += " · " + T("旧版设备音量已跳过，更新配置可保存当前音量与输入。", "Legacy device levels were skipped. Update this profile to save the current volume and input.");
+                ShowStatus(message, result.errors.Count > 0 || result.missing > 0 || legacyAudio ? InfoBarSeverity.Warning : InfoBarSeverity.Success, page);
             }
             finally { gate.Release(); }
         }
@@ -271,7 +275,7 @@ public sealed partial class MainWindow
         finally { applyingProfile = false; }
     }
     private Dictionary<string, SavedValue> CaptureProfile() => AllChannels()
-        .Where(x => !x.Value.CompatibilityOnly)
+        .Where(x => !x.Value.CompatibilityOnly && x.Value.IsAvailable)
         .Where(x => !x.Key.StartsWith("monitor/") || ProfileExchange.CanApply(x.Value, x.Value.Value))
         .ToDictionary(x => x.Key, x => new SavedValue { Value = x.Value.Value, Muted = x.Value.WriteMute is null ? null : x.Value.IsMuted });
     private async void SaveProfile_Click(object sender, RoutedEventArgs e)
@@ -289,6 +293,8 @@ public sealed partial class MainWindow
             {
                 var name = input.Text.Trim();
                 if (state.Profiles.Any(x => string.Equals(x.Name, name, StringComparison.CurrentCultureIgnoreCase))) { ShowStatus(T("配置名称已存在，可用“更新”覆盖。", "That name exists. Use Update to replace it."), InfoBarSeverity.Warning); return; }
+                await ReadAudioForProfileAsync();
+                if (closed) return;
                 var profile = CaptureGlobalProfile(name, ParseApplications(apps.Text));
                 if (profile.Values.Count == 0) { ShowStatus(T("没有可保存的控制项。", "No controls are available to save."), InfoBarSeverity.Warning); return; }
                 var oldPresets = state.MonitorPresets.ToList(); var oldActive = state.ActiveMonitorPresets; var oldSelected = state.SelectedProfileId; var oldGroup = state.SelectedGroupId;
@@ -308,6 +314,8 @@ public sealed partial class MainWindow
         await WaitForWritesAsync(); await gate.WaitAsync();
         try
         {
+            await ReadAudioForProfileAsync();
+            if (closed) return;
             var values = profile.Values; var mappings = profile.BrightnessMappings; var metadata = profile.Monitors;
             var oldRefs = new Dictionary<string, string>(profile.MonitorPresetIds); var oldPresets = state.MonitorPresets.ToList(); var oldActive = state.ActiveMonitorPresets;
             ProfileUpdates.Merge(profile, CaptureProfile(), CaptureMonitorMetadata(), CaptureMappings());
@@ -373,7 +381,7 @@ public sealed partial class MainWindow
         }
         else foreach (var display in displayDevices) foreach (var c in display.Channels.Where(MonitorLinking.IsDesktopControl))
             result.Add(new() { Key = $"monitor/{Uri.EscapeDataString(display.Id)}/{c.PropertyKey}", Name = display.DisplayName + " · " + Channel(c), Group = display.Id, Targets = new[] { c } });
-        foreach (var c in audioChannels.Where(x => x.IsDefaultAudio)) result.Add(new() { Key = $"audio/{Uri.EscapeDataString(c.DeviceId)}/{c.PropertyKey}", Name = c.Name, Group = "audio", Targets = new[] { c } });
+        foreach (var c in audioChannels) result.Add(new() { Key = $"audio/{Uri.EscapeDataString(c.DeviceId)}/{c.PropertyKey}", Name = c.Name, Group = "audio", Targets = new[] { c } });
         foreach (var c in mouseChannels) result.Add(new() { Key = "mouse/" + c.PropertyKey, Name = Channel(c), Group = "mouse", Targets = new[] { c } });
         var legacy = state.Settings.DesktopRows.Where(k => k.StartsWith("monitor/all/", StringComparison.Ordinal)).ToArray();
         if (!state.Settings.GroupDesktopMonitors && displayDevices.Count > 0 && legacy.Length > 0)

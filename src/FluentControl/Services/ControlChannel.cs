@@ -10,7 +10,7 @@ public sealed class ControlChannel
     public IReadOnlyList<ControlOption>? Options { get; init; }
     public string PropertyKey { get; init; } = "volume";
     public string DeviceId { get; init; } = "";
-    public bool IsDefaultAudio { get; init; }
+    public bool IsAvailable { get; set; } = true;
     public byte? VcpCode { get; init; }
     public bool IsAction { get; init; }
     public bool CanSave { get; init; } = true;
@@ -26,6 +26,7 @@ public sealed class ControlChannel
     public double Value { get; set; }
     public bool IsMuted { get; set; }
     public Func<double>? Read { get; init; }
+    public Func<bool>? ReadMute { get; init; }
     public required Action<double> Write { get; init; }
     public Action<bool>? WriteMute { get; init; }
 }
@@ -57,4 +58,10 @@ public static class ControlOperations
         return errors;
     }
     public static double DisplayValue(ControlChannel channel, bool linked) => linked ? channel.DeviceToLinked?.Invoke(channel.Value) ?? channel.Value : channel.Value;
+    public static void SetMute(ControlChannel channel, bool muted)
+    {
+        if (channel.WriteMute is null) return;
+        channel.WriteMute(muted);
+        channel.IsMuted = channel.ReadMute?.Invoke() ?? muted;
+    }
 }

@@ -33,7 +33,7 @@ FluentControl 是一款面向 Windows 的设备聚合控制工具。把分散在
 - **显示器控制**：在硬件支持时调节亮度、对比度、色温预设、RGB、Gamma、饱和度、显示模式、输入源和屏幕音量等。
 - **跨型号多屏联动**：不同型号也能整体调节；只向支持对应功能和选项的屏幕发送设置，并标明部分支持的情况。
 - **总配置与型号预设**：总配置保存整套设备状态，型号预设保存可复用的单屏参数。更新时保留离线设备参数，修改库中预设不会悄悄改变已有总配置。
-- **声音、麦克风与鼠标**：调节 Windows 音频设备的音量与静音、鼠标速度和指针大小。默认音频设备优先显示，其他活动设备按需展开。
+- **声音、麦克风与鼠标**：调节声音和输入的音量与静音、鼠标速度和指针大小。主分支将音频简化为「音量」「输入」两项，自动跟随 Windows 当前默认选择；虚拟声卡同样通过系统控制，不需要在 FC 中重新选择或绑定。此项简化尚未包含在 v0.3.50 正式安装包中。
 - **桌面面板与快捷操作**：半透明、可移动和缩放；双击解锁，失焦或 Esc 锁定；支持 Win+D 显示桌面、托盘驻留和全局快捷键。
 - **每屏软件菜单与诊断**：通过 FC 屏幕菜单集中调节当前屏幕，采集只读诊断信息，为具体型号适配提供依据。
 - **离线使用与多语言**：本地配置和 JSON 分享文件无需在线账户；支持简体中文、繁體中文、English、日本語、한국어、Deutsch、Français、Español。
@@ -104,7 +104,7 @@ Save a setup for work, gaming or late-night use and recall it when needed. Adjus
 - **Monitor controls**: brightness, contrast, color presets, RGB, gamma, saturation, picture modes, input source, monitor volume and more, where supported by the hardware.
 - **Linked controls across models**: adjust different monitor models together. Settings go only to displays that support the selected feature or option, with partial support clearly indicated.
 - **Global profiles and monitor presets**: save a complete device setup or reusable settings for one monitor model. Updates retain offline device settings; editing a library preset does not silently change existing profile snapshots.
-- **Audio, microphone and mouse**: control Windows endpoint volume and mute, mouse speed and pointer size. Default audio devices appear first; other active devices can be expanded.
+- **Audio, microphone and mouse**: adjust output/input volume and mute, mouse speed and pointer size. On the main branch, audio is simplified to **Volume** and **Input**, following the current Windows defaults, including virtual audio endpoints, without selecting or binding devices in FC. This simplification is not yet included in the v0.3.50 stable installer.
 - **Desktop panel and shortcuts**: a movable, resizable translucent panel, double-click to unlock, blur or Esc to lock, support for Win+D, tray operation and global hotkeys.
 - **Per-display software menu and diagnostics**: adjust a display through the FC on-screen menu and collect read-only diagnostics for model-specific adaptation.
 - **Offline use and eight languages**: local profiles and JSON sharing files need no online account. Available in Simplified Chinese, Traditional Chinese, English, Japanese, Korean, German, French and Spanish.

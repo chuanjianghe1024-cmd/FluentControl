@@ -13,7 +13,7 @@ namespace FluentControl;
 
 public sealed partial class MainWindow : Window
 {
-    private AudioService? audio;
+    private ISystemAudioBackend? audio;
     private MonitorService? monitors;
     private readonly SemaphoreSlim gate = new(1);
     private readonly List<Action> refreshRows = new();
@@ -45,6 +45,7 @@ public sealed partial class MainWindow : Window
         initialized = true;
         Navigation.SelectedItem = Navigation.MenuItems[0];
         identificationTimer.Tick += (_, _) => CloseIdentification();
+        audioRefreshTimer.Tick += async (_, _) => await RefreshSystemAudioAsync();
         ShellRoot.Loaded += async (_, _) =>
         {
             LocalizeUi();
@@ -56,6 +57,7 @@ public sealed partial class MainWindow : Window
         Closed += async (_, _) =>
         {
             closed = true;
+            audioRefreshTimer.Stop();
             CloseMonitorAdaptation();
             ShutdownFeatures();
             generation++;
@@ -101,7 +103,7 @@ public sealed partial class MainWindow : Window
         desktopPanel?.SetUnlocked(false);
         audioChannels = new(); mouseChannels = new(); displayDevices = new();
         refreshRows.Clear();
-        foreach (var panel in new[] { AudioRows, OtherAudioRows, MonitorRows, CombinedRows, MouseRows }) panel.Children.Clear();
+        foreach (var panel in new[] { AudioRows, MonitorRows, CombinedRows, MouseRows }) panel.Children.Clear();
         CloseIdentification();
         ShowStatus(T("正在读取设备…", "Reading devices…"), InfoBarSeverity.Informational);
         await gate.WaitAsync();
@@ -109,13 +111,13 @@ public sealed partial class MainWindow : Window
         {
             var result = await Task.Run(() =>
             {
-                audio?.Dispose(); audio = null;
+                audio?.Dispose(); audio = null; systemAudio = null;
                 monitors?.Dispose(); monitors = null;
                 var errors = new List<string>();
                 var a = new List<ControlChannel>();
                 var m = new List<MonitorDevice>();
                 var mouse = new List<ControlChannel>();
-                if (uiTest) return (a: UiTestData.Audio(), m: UiTestData.Monitors(), mouse: UiTestData.Mouse(), errors);
+                if (uiTest) return (a: LoadSystemAudio(), m: UiTestData.Monitors(), mouse: UiTestData.Mouse(), errors);
                 void ReadDevices(string label, Action read)
                 {
                     var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -126,7 +128,7 @@ public sealed partial class MainWindow : Window
                 // Audio endpoints (including virtual mixers) must not delay
                 // the start of monitor I/O. All workers finish under gate.
                 Parallel.Invoke(new ParallelOptions { MaxDegreeOfParallelism = 3 },
-                    () => ReadDevices(T("音频：", "Audio: "), () => { audio = new AudioService(); a = audio.Enumerate(); }),
+                    () => ReadDevices(T("音频：", "Audio: "), () => a = LoadSystemAudio()),
                     () => ReadDevices(T("显示器：", "Display: "), () =>
                     {
                         monitors = new MonitorService(StartupLog.Write); m = monitors.Enumerate(forceMonitorCapabilities);
@@ -148,11 +150,8 @@ public sealed partial class MainWindow : Window
             RecordMonitorMetadata();
             RenderMonitorControls(version);
             foreach (var channel in result.a)
-                (channel.IsDefaultAudio ? AudioRows : OtherAudioRows).Children.Add(CreateRow(channel, version));
-            if (AudioRows.Children.Count == 0) AudioRows.Children.Add(Empty(T("没有可控制的默认音频设备。可展开其他设备，或检查 Windows 声音设置。", "No controllable default audio devices. Expand other devices or check Windows sound settings.")));
-            var otherCount = result.a.Count(x => !x.IsDefaultAudio);
-            OtherAudioExpander.Header = F("其他音频设备 · {0}", "Other audio devices · {0}", otherCount);
-            OtherAudioExpander.Visibility = otherCount == 0 ? Visibility.Collapsed : Visibility.Visible;
+                AudioRows.Children.Add(CreateRow(channel, version));
+            if (AudioRows.Children.Count == 0) AudioRows.Children.Add(Empty(T("声音服务不可用，请检查 Windows 声音设置。", "Audio service is unavailable. Check Windows sound settings.")));
             foreach (var channel in result.mouse) MouseRows.Children.Add(CreateRow(channel, version));
             if (MouseRows.Children.Count == 0) MouseRows.Children.Add(Empty(T("无法读取鼠标设置，请使用下方 Windows 设置入口。", "Cannot read mouse settings. Open Windows Settings below.")));
             MonitorSummary.Text = F("{0} 台显示器 · M 编号为本应用标记", "{0} displays · M numbers are app labels", displayDevices.Count);
@@ -258,7 +257,13 @@ public sealed partial class MainWindow : Window
             var minimum = values.Min();
             var maximum = values.Max();
             slider.Value = values.Average();
-            number.Text = maximum - minimum > .5 ? T("不同", "Mixed") : Math.Round(slider.Value).ToString(CultureInfo.InvariantCulture) + channel.Unit;
+            slider.IsEnabled = targets.Any(c => c.IsAvailable);
+            number.Text = !slider.IsEnabled ? "—" : maximum - minimum > .5 ? T("不同", "Mixed") : Math.Round(slider.Value).ToString(CultureInfo.InvariantCulture) + channel.Unit;
+            if (group is null)
+            {
+                detail.Text = channel.IsAvailable ? detailText : T("不可用，请检查 Windows 声音设置。", "Unavailable. Check Windows sound settings.");
+                detail.Visibility = detail.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+            }
             if (group is not null) detail.Text = channel.Detail + (maximum - minimum > .5 ? $" · {minimum:0}–{maximum:0}%" : "");
             synchronizing = false;
         }
@@ -300,22 +305,25 @@ public sealed partial class MainWindow : Window
             var toggle = new ToggleButton { Content = new FontIcon { Glyph = "\uE74F", FontSize = 16 }, IsChecked = channel.IsMuted, VerticalAlignment = VerticalAlignment.Center };
             AutomationProperties.SetName(toggle, channel.Name + T(" 静音", " mute"));
             ToolTipService.SetToolTip(toggle, T("静音 / 取消静音", "Mute / unmute"));
-            refreshRows.Add(() => toggle.IsChecked = channel.IsMuted);
+            var muting = false;
+            void SyncMute() { toggle.IsChecked = channel.IsMuted; toggle.IsEnabled = channel.IsAvailable && !muting; }
+            refreshRows.Add(SyncMute); SyncMute();
             toggle.Click += async (_, _) =>
             {
                 var target = toggle.IsChecked == true;
                 var page = notificationContext;
+                muting = true;
                 toggle.IsEnabled = false;
                 await gate.WaitAsync();
                 try
                 {
                     if (version != generation || closed) return;
-                    await Task.Run(() => channel.WriteMute(target));
-                    channel.IsMuted = target; MarkProfileModified();
+                    await Task.Run(() => ControlOperations.SetMute(channel, target));
+                    MarkProfileModified(); SynchronizeValues();
                     if (!closed) ShowStatus(target ? T("设备已静音", "Device muted") : T("设备已取消静音", "Device unmuted"), InfoBarSeverity.Success, page);
                 }
                 catch (Exception ex) { if (!closed) { toggle.IsChecked = channel.IsMuted; ShowStatus(ex.Message, InfoBarSeverity.Error, page); } }
-                finally { gate.Release(); toggle.IsEnabled = true; }
+                finally { gate.Release(); muting = false; SyncMute(); }
             };
             Grid.SetColumn(toggle, 4); grid.Children.Add(toggle);
         }
@@ -381,11 +389,9 @@ public sealed partial class MainWindow : Window
             if (CombinedRows.Visibility != Visibility.Visible) throw new InvalidOperationException("Combined controls not visible.");
             DisplayMode.SelectedIndex = 0;
             Navigation.SelectedItem = Navigation.MenuItems[1];
-            OtherAudioExpander.IsExpanded = true;
-            if (AudioPanel.Visibility != Visibility.Visible || AudioRows.Children.Count != 2 || OtherAudioRows.Children.Count != 1) throw new InvalidOperationException("Default audio filtering failed.");
+            if (AudioPanel.Visibility != Visibility.Visible || AudioRows.Children.Count != 2 || Descendants<Expander>(AudioPanel).Any()) throw new InvalidOperationException("Expected exactly two system audio controls without a device list.");
             Navigation.SelectedItem = Navigation.MenuItems[2];
             if (MousePanel.Visibility != Visibility.Visible || MouseRows.Children.Count != 2) throw new InvalidOperationException("Mouse controls not rendered.");
-            OtherAudioExpander.IsExpanded = false;
             Navigation.SelectedItem = Navigation.MenuItems[0];
             await RunFeatureChecksAsync();
             StartupLog.Write("UI smoke checks passed");

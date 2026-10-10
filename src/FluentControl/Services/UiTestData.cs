@@ -7,11 +7,6 @@ internal static class UiTestData
     internal static MonitorDiagnosticSnapshot CaptureDiagnostics(MonitorDevice device, MonitorDiagnosticSnapshot? baseline,
         CancellationToken token, IProgress<DiagnosticProgress>? progress) => MonitorDiagnostics.Capture(device,
             new(device.CapabilitiesText, baseline is null ? "simulated" : "baseline"), DiagnosticReaders[device], token, progress);
-    private static ControlChannel Channel(string name, string key, double value, bool isDefault = false, string detail = "") => new()
-    {
-        Name = name, DeviceId = name, PropertyKey = key, Value = value, Glyph = "\uE7F4", Detail = detail,
-        IsDefaultAudio = isDefault, Write = _ => { }
-    };
     internal static List<MonitorDevice> Monitors()
     {
         var result = new List<MonitorDevice>();
@@ -40,12 +35,25 @@ internal static class UiTestData
         }
         return result;
     }
-    internal static List<ControlChannel> Audio() => new()
+    internal sealed class AudioBackend : ISystemAudioBackend
     {
-        Channel("默认扬声器", "volume", 50, true, "声音输出 · 默认设备 · 默认通话"),
-        Channel("默认麦克风", "volume", 70, true, "麦克风输入 · 默认设备"),
-        Channel("Voicemeeter 测试设备", "volume", 80)
-    };
+        private readonly Dictionary<SystemAudioTarget, SystemAudioValue> values = new()
+        { [SystemAudioTarget.Output] = new(50, false), [SystemAudioTarget.Input] = new(70, false) };
+        internal bool InputAvailable { get; set; } = true;
+        public event Action? Changed;
+        public SystemAudioValue Read(SystemAudioTarget target)
+        {
+            if (target == SystemAudioTarget.Input && !InputAvailable) throw new IOException("No input");
+            return values[target];
+        }
+        public SystemAudioValue SetVolume(SystemAudioTarget target, double volume)
+        { values[target] = Read(target) with { Volume = volume }; Changed?.Invoke(); return values[target]; }
+        public SystemAudioValue SetMute(SystemAudioTarget target, bool muted)
+        { values[target] = Read(target) with { Muted = muted }; Changed?.Invoke(); return values[target]; }
+        internal void ChangeDefault(SystemAudioTarget target, double volume, bool muted)
+        { values[target] = new(volume, muted); Changed?.Invoke(); }
+        public void Dispose() => Changed = null;
+    }
     internal static List<ControlChannel> Mouse() => new()
     {
         new() { Name = "鼠标速度", PropertyKey = "mouse-speed", Detail = "测试", Glyph = "\uE962", Minimum = 1, Maximum = 20, Unit = "", Value = 10, Write = _ => { } },

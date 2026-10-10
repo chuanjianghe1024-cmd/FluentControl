@@ -249,7 +249,8 @@ internal sealed class DesktopPanelWindow : Window
                     updating = true;
                     var values = item.Targets.Select(x => ControlOperations.DisplayValue(x, item.Linked)).ToArray();
                     slider.Value = values.Average();
-                    number.Text = values.Max() - values.Min() > .5 ? "≠" : Math.Round(slider.Value) + first.Unit;
+                    slider.IsEnabled = item.Targets.Any(c => c.IsAvailable);
+                    number.Text = !slider.IsEnabled ? "—" : values.Max() - values.Min() > .5 ? "≠" : Math.Round(slider.Value) + first.Unit;
                     updating = false;
                 }
                 sync.Add(Update); Update();

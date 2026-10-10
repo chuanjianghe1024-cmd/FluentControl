@@ -42,6 +42,7 @@ public sealed class ControlProfile
 public sealed class UserState
 {
     public int ProfileOrganizationVersion { get; set; }
+    public int SystemAudioVersion { get; set; }
     public List<MonitorPreset> MonitorPresets { get; set; } = new();
     public Dictionary<string, string> ActiveMonitorPresets { get; set; } = new();
     public AppSettings Settings { get; set; } = new();
@@ -70,6 +71,16 @@ public sealed class UserStateStore
         }
         else MonitorPresetLibrary.Migrate(State);
         State.Settings.DesktopRows ??= new();
+        if (State.SystemAudioVersion < 1)
+        {
+            var backup = path + ".before-system-audio-v1.bak";
+            if (File.Exists(path) && !File.Exists(backup)) File.Copy(path, backup, false);
+            SystemAudioControls.MigrateDesktopRows(State.Settings);
+            // Preserve old profile entries as inactive data. Their input/output
+            // roles cannot be inferred reliably from opaque endpoint IDs.
+            State.SystemAudioVersion = 1;
+            Save();
+        }
         State.Settings.DesktopMaxRows = Math.Clamp(State.Settings.DesktopMaxRows, 1, 16);
         State.Settings.DesktopOpacity = double.IsFinite(State.Settings.DesktopOpacity) ? Math.Clamp(State.Settings.DesktopOpacity, 10, 85) : 30;
         State.Settings.DesktopWidth = double.IsFinite(State.Settings.DesktopWidth) ? Math.Clamp(State.Settings.DesktopWidth, 280, 900) : 340;
