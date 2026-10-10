@@ -69,10 +69,14 @@ internal static class PanelDiagnostics
             if (hitRoot != panel.Handle) throw new InvalidOperationException("The locked panel is hidden behind another window or wallpaper.");
             await ClickAsync(click, false);
             if (panel.IsUnlocked || IsAbove(panel.Handle, backgroundHandle)) throw new InvalidOperationException("A single click raised the locked panel.");
+            // Keep the preceding single click out of both double-click recognizers.
+            await Task.Delay((int)ShellIntegration.DoubleClickMilliseconds + 25);
             await ClickAsync(click, true);
-            if (!panel.IsUnlocked) throw new InvalidOperationException("A locked bottom-layer panel cannot unlock by double-click.");
-            panel.SetUnlocked(false);
-            StartupLog.Write("PASS: locked panel rejects activation/promotion; double-click still unlocks.");
+            VerifyUnlockForeground(panel);
+            if (!IsAbove(panel.Handle, backgroundHandle)) throw new InvalidOperationException("Double-click unlocked the panel without raising it above the overlapping window.");
+            background.Activate(); await Task.Delay(100);
+            if (panel.IsUnlocked || IsAbove(panel.Handle, backgroundHandle)) throw new InvalidOperationException("Panel did not relock and lower after losing foreground focus.");
+            StartupLog.Write("PASS: single click stays locked; double-click immediately activates and raises the panel; blur relocks and lowers it.");
             await VerifyShowDesktopAsync(panel, background);
         }
         finally
@@ -105,6 +109,15 @@ internal static class PanelDiagnostics
                 StartupLog.Write("Desktop layer state: " + panel.LayerDiagnosticState);
                 if (hit != panel.Handle)
                     throw new InvalidOperationException("Show Desktop covered the panel with Explorer's desktop.");
+                if (i == 0)
+                {
+                    await ClickAsync(point, true);
+                    // Cover the desktop recovery timer as well as the click itself.
+                    await Task.Delay(250);
+                    VerifyUnlockForeground(panel);
+                    panel.SetUnlocked(false);
+                    StartupLog.Write("PASS: double-click during Show Desktop activates without a third click or delayed relock.");
+                }
                 shellType.InvokeMember("ToggleDesktop", System.Reflection.BindingFlags.InvokeMethod, null, shell, null); toggled = false;
                 await Task.Delay(350); background.Activate(); await Task.Delay(100);
                 if (((long)GetWindowLongPtr(panel.Handle, -20) & 8) != 0 || IsAbove(panel.Handle, WinRT.Interop.WindowNative.GetWindowHandle(background)))
@@ -123,6 +136,11 @@ internal static class PanelDiagnostics
         for (var window = GetTopWindow(0); window != 0; window = GetWindow(window, 2))
         { if (window == first) return true; if (window == second) return false; }
         throw new InvalidOperationException("Test window missing from Z order.");
+    }
+    private static void VerifyUnlockForeground(DesktopPanelWindow panel)
+    {
+        if (!panel.IsUnlocked || GetForegroundWindow() != panel.Handle || ((long)GetWindowLongPtr(panel.Handle, -20) & (8 | 0x08000000)) != 0)
+            throw new InvalidOperationException($"Double-click must unlock and foreground the normal panel immediately: foreground={GetForegroundWindow()}, panel={panel.Handle}, {panel.LayerDiagnosticState}");
     }
     private static async Task ClickAsync(Point point, bool twice)
     {

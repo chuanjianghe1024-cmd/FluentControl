@@ -28,7 +28,10 @@ try {
         $recovery = Start-Process -FilePath (Join-Path $directory 'FluentControl.exe') -WorkingDirectory $directory -PassThru
         if (-not $recovery.WaitForExit(10000)) { throw 'Second launch did not exit after signaling the existing instance.' }
     }
-    $deadline = (Get-Date).AddSeconds(30)
+    # UI mode runs the complete hardware-fixture, audio, real-pointer and shell
+    # regression suite after startup. Keep the normal startup gate at 30 seconds.
+    $timeoutSeconds = if ($UiTest) { 60 } else { 30 }
+    $deadline = (Get-Date).AddSeconds($timeoutSeconds)
     $ready = $false
     while ((Get-Date) -lt $deadline) {
         Start-Sleep -Milliseconds 500
@@ -44,7 +47,7 @@ try {
             }
         }
     }
-    if (-not $ready) { throw "FluentControl did not display its main window within 30 seconds." }
+    if (-not $ready) { throw "FluentControl did not complete startup$(if ($UiTest) { ' and UI regression checks' }) within $timeoutSeconds seconds." }
     Start-Sleep -Seconds 3
     $process.Refresh()
     if ($process.HasExited) { throw "FluentControl crashed after showing the window." }

@@ -16,6 +16,7 @@ internal sealed class DesktopLayer : IDisposable
     private const uint PlacementFlags = 0x613; // NOSIZE | NOMOVE | NOACTIVATE | NOOWNERZORDER | NOSENDCHANGING
     private bool locked = true, disposed, placing, recoveryQueued, desktopBoosted, showDesktop;
     private int timerTicks;
+    private long unlockGeneration;
     private long firstBoostStyle, anchorStyle;
     private nint boostAnchor;
     private bool firstBoostOk, anchorOk;
@@ -39,7 +40,18 @@ internal sealed class DesktopLayer : IDisposable
         locked = value;
         ShellIntegration.ToolWindow(window, value);
         if (value) Lower();
-        else RemoveDesktopBoost();
+        else { unlockGeneration++; RemoveDesktopBoost(); }
+    }
+    internal void BringUnlockedToForeground()
+    {
+        if (locked || disposed) return;
+        // Called synchronously from the user's unlock gesture, while this process
+        // owns the input. HWND_TOP raises a normal window without making it topmost.
+        SetForegroundWindow(window);
+        if (locked || disposed) return;
+        placing = true;
+        try { SetWindowPos(window, 0, 0, 0, 0, 0, PlacementFlags); }
+        finally { placing = false; }
     }
     internal void Lower()
     {
@@ -119,7 +131,10 @@ internal sealed class DesktopLayer : IDisposable
                 {
                     // Explorer/WinUI may finish restoring styles after focus loss.
                     // Repair a lost band as well as detecting entry into Show Desktop.
-                    if (!showDesktop || !locked || ((long)GetWindowLongPtr(window, -20) & 8) == 0 || IsIconic(window)) QueueRecovery();
+                    // A user may unlock the panel while Show Desktop is active.
+                    // Keep that explicit foreground choice until focus is lost.
+                    if ((locked || GetForegroundWindow() != window) &&
+                        (!showDesktop || !locked || ((long)GetWindowLongPtr(window, -20) & 8) == 0 || IsIconic(window))) QueueRecovery();
                 }
                 else if (showDesktop || desktopBoosted)
                 {
@@ -149,17 +164,19 @@ internal sealed class DesktopLayer : IDisposable
         if (disposed) return;
         if (kind is 0x16 or 0x17 && hwnd == window) { QueueRecovery(); return; }
         if (kind != 3 || hwnd == 0) return;
-        if (IsDesktop(hwnd)) QueueRecovery();
+        if (IsDesktop(hwnd) && GetForegroundWindow() == hwnd) QueueRecovery();
         else if (locked) dispatch(() => { if (!disposed && locked) { Lower(); _ = RecheckDesktopAsync(); } });
     }
     private void QueueRecovery()
     {
         if (disposed || recoveryQueued) return;
         recoveryQueued = true;
+        var generation = unlockGeneration;
         if (!dispatch(() =>
         {
             recoveryQueued = false;
-            if (disposed) return;
+            // An older shell recovery must not undo a newer double-click unlock.
+            if (disposed || generation != unlockGeneration) return;
             lockPanel();
             if (IsIconic(window)) ShowWindow(window, 4); // SW_SHOWNOACTIVATE; never take focus
             if (IsWindowVisible(window)) Lower();
@@ -189,6 +206,7 @@ internal sealed class DesktopLayer : IDisposable
     [DllImport("user32.dll")] private static extern bool UnhookWinEvent(nint hook);
     [DllImport("user32.dll")] private static extern bool IsIconic(nint hwnd);
     [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(nint hwnd);
     [DllImport("user32.dll")] private static extern nint GetShellWindow();
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hwnd, out uint process);
     [DllImport("user32.dll")] private static extern nuint SetTimer(nint hwnd, nuint id, uint milliseconds, nint callback);

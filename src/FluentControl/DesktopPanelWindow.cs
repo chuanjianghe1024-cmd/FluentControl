@@ -102,7 +102,7 @@ internal sealed class DesktopPanelWindow : Window
             lastPointer = now;
             ApplyGeometryDelta(resizing, now.X - pointerStart.X, now.Y - pointerStart.Y);
         };
-        shield.DoubleTapped += (_, e) => { e.Handled = true; SetUnlocked(true); };
+        shield.DoubleTapped += (_, e) => { e.Handled = true; if (!active) SetUnlocked(true); };
         shield.PointerPressed += (_, e) =>
         {
             if (!e.GetCurrentPoint(shield).Properties.IsLeftButtonPressed || active) return;
@@ -176,10 +176,18 @@ internal sealed class DesktopPanelWindow : Window
     internal void SetUnlocked(bool value)
     {
         if (closing) return;
+        previousPress = 0;
         active = value; shield.Visibility = value ? Visibility.Collapsed : Visibility.Visible; body.IsHitTestVisible = value;
         layer.SetLocked(!value);
         hint.Text = value ? Strings.T("已解锁 · Esc 锁定", "Unlocked · Esc to lock") : Strings.T("双击解锁", "Double-click to unlock");
-        if (value) { Activate(); (body.Children[0] as Grid)?.Children.OfType<Button>().FirstOrDefault(b => b.IsEnabled)?.Focus(FocusState.Programmatic); }
+        if (value)
+        {
+            Activate();
+            // The second press was received under MA_NOACTIVATE. Complete its
+            // foreground/Z-order transition now; do not wait for a third click.
+            layer.BringUnlockedToForeground();
+            (body.Children[0] as Grid)?.Children.OfType<Button>().FirstOrDefault(b => b.IsEnabled)?.Focus(FocusState.Programmatic);
+        }
     }
     internal void UpdateRows(IReadOnlyList<PanelRow> source, AppSettings settings, Func<IReadOnlyList<ControlChannel>, double, bool, Task> apply)
     {
