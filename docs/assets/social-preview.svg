@@ -28,5 +28,5 @@
     <text x="72" y="593" fill="#6988aa" font-size="16">github.com/chuanjianghe1024-cmd/FluentControl</text>
     <text x="1198" y="593" text-anchor="end" fill="#83b4e7" font-size="16">Less switching. More control.</text>
   </g>
-  <image x="836" y="116" width="404" height="404" xlink:href="../../src/FluentControl/Assets/FluentControl.png"/>
+  <image x="836" y="116" width="404" height="404" xlink:href="app-icon.png"/>
 </svg>
