@@ -226,8 +226,11 @@ public sealed partial class MainWindow
             if (command.DisablesEvents && !canDisableEvents) throw new InvalidOperationException("MCCS 2.2 required.");
             var menuContext = (string)((ComboBoxItem)context.SelectedItem).Tag; var allowReuse = reuse.IsChecked == true;
             var trial = await Task.Run(() => engine.Send(command, session.Id, menuContext, allowReuse, token));
-            profile.Trials.Add(trial); SaveLocal(); // Keep a completed write even when the window closes.
-            if (Active()) { ReloadLists(); ShowTrial(trial); details.StartBringIntoView(); status.Text = T("已记录发送结果。勾选实际动作，再选择成功或失败。", "Send result recorded. Select the observed actions, then choose success or failure."); }
+            profile.Trials.Add(trial);
+            // Display the current write even if saving fails; never leave an older trial selected.
+            if (Active()) { ReloadLists(); ShowTrial(trial); details.StartBringIntoView(); }
+            SaveLocal(); // Keep a completed write even when the window closes.
+            if (Active()) status.Text = T("已记录发送结果。勾选实际动作，再选择成功或失败。", "Send result recorded. Select the observed actions, then choose success or failure.");
         }
         void RequestSend(OsdCommand command)
         {

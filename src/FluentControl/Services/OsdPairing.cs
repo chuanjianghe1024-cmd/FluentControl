@@ -281,7 +281,7 @@ public sealed class OsdPairingSession
         {
             foreach (var code in new byte[] { 0x02, 0x52, 0x03 })
             {
-                if (token.IsCancellationRequested) break;
+                if (token.IsCancellationRequested || result.Samples.Count >= 96) break;
                 if (failures.GetValueOrDefault(code) >= 2) continue;
                 var sample = Read(code); result.Samples.Add(sample);
                 if (!sample.Succeeded) failures[code] = failures.GetValueOrDefault(code) + 1;
