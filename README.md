@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="src/FluentControl/Assets/FluentControl.png" width="88" height="88" alt="FluentControl" />
-</p>
+![FluentControl — Windows DDC/CI monitor brightness, system audio, mouse and desktop controls](docs/assets/social-preview.png)
 
 # FluentControl · 聚合控制
 
@@ -9,13 +7,17 @@
 
 Windows 11 风格 · Windows x64 · 离线 MSI 安装 · 8 种界面语言
 
+[![Latest release](https://img.shields.io/github/v/release/chuanjianghe1024-cmd/FluentControl)](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)
+[![Windows build](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/workflows/build.yml/badge.svg)](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/workflows/build.yml)
+[![Downloads](https://img.shields.io/github/downloads/chuanjianghe1024-cmd/FluentControl/total)](https://github.com/chuanjianghe1024-cmd/FluentControl/releases)
+
 [简体中文](#zh-cn) · [English](#en) · [下载 / Download](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · [更新记录 / Changelog](CHANGELOG.md) · [反馈 / Issues](https://github.com/chuanjianghe1024-cmd/FluentControl/issues)
 
 <a id="zh-cn"></a>
 
 ## 让桌面设备跟上你的使用场景
 
-FluentControl 是一款面向 Windows 的设备聚合控制工具。把分散在显示器实体按键、系统声音设置和鼠标设置中的常用调节，放进统一的 Fluent 风格界面。
+FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控制工具**，同时提供系统音量、输入和鼠标调节。把分散在显示器实体按键、系统声音设置和鼠标设置中的常用操作，放进统一的 Fluent 风格界面。
 
 从办公切换到游戏、从白天切换到夜间，保存一套配置后就能再次调用。多台显示器可以一起调，也可以分别调；常用控制还能留在桌面上，减少反复打开窗口和寻找菜单的操作。
 
@@ -36,11 +38,12 @@ FluentControl 是一款面向 Windows 的设备聚合控制工具。把分散在
 - **声音、麦克风与鼠标**：调节声音和输入的音量与静音、鼠标速度和指针大小。音频简化为「音量」「输入」两项，自动跟随 Windows 当前默认选择；虚拟声卡同样通过系统控制，不需要在 FC 中重新选择或绑定。
 - **桌面面板与快捷操作**：半透明、可移动和缩放；双击立即解锁并前置，失焦或 Esc 锁定；支持 Win+D 显示桌面、托盘驻留和全局快捷键。
 - **每屏软件菜单与诊断**：通过 FC 屏幕菜单集中调节当前屏幕，采集只读诊断信息，为具体型号适配提供依据。
+- **手动更新与分类设置**：设置按常规、显示器、快捷键、桌面面板、准星、关于与更新分类；主动检查 GitHub 正式版，下载校验后自行选择安装。
 - **离线使用与多语言**：本地配置和 JSON 分享文件无需在线账户；支持简体中文、繁體中文、English、日本語、한국어、Deutsch、Français、Español。
 
 ### 下载与开始使用
 
-**[下载最新正式版 MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · 当前正式版 **v0.3.57** · [版本说明](docs/releases/v0.3.57.md)
+**[下载最新正式版 MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · 当前正式版 **v0.3.60** · [版本说明](docs/releases/v0.3.60.md)
 
 1. 下载并安装 MSI，从开始菜单打开 FluentControl。安装包包含所需运行库，可离线安装，无需管理员权限。
 2. 在外接显示器的实体菜单中开启 **DDC/CI**，连接后读取设备。
@@ -86,7 +89,7 @@ FluentControl 是一款面向 Windows 的设备聚合控制工具。把分散在
 
 ## Make your desktop fit what you are doing
 
-FluentControl brings everyday display, audio, microphone and mouse controls into one Windows app with a Fluent-style interface.
+FluentControl is a **Windows DDC/CI monitor brightness and multi-monitor control app** with system volume, input and mouse controls in one Fluent-style interface.
 
 Save a setup for work, gaming or late-night use and recall it when needed. Adjust multiple displays together or individually, and keep frequent controls on a translucent desktop panel.
 
@@ -107,11 +110,12 @@ Save a setup for work, gaming or late-night use and recall it when needed. Adjus
 - **Audio, microphone and mouse**: adjust output/input volume and mute, mouse speed and pointer size. Audio is simplified to **Volume** and **Input**, following the current Windows defaults, including virtual audio endpoints, without selecting or binding devices in FC.
 - **Desktop panel and shortcuts**: a movable, resizable translucent panel, double-click to unlock and immediately bring it forward, blur or Esc to lock, support for Win+D, tray operation and global hotkeys.
 - **Per-display software menu and diagnostics**: adjust a display through the FC on-screen menu and collect read-only diagnostics for model-specific adaptation.
+- **Manual updates and organized settings**: browse General, Displays, Shortcuts, Desktop controls, Crosshair, and About & updates. Check GitHub stable releases on demand, verify the download, and choose when to install.
 - **Offline use and eight languages**: local profiles and JSON sharing files need no online account. Available in Simplified Chinese, Traditional Chinese, English, Japanese, Korean, German, French and Spanish.
 
 ### Download and get started
 
-**[Download the latest stable MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · Current stable release: **v0.3.57** · [Release notes](docs/releases/v0.3.57.md)
+**[Download the latest stable MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · Current stable release: **v0.3.60** · [Release notes](docs/releases/v0.3.60.md)
 
 1. Install the MSI and open FluentControl from the Start menu. Required runtimes are included; installation works offline without administrator privileges.
 2. Enable **DDC/CI** in your external monitor's physical menu, then let the app read your devices.

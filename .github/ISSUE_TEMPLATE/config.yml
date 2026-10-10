@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 下载与发布说明 / Downloads and release notes
+    url: https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest
+    about: 查看最新正式版及更新内容 / Find the latest stable installer and changes

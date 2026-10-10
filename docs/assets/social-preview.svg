@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1280" height="640" viewBox="0 0 1280 640">
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#071424"/><stop offset="1" stop-color="#10294d"/></linearGradient>
+    <radialGradient id="halo"><stop stop-color="#096ee8" stop-opacity=".55"/><stop offset="1" stop-color="#096ee8" stop-opacity="0"/></radialGradient>
+    <linearGradient id="line"><stop stop-color="#62e8ff"/><stop offset="1" stop-color="#3185ff"/></linearGradient>
+  </defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <circle cx="1070" cy="290" r="330" fill="url(#halo)"/>
+  <g fill="none" stroke="#4778aa" stroke-opacity=".15">
+    <circle cx="1040" cy="318" r="245"/><circle cx="1040" cy="318" r="280"/>
+    <path d="M780 0v640M0 550h1280"/>
+  </g>
+  <rect x="72" y="85" width="48" height="5" rx="2.5" fill="url(#line)"/>
+  <g font-family="DejaVu Sans,Segoe UI,sans-serif">
+    <text x="72" y="137" fill="#87b7df" font-size="17" letter-spacing="3">WINDOWS DESKTOP CONTROL</text>
+    <text x="66" y="240" fill="#f6fbff" font-size="78" font-weight="bold" letter-spacing="-3">FluentControl</text>
+    <text x="72" y="303" fill="#e4f1ff" font-size="30">Your desktop. One control panel.</text>
+    <text x="72" y="351" fill="#9cbad9" font-size="22">Displays, system audio and mouse.</text>
+    <g font-size="15" fill="#cbe7ff">
+      <rect x="72" y="409" width="113" height="38" rx="19" fill="#173759" stroke="#2b547f"/>
+      <text x="94" y="434">DDC/CI</text>
+      <rect x="198" y="409" width="132" height="38" rx="19" fill="#173759" stroke="#2b547f"/>
+      <text x="220" y="434">PROFILES</text>
+      <rect x="343" y="409" width="200" height="38" rx="19" fill="#173759" stroke="#2b547f"/>
+      <text x="365" y="434">DESKTOP WIDGET</text>
+    </g>
+    <text x="72" y="506" fill="#819fbd" font-size="18">Windows x64 · Offline MSI · 8 languages</text>
+    <text x="72" y="593" fill="#6988aa" font-size="16">github.com/chuanjianghe1024-cmd/FluentControl</text>
+    <text x="1198" y="593" text-anchor="end" fill="#83b4e7" font-size="16">Less switching. More control.</text>
+  </g>
+  <image x="836" y="116" width="404" height="404" xlink:href="../../src/FluentControl/Assets/FluentControl.png"/>
+</svg>

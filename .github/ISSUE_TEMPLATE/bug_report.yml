@@ -1,0 +1,27 @@
+name: 问题反馈 / Bug report
+description: 报告控制、界面、更新或安装问题 / Report a control, UI, update or installation issue
+body:
+  - type: input
+    id: version
+    attributes:
+      label: 软件版本 / App version
+      description: 设置 → 关于与更新 / Settings → About & updates
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤与实际结果 / Steps and actual result
+      placeholder: 预期发生什么？实际发生什么？ / What did you expect, and what happened?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境 / Environment
+      description: Windows 版本、屏幕缩放；显示器问题请附型号、固件、连接方式与 HDR 状态。 / Windows version and scaling; for monitor issues, include model, firmware, connection and HDR state.
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: 日志或截图 / Logs or screenshots
+      description: 可选。提交前删除序列号、本机路径等个人信息。 / Optional. Remove serial numbers, local paths and other personal information before posting.

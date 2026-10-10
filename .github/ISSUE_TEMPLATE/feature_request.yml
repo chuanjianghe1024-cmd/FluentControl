@@ -1,0 +1,14 @@
+name: 功能建议 / Feature request
+description: 描述希望解决的实际使用问题 / Describe the problem you want to solve
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你想解决什么问题？ / What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: 期望的操作体验 / Expected experience
+      description: 可描述使用场景、操作步骤或参考示例。 / Describe a use case, workflow or example.

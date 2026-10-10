@@ -151,6 +151,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 ### 已完成的基础
 
+- 正式版本 `v0.3.60`：六个设置子菜单、手动检查官方 GitHub 正式版本、校验下载与用户选择后启动 MSI；README 品牌图、下载状态及问题反馈模板已完善。仓库 About / Social preview 设置需单独应用，不能与已提交素材混淆。
 - 正式版本 `v0.3.57`：在 v0.3.50 的多屏控制、总配置、型号预设库、软件 OSD、适配框架及桌面快捷操作基础上，加入两个系统音频控制、通知同步与旧配置迁移，以及桌面双击立即前置。
 - v0.3.50 之后的 OSD 状态展示、色温/场景模式回读校验和日志、无预设的已连接型号分组，以及 DDC/CI 音量说明也收入 v0.3.57；旧 Release 的附件和功能说明保持原版本边界。
 - Windows CI 覆盖控制逻辑、原生接口、模拟设备界面、Win+D、托盘、MSI 安装/升级/卸载和配置保留。不能将这些结果写成真实 HKC、实体 4K / 150% 或混合 DPI 多屏已经验证。
@@ -202,3 +203,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 | [ddc-toolkit](https://github.com/andres-valencia/ddc-toolkit) | Lenovo R45w-30 的映射记录、单项实体调整前后对比方法 | 仅借鉴有证据的研究流程；保留 FC 不探测未知私有码、不自动生成写权限的限制 |
 
 引用外部实现时记录来源、适用型号、固件和验证状态；引入代码或数据前核对对应版本的许可证。工程文档中的参考列表不代表运行时依赖或已经集成的功能。
+
+## 仓库展示
+
+仓库简介、主页、Topics 的期望值在 `.github/repository-metadata.json`；分享图与可编辑源在 `docs/assets/`，操作与实际应用边界见 `docs/repository-presentation.md`。提交素材不等于 GitHub About 或 Social preview 已生效，必须读取页面核验；网站未部署前下载主页使用正式 Release 链接，不擅自补许可证或承诺搜索排名。
