@@ -1,4 +1,4 @@
 <WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="zh-CN" Codepage="936">
-  <String Id="WelcomeDlgDescription" Value="安装到当前用户，无需另外下载运行库。&#13;&#10;&#13;&#10;安装前请从托盘菜单退出旧版本。已有显示器配置会保留。" />
+  <String Id="WelcomeDlgDescription" Value="安装到当前用户，无需另外下载运行库。接下来可选择安装目录和开机启动。&#13;&#10;&#13;&#10;安装前请从托盘菜单退出旧版本。已有显示器配置会保留。" />
   <String Id="VerifyReadyDlgInstallText" Value="单击“安装”将 FluentControl 安装到：&#13;&#10;[INSTALLFOLDER]&#13;&#10;&#13;&#10;可在 Windows 设置中卸载，卸载时保留个人配置。" />
 </WixLocalization>

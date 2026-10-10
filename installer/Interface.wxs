@@ -6,6 +6,9 @@
       <TextStyle Id="WixUI_Font_Bigger" FaceName="Segoe UI" Size="12" />
       <TextStyle Id="WixUI_Font_Title" FaceName="Segoe UI" Size="9" Bold="yes" />
       <Property Id="DefaultUIFont" Value="WixUI_Font_Normal" />
+      <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+      <DialogRef Id="BrowseDlg" />
+      <DialogRef Id="InvalidDirDlg" />
       <DialogRef Id="ErrorDlg" />
       <DialogRef Id="FatalError" />
       <DialogRef Id="FilesInUse" />
@@ -15,15 +18,46 @@
       <DialogRef Id="ResumeDlg" />
       <DialogRef Id="UserExit" />
       <DialogRef Id="WelcomeDlg" />
-      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" />
-      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Condition="NOT Installed OR PATCH" />
+      <Dialog Id="InstallOptionsDlg" Width="370" Height="270" Title="FluentControl 安装">
+        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="20" Text="{\WixUI_Font_Bigger}安装选项" />
+        <Control Id="Description" Type="Text" X="20" Y="42" Width="330" Height="24" Text="安装到当前用户。请选择有写入权限的本地文件夹。" />
+        <Control Id="FolderLabel" Type="Text" X="20" Y="77" Width="320" Height="14" Text="安装目录：" />
+        <Control Id="Folder" Type="PathEdit" X="20" Y="96" Width="264" Height="20" Property="WIXUI_INSTALLDIR" Indirect="yes" DisableCondition="PREVIOUSINSTALLFOLDER" />
+        <Control Id="Browse" Type="PushButton" X="292" Y="97" Width="58" Height="18" Text="浏览..." DisableCondition="PREVIOUSINSTALLFOLDER">
+          <Publish Property="_BrowseProperty" Value="INSTALLFOLDER" Order="1" />
+          <Publish Event="SpawnDialog" Value="BrowseDlg" Order="2" />
+        </Control>
+        <Control Id="UpgradeHint" Type="Text" X="20" Y="124" Width="330" Height="30" Hidden="yes" ShowCondition="PREVIOUSINSTALLFOLDER" Text="升级沿用原安装目录。如需迁移，请先卸载再重新安装；个人配置会保留。" />
+        <Control Id="Startup" Type="CheckBox" X="20" Y="165" Width="330" Height="20" Property="START_WITH_WINDOWS" CheckBoxValue="1" Text="随 Windows 启动 FluentControl" />
+        <Control Id="StartupHint" Type="Text" X="34" Y="192" Width="316" Height="26" Text="登录后在托盘运行。之后也可在应用的常规设置中更改。" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.WixUIBack)">
+          <Publish Event="NewDialog" Value="WelcomeDlg" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)">
+          <Publish Event="SetTargetPath" Value="INSTALLFOLDER" Order="1" />
+          <Publish Event="DoAction" Value="WixUIValidatePath_X64" Order="2" />
+          <Publish Event="SpawnDialog" Value="InvalidDirDlg" Order="3" Condition="WIXUI_INSTALLDIR_VALID &lt;&gt; &quot;1&quot;" />
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" Order="4" Condition="WIXUI_INSTALLDIR_VALID = &quot;1&quot;" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallOptionsDlg" Condition="NOT Installed" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Condition="Installed AND PATCH" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="InstallOptionsDlg" Condition="NOT Installed" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Condition="Installed AND PATCH" />
       <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="MaintenanceTypeDlg" Condition="Installed AND NOT PATCH" />
       <Publish Dialog="MaintenanceWelcomeDlg" Control="Next" Event="NewDialog" Value="MaintenanceTypeDlg" />
       <Publish Dialog="MaintenanceTypeDlg" Control="RepairButton" Event="NewDialog" Value="VerifyReadyDlg" />
       <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog" Value="VerifyReadyDlg" />
       <Publish Dialog="MaintenanceTypeDlg" Control="Back" Event="NewDialog" Value="MaintenanceWelcomeDlg" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchFluentControl" Order="1"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = &quot;1&quot; AND NOT Installed AND NOT REMOVE AND UILevel = 5 AND NOT REBOOTATEND" />
       <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999" />
     </UI>
     <UIRef Id="WixUI_Common" />
+    <CustomActionRef Id="WixUIValidatePath_X64" />
   </Fragment>
 </Wix>

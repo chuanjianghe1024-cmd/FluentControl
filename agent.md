@@ -109,6 +109,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 - 保留 WinUI XAML/PRI、嵌入本地化资源和必要反射支持；不能为缩包随意删除 DLL 或启用未经验证的裁剪。更改依赖后使用干净 publish 目录。
 - MSI 使用 WiX 5、当前用户安装、稳定 UpgradeCode/组件身份和既有数据目录。publish 与 MSI 使用同一个版本号；不要破坏升级或删除用户配置。
+- 安装向导允许新安装选择目录；升级从 HKCU 登记恢复并锁定原目录，不能移动共享的稳定组件。开机启动复用应用的当前用户 `FluentControl.lnk` 与 `--background`，以实际启动项预选，不按旧安装标记恢复；新安装默认关闭。完成页的立即启动只由成功后的“完成”按钮触发，静默、修复、卸载、取消及需要重启时不能启动。回归入口 `tests/installer/InstallerWizardFixture.cs` / `scripts/Test-Msi.ps1`。
 - `.github/workflows/build.yml` 先完成全部 Windows 检查再上传安装包；版本为 `0.3.<run_number>`。
 - 正式发布通过 `.github/release.json` 指定成功构建及确切安装包，工作流校验来源和 SHA-256 后发布。标签指向该安装包的源码提交，不因文档更新改指向其他构建。
 - 已发布标签和附件不能移动或替换；修复用新版本。签名状态如实记录，域名、Manufacturer 和文件摘要不等于 Authenticode 签名。

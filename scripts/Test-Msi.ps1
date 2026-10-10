@@ -9,7 +9,8 @@ $probe = $null
 try {
     $logs = Join-Path $root 'artifacts/msi-logs'
     New-Item $logs -ItemType Directory -Force | Out-Null
-    $target = Join-Path $env:LOCALAPPDATA 'Programs/FluentControl'
+    $defaultTarget = Join-Path $env:LOCALAPPDATA 'Programs/FluentControl'
+    $target = Join-Path $env:LOCALAPPDATA 'FC installer checks/自定义 安装/FluentControl'
     $shortcut = Join-Path ([Environment]::GetFolderPath('Programs')) 'FluentControl.lnk'
     $startup = Join-Path ([Environment]::GetFolderPath('Startup')) 'FluentControl.lnk'
     $data = Join-Path $env:LOCALAPPDATA 'FluentControl'
@@ -48,6 +49,30 @@ try {
     }
     function AssertRetained {
         if ((Get-Content $sentinel -Raw).Trim() -ne $marker) { throw 'User data was removed/changed.' }
+    }
+    function AssertStartup([bool]$enabled) {
+        if ((Test-Path $startup) -ne $enabled) { throw "Startup link presence does not match the chosen option: $enabled." }
+        if ($enabled) {
+            $shell = New-Object -ComObject WScript.Shell
+            try {
+                $link = $shell.CreateShortcut($startup)
+                if ($link.TargetPath -ne (Join-Path $target 'FluentControl.exe') -or $link.Arguments -ne '--background') {
+                    throw 'Startup must use the selected executable and background mode.'
+                }
+                [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($link)
+            }
+            finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) }
+        }
+    }
+    function AssertNoApp {
+        if (Get-Process FluentControl -ErrorAction SilentlyContinue) { throw 'A silent installation or unchecked Finish started the application.' }
+    }
+    function RunWizard([string]$mode, [string]$initialStartup, [string]$finalStartup, [string]$launch) {
+        $report = Join-Path $logs "wizard-$mode"
+        & $wizard $current $target $report $mode $initialStartup $finalStartup $launch
+        if ($LASTEXITCODE -ne 0) { throw "Real installer wizard failed: $mode. See $report.log and screenshots." }
+        AssertStartup ($finalStartup -eq '1')
+        AssertRetained
     }
     function AssertProduct([string]$code, [bool]$present, [string]$expectedVersion = '') {
         # Windows Installer owns registration context/registry-view details.
@@ -95,6 +120,10 @@ try {
     $fixtureSource = (Resolve-Path 'tests/installer/InstallerLockFixture.cs').Path
     & $compiler /nologo /target:winexe /platform:x64 "/out:$fixture" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll $fixtureSource
     if ($LASTEXITCODE -ne 0) { throw 'Installer lock fixture compilation failed.' }
+    $wizard = Join-Path $fixtureDirectory 'InstallerWizardFixture.exe'
+    $framework = Split-Path $compiler -Parent
+    & $compiler /nologo /target:exe /platform:x64 "/out:$wizard" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll "/reference:$framework/WPF/UIAutomationClient.dll" "/reference:$framework/WPF/UIAutomationTypes.dll" "/reference:$framework/WPF/WindowsBase.dll" 'tests/installer/InstallerWizardFixture.cs'
+    if ($LASTEXITCODE -ne 0) { throw 'Installer wizard fixture compilation failed.' }
     # The older fixture has a lower-version executable and unchanged runtimes.
     # This verifies real file replacement as well as reuse of stable components;
     # the old executable is a test stub and is never launched as the application.
@@ -128,10 +157,13 @@ try {
     $oldCode = [Guid]::Parse((MsiProperty $old 'ProductCode')).ToString('B').ToUpperInvariant()
     $currentCode = [Guid]::Parse((MsiProperty $current 'ProductCode')).ToString('B').ToUpperInvariant()
     if ($oldCode -eq $currentCode) { throw 'Major upgrade packages must have different ProductCodes.' }
-    RunMsi "/i `"$old`"" 'install'
+    RunMsi "/i `"$old`" INSTALLFOLDER=`"$target`"" 'install'
     $installed = $oldCode
     AssertProduct $oldCode $true '0.0.1'
     if (-not (Test-Path "$target/FluentControl.exe")) { throw 'The per-user installation path is incorrect.' }
+    if (Test-Path "$defaultTarget/FluentControl.exe") { throw 'Custom install unexpectedly created a default-directory copy.' }
+    AssertStartup $false
+    AssertNoApp
     if ([Diagnostics.FileVersionInfo]::GetVersionInfo("$target/FluentControl.exe").FileVersion -ne '0.0.1.0') {
         throw 'The old fixture must install a genuinely lower-version executable.'
     }
@@ -150,11 +182,14 @@ try {
     # The runtime bytes/version are identical in the old/new payloads. A major
     # upgrade must retain this component, including when it is mapped, instead
     # of asking the old MSI to remove it under its previous RM policy.
-    RunMsi "/i `"$current`"" 'upgrade'
+    # Even a conflicting path must not move stable components during upgrade.
+    RunMsi "/i `"$current`" INSTALLFOLDER=`"$defaultTarget`"" 'upgrade'
     $installed = $currentCode
     AssertProduct $oldCode $false
     AssertProduct $currentCode $true $Version
-    if (-not (Test-Path $startup)) { throw 'Upgrade removed the opt-in startup shortcut.' }
+    AssertStartup $true
+    AssertNoApp
+    if (Test-Path "$defaultTarget/FluentControl.exe") { throw 'Upgrade relocated the app or created a second copy.' }
     AssertRetained
     $manifest = Get-Content "artifacts/obj/msi-$Version/payload.json" -Raw | ConvertFrom-Json
     foreach ($file in $manifest) {
@@ -217,6 +252,42 @@ public static class InstallerFixtureWindow {
     }
     Write-Host 'PASS: uninstall removes application/startup shortcuts and retains personal configurations.'
     Write-Host 'PASS: unrelated application with its own runtime survives install, major upgrade and uninstall.'
+
+    # Exercise the actual full wizard, including Browse, Back/Next, the two
+    # checkboxes, launch only after Finish, and an application-owned opt-out.
+    RunWizard 'fresh' '0' '1' '1'
+    $installed = $currentCode
+    AssertProduct $currentCode $true $Version
+    Remove-Item $startup # equivalent to the application's SetEnabled(false)
+    RunMsi "/fa $currentCode" 'repair-after-app-disabled-startup'
+    AssertStartup $false
+    AssertNoApp
+    Write-Host 'PASS: repair respects startup disabled by the application.'
+    RunMsi "/x $currentCode" 'uninstall-wizard-fresh'
+    $installed = $null
+    AssertStartup $false
+    AssertRetained
+
+    # Upgrade from the default directory too. A previous opt-in is preselected;
+    # unchecking it must survive the UI-to-execute transition and old removal.
+    $target = $defaultTarget
+    RunMsi "/i `"$old`" START_WITH_WINDOWS=1" 'install-upgrade-wizard-fixture'
+    $installed = $oldCode
+    AssertStartup $true
+    AssertNoApp
+    RunWizard 'upgrade' '1' '0' '0'
+    $installed = $currentCode
+    AssertProduct $oldCode $false
+    AssertProduct $currentCode $true $Version
+    AssertStartup $false
+    RunMsi "/x $currentCode" 'uninstall-wizard-upgrade'
+    $installed = $null
+    AssertNoApp
+    AssertRetained
+    if ((Test-Path "$target/FluentControl.exe") -or (Test-Path $shortcut) -or (Test-Path $startup)) {
+        throw 'Wizard-installed application did not uninstall cleanly.'
+    }
+    Write-Host 'PASS: install options, custom/default paths, upgrade opt-out, launch opt-in/out and quiet-install behavior.'
 }
 finally {
     StopLockFixture $locked
