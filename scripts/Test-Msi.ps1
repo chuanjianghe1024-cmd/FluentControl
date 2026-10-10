@@ -122,7 +122,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Installer lock fixture compilation failed.' }
     $wizard = Join-Path $fixtureDirectory 'InstallerWizardFixture.exe'
     $framework = Split-Path $compiler -Parent
-    & $compiler /nologo /target:exe /platform:x64 "/out:$wizard" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll "/reference:$framework/WPF/UIAutomationClient.dll" "/reference:$framework/WPF/UIAutomationTypes.dll" "/reference:$framework/WPF/WindowsBase.dll" 'tests/installer/InstallerWizardFixture.cs'
+    $wizardSource = (Resolve-Path 'tests/installer/InstallerWizardFixture.cs').Path
+    & $compiler /nologo /target:exe /platform:x64 "/out:$wizard" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll "/reference:$framework\WPF\UIAutomationClient.dll" "/reference:$framework\WPF\UIAutomationTypes.dll" "/reference:$framework\WPF\WindowsBase.dll" $wizardSource
     if ($LASTEXITCODE -ne 0) { throw 'Installer wizard fixture compilation failed.' }
     # The older fixture has a lower-version executable and unchanged runtimes.
     # This verifies real file replacement as well as reuse of stable components;
