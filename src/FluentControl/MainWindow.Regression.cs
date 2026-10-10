@@ -141,6 +141,7 @@ public sealed partial class MainWindow
         await CheckCrossModelControlsAsync();
         await CheckMonitorOsdAsync();
         await CheckReadOnlyOsdAndLibraryAsync();
+        await CheckRepeatableOsdCommandsAsync();
         await CheckSystemAudioAsync();
         await CheckAdapterCaptureAsync();
         var otherModel = new MonitorDevice { Id = "unknown-model", Model = "Unknown model", Connection = "test" };
@@ -302,6 +303,70 @@ public sealed partial class MainWindow
             state.MonitorPresets.Clear(); state.MonitorPresets.AddRange(presets);
             libraryModel = model; librarySearch = search; BuildPresetLibrary();
             Navigation.SelectedItem = navigation; DisplayMode.SelectedIndex = mode; RenderMonitorControls(generation);
+        }
+    }
+    private async Task CheckRepeatableOsdCommandsAsync()
+    {
+        var fixture = new MonitorDevice { Id = "ui-osd-command", ModelId = "TST0004", Model = "OSD command fixture", Connection = "test" };
+        var writes = new List<double>();
+        var last = 1d; var rejectWrite = false;
+        // This simulated channel omits the confirmation dialog so the regression
+        // exercises selection events. Real discovery retains RequiresConfirmation.
+        var channel = new ControlChannel
+        {
+            Name = "OSD", Detail = "VCP 0xCA", Glyph = "", PropertyKey = "osd", DeviceId = fixture.Id, VcpCode = 0xCA,
+            Value = 1, Minimum = 1, Maximum = 3, CanSave = false,
+            Options = new[] { new ControlOption(1, "Disable"), new ControlOption(2, "Enable"), new ControlOption(3, "Disable buttons") },
+            Write = value => { writes.Add(value); if (rejectWrite) throw new IOException("simulated write failure"); last = value; },
+            Read = () => last == 2 ? throw new IOException("simulated readback failure") : last
+        };
+        fixture.Channels.Add(channel);
+        fixture.Features.Add(new() { Definition = VcpCatalog.Find("osd")!, Channel = channel });
+        var mode = DisplayMode.SelectedIndex;
+        displayDevices.Add(fixture);
+        async Task ExerciseAsync(DependencyObject root, string rowId)
+        {
+            foreach (var expander in Descendants<Expander>(root).ToArray()) expander.IsExpanded = true;
+            await Task.Delay(80);
+            var row = Descendants<FrameworkElement>(root).Single(e => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(e) == rowId);
+            var combo = Descendants<ComboBox>(row).Single();
+            var options = (IReadOnlyList<ControlOption>)combo.ItemsSource;
+            if (combo.SelectedItem is not null || writes.Count != 0) throw new InvalidOperationException("OSD command picker must not select or send the initial disabled state.");
+            foreach (var value in new[] { 2d, 1d, 2d, 2d, 1d })
+            {
+                var count = writes.Count;
+                combo.SelectedItem = options.Single(o => o.Value == value);
+                await WaitForWritesAsync();
+                if (writes.Count != count + 1 || writes.Last() != value || combo.SelectedItem is not null || !combo.IsEnabled)
+                    throw new InvalidOperationException("OSD command cannot be replayed after failed readback or resets caused another write.");
+            }
+            rejectWrite = true;
+            combo.SelectedItem = options.Single(o => o.Value == 1);
+            await WaitForWritesAsync();
+            if (combo.SelectedItem is not null || !combo.IsEnabled) throw new InvalidOperationException("Failed OSD write left the picker stuck.");
+            rejectWrite = false;
+            var before = writes.Count;
+            combo.SelectedItem = options.Single(o => o.Value == 1);
+            await WaitForWritesAsync();
+            if (writes.Count != before + 1 || combo.SelectedItem is not null) throw new InvalidOperationException("OSD command cannot be retried after write failure.");
+            writes.Clear();
+        }
+        try
+        {
+            RenderMonitorControls(generation);
+            foreach (var index in new[] { 0, 1 })
+            {
+                DisplayMode.SelectedIndex = index;
+                await ExerciseAsync(index == 0 ? MonitorRows : CombinedRows, "individual-" + fixture.Id + "-osd");
+            }
+            ShowMonitorOsd(fixture);
+            await ExerciseAsync((DependencyObject)monitorOsd!.Content, "osd-osd");
+            StartupLog.Write("PASS: OSD command replay after failed readback and failed writes in individual, overall and FC menus; no state-driven extra writes.");
+        }
+        finally
+        {
+            CloseMonitorOsd(); displayDevices.Remove(fixture);
+            DisplayMode.SelectedIndex = mode; RenderMonitorControls(generation);
         }
     }
     private async Task CheckCrossModelControlsAsync()

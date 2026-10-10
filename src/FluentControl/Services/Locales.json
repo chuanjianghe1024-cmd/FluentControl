@@ -404,7 +404,6 @@
     "\nRead {0} controls successfully; {1} failed.": "\n成功讀取 {0} 項，失敗 {1} 項。",
     "OSD state: {0}": "OSD 狀態：{0}",
     "Read-only state; OSD switching has not been verified.": "唯讀狀態；尚未驗證選單開關寫入。",
-    "Native menu remote control is not adapted. Use the FC on-screen menu for supported settings. The OSD switch enables the native menu; it does not open it.": "原廠選單遙控尚未適配。可使用 FC 螢幕選單調整已支援的參數；OSD 開關只控制選單是否可用，不會彈出選單。",
     "Write failed (Windows error {0}): {1}": "寫入失敗（Windows 錯誤 {0}）：{1}",
     "Save current settings from {0}": "儲存 {0} 目前參數",
     "No presets saved for this model yet.": "此型號尚未儲存設定。",
@@ -437,7 +436,11 @@
     "Release information could not be verified. Try again later.": "版本資訊無法驗證，請稍後重試。",
     "Installer verification failed. Please download again.": "安裝包驗證失敗，請重新下載。",
     "Update failed. Check your connection or download folder and try again.": "更新操作失敗，請檢查網路或下載資料夾後重試。",
-    "Updates are checked only when you click.": "僅在點擊時檢查更新。"
+    "Updates are checked only when you click.": "僅在點擊時檢查更新。",
+    "Choose an OSD command (repeatable)": "選擇 OSD 指令（可重複傳送）",
+    "Command sent; display state unconfirmed: {0}": "指令已傳送，顯示器狀態未確認：{0}",
+    "OSD command sent. Check the display's response.": "OSD 指令已傳送，請以顯示器實際回應為準。",
+    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "原廠選單導覽尚未適配。可使用 FC 螢幕選單調整已支援的參數；OSD 啟用指令是否開啟原廠選單取決於顯示器韌體。"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -844,7 +847,6 @@
     "\nRead {0} controls successfully; {1} failed.": "\n{0} 項目の読取成功、{1} 項目失敗。",
     "OSD state: {0}": "OSD の状態：{0}",
     "Read-only state; OSD switching has not been verified.": "読み取り専用の状態です。OSD 切り替えの書き込みは未検証です。",
-    "Native menu remote control is not adapted. Use the FC on-screen menu for supported settings. The OSD switch enables the native menu; it does not open it.": "本体メニューのリモート操作は未対応です。対応する設定は FC 画面メニューで調整できます。OSD スイッチは本体メニューを有効にするもので、メニューを開く操作ではありません。",
     "Write failed (Windows error {0}): {1}": "書き込み失敗（Windows エラー {0}）：{1}",
     "Save current settings from {0}": "{0} の現在の設定を保存",
     "No presets saved for this model yet.": "このモデルのプリセットはまだ保存されていません。",
@@ -877,7 +879,11 @@
     "Release information could not be verified. Try again later.": "リリース情報を検証できませんでした。後でもう一度お試しください。",
     "Installer verification failed. Please download again.": "インストーラーの検証に失敗しました。再ダウンロードしてください。",
     "Update failed. Check your connection or download folder and try again.": "更新に失敗しました。接続またはダウンロード先を確認して再試行してください。",
-    "Updates are checked only when you click.": "クリックしたときだけ更新を確認します。"
+    "Updates are checked only when you click.": "クリックしたときだけ更新を確認します。",
+    "Choose an OSD command (repeatable)": "OSD コマンドを選択（再送信可能）",
+    "Command sent; display state unconfirmed: {0}": "コマンドを送信しましたが、ディスプレイの状態は未確認です：{0}",
+    "OSD command sent. Check the display's response.": "OSD コマンドを送信しました。ディスプレイの反応を確認してください。",
+    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "本体メニューの操作には未対応です。対応する設定は FC 画面メニューで調整できます。OSD の有効化で本体メニューが開くかどうかは、ディスプレイのファームウェアによります。"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -1284,7 +1290,6 @@
     "\nRead {0} controls successfully; {1} failed.": "\n읽기 성공 {0}개, 실패 {1}개.",
     "OSD state: {0}": "OSD 상태: {0}",
     "Read-only state; OSD switching has not been verified.": "읽기 전용 상태입니다. OSD 전환 쓰기는 검증되지 않았습니다.",
-    "Native menu remote control is not adapted. Use the FC on-screen menu for supported settings. The OSD switch enables the native menu; it does not open it.": "모니터 자체 메뉴의 원격 제어는 아직 지원되지 않습니다. 지원되는 설정은 FC 화면 메뉴에서 조절하세요. OSD 스위치는 자체 메뉴를 활성화하며 메뉴를 열지는 않습니다.",
     "Write failed (Windows error {0}): {1}": "쓰기 실패(Windows 오류 {0}): {1}",
     "Save current settings from {0}": "{0}의 현재 설정 저장",
     "No presets saved for this model yet.": "이 모델에 저장된 프리셋이 아직 없습니다.",
@@ -1317,7 +1322,11 @@
     "Release information could not be verified. Try again later.": "릴리스 정보를 검증하지 못했습니다. 나중에 다시 시도하세요.",
     "Installer verification failed. Please download again.": "설치 파일 검증에 실패했습니다. 다시 다운로드하세요.",
     "Update failed. Check your connection or download folder and try again.": "업데이트에 실패했습니다. 연결이나 다운로드 폴더를 확인한 후 다시 시도하세요.",
-    "Updates are checked only when you click.": "클릭할 때만 업데이트를 확인합니다."
+    "Updates are checked only when you click.": "클릭할 때만 업데이트를 확인합니다.",
+    "Choose an OSD command (repeatable)": "OSD 명령 선택(반복 전송 가능)",
+    "Command sent; display state unconfirmed: {0}": "명령을 전송했으나 디스플레이 상태를 확인하지 못했습니다: {0}",
+    "OSD command sent. Check the display's response.": "OSD 명령을 전송했습니다. 디스플레이의 반응을 확인하세요.",
+    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "모니터 자체 메뉴 탐색은 아직 지원하지 않습니다. 지원되는 설정은 FC 화면 메뉴에서 조절할 수 있습니다. OSD 활성화 시 자체 메뉴가 열리는지는 디스플레이 펌웨어에 따라 다릅니다."
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -1724,7 +1733,6 @@
     "\nRead {0} controls successfully; {1} failed.": "\n{0} Werte erfolgreich gelesen; {1} fehlgeschlagen.",
     "OSD state: {0}": "OSD-Status: {0}",
     "Read-only state; OSD switching has not been verified.": "Nur lesbarer Status; das Umschalten des OSD wurde nicht verifiziert.",
-    "Native menu remote control is not adapted. Use the FC on-screen menu for supported settings. The OSD switch enables the native menu; it does not open it.": "Die Fernsteuerung des Monitormenüs ist noch nicht angepasst. Nutzen Sie das FC-Bildschirmmenü für unterstützte Einstellungen. Der OSD-Schalter aktiviert das Monitormenü, öffnet es aber nicht.",
     "Write failed (Windows error {0}): {1}": "Schreiben fehlgeschlagen (Windows-Fehler {0}): {1}",
     "Save current settings from {0}": "Aktuelle Einstellungen von {0} speichern",
     "No presets saved for this model yet.": "Für dieses Modell sind noch keine Voreinstellungen gespeichert.",
@@ -1757,7 +1765,11 @@
     "Release information could not be verified. Try again later.": "Versionsinformationen konnten nicht geprüft werden. Bitte später erneut versuchen.",
     "Installer verification failed. Please download again.": "Prüfung des Installationspakets fehlgeschlagen. Bitte erneut herunterladen.",
     "Update failed. Check your connection or download folder and try again.": "Update fehlgeschlagen. Verbindung oder Downloadordner prüfen und erneut versuchen.",
-    "Updates are checked only when you click.": "Updates werden nur auf Klick geprüft."
+    "Updates are checked only when you click.": "Updates werden nur auf Klick geprüft.",
+    "Choose an OSD command (repeatable)": "OSD-Befehl wählen (erneut sendbar)",
+    "Command sent; display state unconfirmed: {0}": "Befehl gesendet; Monitorzustand unbestätigt: {0}",
+    "OSD command sent. Check the display's response.": "OSD-Befehl gesendet. Prüfen Sie die Reaktion des Monitors.",
+    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "Die Navigation im Monitormenü wird noch nicht unterstützt. Unterstützte Einstellungen können Sie im FC-Bildschirmmenü ändern. Ob das Aktivieren des OSD das Monitormenü öffnet, hängt von der Monitor-Firmware ab."
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -2164,7 +2176,6 @@
     "\nRead {0} controls successfully; {1} failed.": "\n{0} paramètres lus ; {1} échecs.",
     "OSD state: {0}": "État de l’OSD : {0}",
     "Read-only state; OSD switching has not been verified.": "État en lecture seule ; la modification du commutateur OSD n’a pas été vérifiée.",
-    "Native menu remote control is not adapted. Use the FC on-screen menu for supported settings. The OSD switch enables the native menu; it does not open it.": "La commande à distance du menu du moniteur n’est pas encore adaptée. Utilisez le menu à l’écran FC pour les réglages pris en charge. Le commutateur OSD active le menu du moniteur, mais ne l’ouvre pas.",
     "Write failed (Windows error {0}): {1}": "Échec de l’écriture (erreur Windows {0}) : {1}",
     "Save current settings from {0}": "Enregistrer les réglages actuels de {0}",
     "No presets saved for this model yet.": "Aucun préréglage enregistré pour ce modèle.",
@@ -2197,7 +2208,11 @@
     "Release information could not be verified. Try again later.": "Les informations de version n’ont pas pu être vérifiées. Réessayez plus tard.",
     "Installer verification failed. Please download again.": "La vérification de l’installeur a échoué. Téléchargez-le à nouveau.",
     "Update failed. Check your connection or download folder and try again.": "Échec de la mise à jour. Vérifiez la connexion ou le dossier de téléchargement, puis réessayez.",
-    "Updates are checked only when you click.": "Les mises à jour sont vérifiées uniquement à votre demande."
+    "Updates are checked only when you click.": "Les mises à jour sont vérifiées uniquement à votre demande.",
+    "Choose an OSD command (repeatable)": "Choisir une commande OSD (répétable)",
+    "Command sent; display state unconfirmed: {0}": "Commande envoyée ; état de l’écran non confirmé : {0}",
+    "OSD command sent. Check the display's response.": "Commande OSD envoyée. Vérifiez la réaction de l’écran.",
+    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "La navigation dans le menu natif n’est pas encore prise en charge. Utilisez le menu FC pour les réglages compatibles. L’ouverture du menu natif lors de l’activation de l’OSD dépend du micrologiciel de l’écran."
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -2604,7 +2619,6 @@
     "\nRead {0} controls successfully; {1} failed.": "\n{0} controles leídos; {1} fallidos.",
     "OSD state: {0}": "Estado del OSD: {0}",
     "Read-only state; OSD switching has not been verified.": "Estado de solo lectura; no se ha verificado la escritura del interruptor OSD.",
-    "Native menu remote control is not adapted. Use the FC on-screen menu for supported settings. The OSD switch enables the native menu; it does not open it.": "El control remoto del menú del monitor aún no está adaptado. Use el menú en pantalla FC para los ajustes compatibles. El interruptor OSD habilita el menú del monitor, pero no lo abre.",
     "Write failed (Windows error {0}): {1}": "Error de escritura (error de Windows {0}): {1}",
     "Save current settings from {0}": "Guardar los ajustes actuales de {0}",
     "No presets saved for this model yet.": "Aún no hay ajustes guardados para este modelo.",
@@ -2637,6 +2651,10 @@
     "Release information could not be verified. Try again later.": "No se pudo verificar la información de la versión. Inténtalo más tarde.",
     "Installer verification failed. Please download again.": "Falló la verificación del instalador. Descárgalo de nuevo.",
     "Update failed. Check your connection or download folder and try again.": "La actualización falló. Comprueba la conexión o la carpeta de descarga e inténtalo de nuevo.",
-    "Updates are checked only when you click.": "Las actualizaciones solo se buscan cuando haces clic."
+    "Updates are checked only when you click.": "Las actualizaciones solo se buscan cuando haces clic.",
+    "Choose an OSD command (repeatable)": "Elegir comando OSD (repetible)",
+    "Command sent; display state unconfirmed: {0}": "Comando enviado; estado de la pantalla sin confirmar: {0}",
+    "OSD command sent. Check the display's response.": "Comando OSD enviado. Compruebe la respuesta de la pantalla.",
+    "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.": "La navegación por el menú nativo aún no está adaptada. Use el menú de FC para los ajustes compatibles. Que la activación del OSD abra el menú nativo depende del firmware de la pantalla."
   }
 }

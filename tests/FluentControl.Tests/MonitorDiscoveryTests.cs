@@ -11,7 +11,7 @@ internal static class MonitorDiscoveryTests
     {
         var directory = Path.Combine(Path.GetTempPath(), "FluentControl-monitor-cache-" + Guid.NewGuid());
         Directory.CreateDirectory(directory);
-        try { CacheChecks(directory); BatchChecks(); OsdStatusChecks(); }
+        try { CacheChecks(directory); BatchChecks(); OsdStatusChecks(); OsdCommandChecks(); }
         finally { Directory.Delete(directory, true); }
         Console.WriteLine("PASS: monitor metadata cache, live values, forced/expired/corrupt cache recovery, bounded parallel reads and failure isolation.");
     }
@@ -38,6 +38,51 @@ internal static class MonitorDiscoveryTests
         Check(Discover(new(0xAB09, 2)).Single(f => f.Definition.Key == "osd").Information.Contains("0xAB09"),
             "unknown OSD states must preserve the raw value");
         Console.WriteLine("PASS: unadvertised OSD state remains visible and read-only; failed reads and private codes never grant writes.");
+    }
+
+    private static void OsdCommandChecks()
+    {
+        var language = Strings.CurrentLanguage;
+        Strings.SetLanguage("en-US");
+        try
+        {
+            uint raw = 0x0201;
+            var unreadable = false; var rejectWrite = false;
+            var writes = new List<uint>();
+            var osd = VcpDiscovery.Discover("command-fixture", VcpCapabilities.Parse("(vcp(CA))"),
+                code => code == 0xCA && !unreadable ? new VcpReply(raw, 2) : null,
+                (_, value) =>
+                {
+                    if (rejectWrite) throw new IOException("write rejected");
+                    writes.Add(value);
+                    raw = value;
+                    unreadable = (value & 255) == 2;
+                }).Single(f => f.Definition.Key == "osd").Channel!;
+            Check(osd.IsCommandChoice && osd.RequiresConfirmation && !osd.CanSave,
+                "OSD commands remain repeatable, confirmed by the user and excluded from profiles");
+            var errors = ControlOperations.Apply(new[] { osd }, 2);
+            Check(writes.SequenceEqual(new uint[] { 0x0202 }) && errors.Single().Contains("Command sent; display state unconfirmed") && osd.Value == 1,
+                "a successful command with failed readback must not invent state or report the write itself failed");
+            var count = writes.Count;
+            errors = ControlOperations.Apply(new[] { osd }, 1);
+            Check(writes.Count == count && errors.Count == 1 && !errors[0].Contains("Command sent;"),
+                "a failed pre-read must still block writes that could overwrite the power-button byte");
+            unreadable = false;
+            Check(ControlOperations.Apply(new[] { osd }, 1).Count == 0 && writes.Last() == 0x0201 && osd.Value == 1,
+                "disable is sendable after readback recovers even when the old state was already disabled");
+            foreach (var ignored in Enumerable.Range(0, 2))
+            {
+                unreadable = false;
+                Check(ControlOperations.Apply(new[] { osd }, 2).Count == 1 && writes.Last() == 0x0202,
+                    "the same OSD command may be explicitly sent again without retrying writes automatically");
+            }
+            unreadable = false; rejectWrite = true; count = writes.Count;
+            errors = ControlOperations.Apply(new[] { osd }, 1);
+            Check(writes.Count == count && errors.Single().Contains("write rejected") && !errors[0].Contains("Command sent;"),
+                "an actual write failure must not be described as a sent command");
+            Console.WriteLine("PASS: OSD sent/unconfirmed versus unsent failure, explicit replay and preserved power-button bits.");
+        }
+        finally { Strings.SetLanguage(language); }
     }
 
     private static void CacheChecks(string directory)

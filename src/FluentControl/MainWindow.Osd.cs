@@ -15,7 +15,7 @@ public sealed partial class MainWindow
     {
         var message = device.InstalledAdapter?.NativeMenu.Count > 0 ?
             T("已安装原厂菜单适配；在主窗口的型号扩展中操作。", "Native menu adapter installed. Use Model extensions in the main window.") :
-            T("原厂菜单遥控尚未适配。可使用 FC 屏幕菜单调节已支持的参数；OSD 开关只控制菜单是否可用，不会弹出菜单。", "Native menu remote control is not adapted. Use the FC on-screen menu for supported settings. The OSD switch enables the native menu; it does not open it.");
+            T("原厂菜单导航尚未适配。可使用 FC 屏幕菜单调节已支持的参数；OSD 启用指令是否弹出原厂菜单取决于显示器固件。", "Native menu navigation is not adapted. Use the FC on-screen menu for supported settings. Whether enabling OSD opens the native menu depends on the display firmware.");
         var status = Empty((showDevice ? MonitorTitle(device) + " · " + device.Model + "\n" : "") + message);
         AutomationProperties.SetAutomationId(status, "native-osd-status-" + device.Id);
         return status;
@@ -59,7 +59,9 @@ public sealed partial class MainWindow
                     var errors = await Task.Run(() => ControlOperations.Apply(new[] { channel }, value));
                     if (closed || version != generation) return;
                     MarkProfileModified(); SynchronizeValues();
-                    if (Active()) status.Text = errors.Count == 0 ? F("已更新{0}", "{0} updated", Channel(channel)) : string.Join("; ", errors);
+                    if (Active()) status.Text = errors.Count == 0 ? channel.IsCommandChoice
+                        ? T("OSD 指令已发送，请以显示器实际响应为准。", "OSD command sent. Check the display's response.")
+                        : F("已更新{0}", "{0} updated", Channel(channel)) : string.Join("; ", errors);
                 }
                 finally { gate.Release(); }
             }
@@ -93,17 +95,18 @@ public sealed partial class MainWindow
                     void Sync()
                     {
                         syncing = true;
-                        choice.SelectedItem = options.FirstOrDefault(o => o.Value == channel.Value);
-                        choice.PlaceholderText = F("当前值 0x{0}（不可重放）", "Current 0x{0} (not replayable)", ((uint)channel.Value).ToString("X"));
+                        choice.SelectedItem = channel.IsCommandChoice ? null : options.FirstOrDefault(o => o.Value == channel.Value);
+                        choice.PlaceholderText = channel.IsCommandChoice ? T("选择 OSD 指令（可重复发送）", "Choose an OSD command (repeatable)") :
+                            F("当前值 0x{0}（不可重放）", "Current 0x{0} (not replayable)", ((uint)channel.Value).ToString("X"));
                         syncing = false;
                     }
                     syncs.Add(Sync); Sync();
                     choice.SelectionChanged += async (_, _) =>
                     {
-                        if (syncing || !Active() || choice.SelectedItem is not ControlOption selected) return;
+                        if (syncing || !choice.IsEnabled || !Active() || choice.SelectedItem is not ControlOption selected) return;
                         choice.IsEnabled = false;
                         try { await Apply(channel, selected.Value, lifetime.Token); }
-                        finally { if (Active()) choice.IsEnabled = true; }
+                        finally { if (Active()) { Sync(); choice.IsEnabled = true; } }
                     };
                 }
                 else

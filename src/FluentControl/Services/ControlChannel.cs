@@ -16,6 +16,9 @@ public sealed class ControlChannel
     public bool CanSave { get; init; } = true;
     public bool CompatibilityOnly { get; init; }
     public bool VerifyChoiceReadback { get; init; }
+    // OSD enable/disable can act like menu commands on some firmware. Keep the
+    // command picker independent from readback so the same command is replayable.
+    public bool IsCommandChoice => VcpCode == 0xCA && Options is not null;
     public bool RequiresConfirmation { get; init; }
     public int ApplyOrder { get; init; } = 50;
     public Func<double, double>? LinkedToDevice { get; set; }
@@ -39,6 +42,7 @@ public static class ControlOperations
         var errors = new List<string>();
         foreach (var channel in channels)
         {
+            var sent = false;
             try
             {
                 if (!double.IsFinite(value)) throw new ArgumentOutOfRangeException(nameof(value));
@@ -46,6 +50,7 @@ public static class ControlOperations
                 if (channel.Options is not null && !channel.Options.Any(x => x.Value == target))
                     throw new ArgumentOutOfRangeException(nameof(value), "Unsupported option");
                 channel.Write(target);
+                sent = true;
                 channel.Value = channel.Read?.Invoke() ?? target;
                 if (channel.VerifyChoiceReadback && channel.Value != target)
                 {
@@ -53,7 +58,12 @@ public static class ControlOperations
                     errors.Add(channel.Name + "：" + Strings.F("请求 {0}，显示器实际返回 {1}。", "Requested {0}; the display returned {1}.", Label(target), Label(channel.Value)));
                 }
             }
-            catch (Exception ex) { errors.Add(channel.Name + "：" + ex.Message); }
+            catch (Exception ex)
+            {
+                errors.Add(channel.Name + "：" + (sent && channel.IsCommandChoice
+                    ? Strings.F("指令已发送，显示器状态未确认：{0}", "Command sent; display state unconfirmed: {0}", ex.Message)
+                    : ex.Message));
+            }
         }
         return errors;
     }

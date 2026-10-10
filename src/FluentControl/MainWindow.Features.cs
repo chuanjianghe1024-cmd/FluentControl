@@ -465,27 +465,30 @@ public sealed partial class MainWindow
         {
             syncing = true;
             var same = targets.All(x => x.Value == targets[0].Value);
-            combo.SelectedItem = same ? options.FirstOrDefault(x => x.Value == targets[0].Value) : null;
-            combo.PlaceholderText = same && combo.SelectedItem is null ? F("当前值 0x{0}（不可重放）", "Current 0x{0} (not replayable)", ((uint)targets[0].Value).ToString("X")) : T("不同", "Mixed");
+            combo.SelectedItem = !channel.IsCommandChoice && same ? options.FirstOrDefault(x => x.Value == targets[0].Value) : null;
+            combo.PlaceholderText = channel.IsCommandChoice ? T("选择 OSD 指令（可重复发送）", "Choose an OSD command (repeatable)") :
+                same && combo.SelectedItem is null ? F("当前值 0x{0}（不可重放）", "Current 0x{0} (not replayable)", ((uint)targets[0].Value).ToString("X")) : T("不同", "Mixed");
             syncing = false;
         }
         refreshRows.Add(Update); Update();
         combo.SelectionChanged += async (_, _) =>
         {
-            if (syncing || combo.SelectedItem is not ControlOption choice) return;
-            if (targets.Any(x => x.RequiresConfirmation) && !await ConfirmMonitorChangeAsync(channel, targets)) { Update(); return; }
+            if (syncing || !combo.IsEnabled || closed || version != generation || combo.SelectedItem is not ControlOption choice) return;
             pendingWrites++; combo.IsEnabled = false; var page = notificationContext;
-            await gate.WaitAsync();
+            var entered = false;
             try
             {
+                if (targets.Any(x => x.RequiresConfirmation) && !await ConfirmMonitorChangeAsync(channel, targets)) return;
+                await gate.WaitAsync(); entered = true;
                 if (version != generation || closed) return;
                 var errors = await Task.Run(() => ControlOperations.Apply(targets.Where(c => c.Options?.Any(o => o.Value == choice.Value) == true), choice.Value));
-                if (closed) return;
+                if (closed || version != generation) return;
                 MarkProfileModified(); SynchronizeValues();
-                ShowStatus(errors.Count == 0 ? F("已更新{0}", "{0} updated", Channel(channel)) : string.Join("; ", errors), errors.Count == 0 ? InfoBarSeverity.Success : InfoBarSeverity.Error, page);
+                var success = channel.IsCommandChoice ? T("OSD 指令已发送，请以显示器实际响应为准。", "OSD command sent. Check the display's response.") : F("已更新{0}", "{0} updated", Channel(channel));
+                ShowStatus(errors.Count == 0 ? success : string.Join("; ", errors), errors.Count == 0 ? InfoBarSeverity.Success : InfoBarSeverity.Error, page);
             }
             catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error, page); }
-            finally { pendingWrites--; gate.Release(); if (!closed && version == generation) { combo.IsEnabled = true; Update(); } }
+            finally { pendingWrites--; if (entered) gate.Release(); if (!closed && version == generation) { Update(); combo.IsEnabled = true; } }
         };
         return SettingsRow((group is null ? "" : T("统一", "Linked ")) + Channel(channel), channel.Detail, combo);
     }

@@ -2,6 +2,13 @@
 
 记录正式发布版本；开发构建由 GitHub Actions 单独提供。
 
+## 未发布 / Unreleased
+
+- 修复 OSD 写入成功、读回失败后下拉框退回旧状态，导致无法再次选择禁用的问题。单屏、整体控制与 FC 屏幕菜单中的 OSD 下拉框改为可重复发送的指令入口，执行或取消后清空选择，不将旧状态当成当前选择。
+- 区分“指令已发送但状态未确认”和真正的写入失败；保留确认、写前读取及其他按键字段保护。原厂菜单是否弹出按显示器固件实际行为说明，不再一概宣称不会弹出。
+- Fix OSD selectors reverting to stale state after successful writes with failed readback. Individual, overall and FC menus now allow explicit command replay, clearing the selection after completion or cancellation.
+- Distinguish sent commands with unconfirmed state from failed writes. Keep confirmation and button-field preservation; native-menu opening depends on the display firmware.
+
 ## [0.3.67](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.67) — 2026-10-10
 
 完善安装引导与启动选项。[中英文发布说明](docs/releases/v0.3.67.md)。
