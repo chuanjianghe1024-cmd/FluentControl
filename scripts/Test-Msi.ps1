@@ -9,8 +9,8 @@ $probe = $null
 try {
     $logs = Join-Path $root 'artifacts/msi-logs'
     New-Item $logs -ItemType Directory -Force | Out-Null
-    $defaultTarget = Join-Path $env:LOCALAPPDATA 'Programs/FluentControl'
-    $target = Join-Path $env:LOCALAPPDATA 'FC installer checks/自定义 安装/FluentControl'
+    $defaultTarget = [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'Programs/FluentControl'))
+    $target = [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'FC installer checks/自定义 安装/FluentControl'))
     $shortcut = Join-Path ([Environment]::GetFolderPath('Programs')) 'FluentControl.lnk'
     $startup = Join-Path ([Environment]::GetFolderPath('Startup')) 'FluentControl.lnk'
     $data = Join-Path $env:LOCALAPPDATA 'FluentControl'
@@ -56,8 +56,9 @@ try {
             $shell = New-Object -ComObject WScript.Shell
             try {
                 $link = $shell.CreateShortcut($startup)
-                if ($link.TargetPath -ne (Join-Path $target 'FluentControl.exe') -or $link.Arguments -ne '--background') {
-                    throw 'Startup must use the selected executable and background mode.'
+                $expected = [IO.Path]::GetFullPath((Join-Path $target 'FluentControl.exe'))
+                if ([IO.Path]::GetFullPath($link.TargetPath) -ne $expected -or $link.Arguments -ne '--background') {
+                    throw "Startup target '$($link.TargetPath)' / '$($link.Arguments)' does not match '$expected' / '--background'."
                 }
                 [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($link)
             }
@@ -171,7 +172,9 @@ try {
     if (-not (Test-Path $shortcut)) { throw 'Start-menu shortcut is missing.' }
     $shell = New-Object -ComObject WScript.Shell
     $link = $shell.CreateShortcut($shortcut)
-    if ($link.TargetPath -ne (Join-Path $target 'FluentControl.exe')) { throw 'Start-menu shortcut target is incorrect.' }
+    $expectedTarget = [IO.Path]::GetFullPath((Join-Path $target 'FluentControl.exe'))
+    Write-Host "Start-menu target: '$($link.TargetPath)'; expected: '$expectedTarget'."
+    if ([IO.Path]::GetFullPath($link.TargetPath) -ne $expectedTarget) { throw 'Start-menu shortcut target is incorrect.' }
     # Simulate the application's opt-in login shortcut; upgrade must keep it.
     $loginLink = $shell.CreateShortcut($startup)
     $loginLink.TargetPath = Join-Path $target 'FluentControl.exe'
