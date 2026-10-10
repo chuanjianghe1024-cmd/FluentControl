@@ -42,6 +42,7 @@ jobs:
         shell: pwsh
         run: ./scripts/Build-Msi.ps1 -Version $env:PACKAGE_VERSION
       - name: Verify MSI install, upgrade, installed UI, tray and uninstall
+        timeout-minutes: 8
         shell: pwsh
         run: ./scripts/Test-Msi.ps1 -Version $env:PACKAGE_VERSION
       - uses: actions/upload-artifact@v7.0.2

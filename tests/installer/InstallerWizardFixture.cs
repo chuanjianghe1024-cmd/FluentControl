@@ -132,20 +132,21 @@ internal static class InstallerWizardFixture
         {
             var windows = AutomationElement.RootElement.FindAll(TreeScope.Children,
                 new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window));
-            // Modal folder browsers are usually the last root window. Ignore
-            // disabled background wizard controls while a child dialog is open.
+            // MSI's modal browser is nested below the disabled wizard in UIA,
+            // not necessarily a desktop child. Search its enabled descendants.
             for (int i = windows.Count - 1; i >= 0; i--)
             {
                 try
                 {
-                    if (!windows[i].Current.Name.Contains("FluentControl") || !windows[i].Current.IsEnabled) continue;
+                    if (!windows[i].Current.Name.Contains("FluentControl")) continue;
+                    bool ownerEnabled = windows[i].Current.IsEnabled;
                     var controls = windows[i].FindAll(TreeScope.Descendants,
                         new PropertyCondition(AutomationElement.ControlTypeProperty, type));
                     for (int j = controls.Count - 1; j >= 0; j--)
                     {
                         var value = controls[j].Current;
                         if (!value.IsOffscreen && (name == null || value.Name.Replace("&", "").StartsWith(name, StringComparison.Ordinal)) &&
-                            (value.IsEnabled || type == ControlType.Edit)) return controls[j];
+                            (value.IsEnabled || type == ControlType.Edit && ownerEnabled)) return controls[j];
                     }
                 }
                 catch (ElementNotAvailableException) { }
