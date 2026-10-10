@@ -45,7 +45,7 @@ public sealed class OsdCommand
     [JsonIgnore] public string Display => Name + $" · VCP 0x{Code:X2} = 0x{Value:X4}";
     public void Validate()
     {
-        if (Id.Length is < 1 or > 80 || Name.Length is < 1 or > 120 || Source.Length is < 1 or > 1000 || SourceModel.Length > 120 || SourceProfileId.Length > 80 ||
+        if (Id.Length is < 1 or > 80 || Name.Length is < 1 or > 120 || Source.Length is < 1 or > 3000 || SourceModel.Length > 120 || SourceProfileId.Length > 80 ||
             Value > 65535 || !(Code == 0xCA && Value is >= 1 and <= 3 || Code == 0x03 || Code >= 0xE0))
             throw new InvalidDataException("Invalid OSD command.");
     }

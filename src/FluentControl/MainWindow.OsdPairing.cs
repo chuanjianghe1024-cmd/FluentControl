@@ -55,7 +55,8 @@ public sealed partial class MainWindow
             {
                 Directory.CreateDirectory(directory);
                 File.WriteAllText(Path.Combine(directory, "archive-" + Guid.NewGuid().ToString("N") + ".json"), OsdPairingStore.Serialize(profile));
-                profile = OsdPairingProfile.Create(device, uiTest);
+                var archivedCommands = profile.Commands.Select(c => c.Copy()).ToList();
+                profile = OsdPairingProfile.Create(device, uiTest); profile.Commands = archivedCommands;
             }
             catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error); return; }
         }
@@ -177,7 +178,8 @@ public sealed partial class MainWindow
             add.IsEnabled = ready && profile.Commands.Count < 64;
             foreach (var item in remoteButtons) { var command = profile.BoundCommand(item.Key); item.Value.IsEnabled = ready && command is not null && (!command.DisablesEvents || canDisableEvents); }
             foreach (var b in outcomeButtons) b.IsEnabled = ready && selectedTrial is not null && selectedTrial.SourceProfileId.Length == 0;
-            effects.IsEnabled = ready && selectedTrial?.WriteSucceeded == true; notes.IsEnabled = ready;
+            foreach (var check in effectBoxes.Values) check.IsEnabled = ready && selectedTrial?.WriteSucceeded == true;
+            notes.IsEnabled = ready;
             observe.IsEnabled = ready && profile.EventCaptures.Count < 32 && !string.IsNullOrWhiteSpace(eventLabel.Text);
             export.IsEnabled = import.IsEnabled = save.IsEnabled = rePair.IsEnabled = ready;
             confirmSend.IsEnabled = ready && pendingConfirmation is not null; cancelSend.IsEnabled = !busy;
@@ -309,7 +311,8 @@ public sealed partial class MainWindow
             status.Text = T("正在读取原始参数…", "Reading raw parameters…");
             session.Baseline = await Task.Run(() => uiTest ? UiTestData.CaptureDiagnostics(device, null, token, null) : monitors!.CaptureDiagnostics(device, null, token));
             // Prime live button fields, never from saved diagnostics.
-            await Task.Run(() => engine.Read(0xCA));
+            token.ThrowIfCancellationRequested();
+            await Task.Run(() => { token.ThrowIfCancellationRequested(); return engine.Read(0xCA); });
             baselineReady = true; SaveLocal(); if (Active()) { ReloadLists(); status.Text = T("基线已保存在本机，可以开始测试。", "Baseline saved locally. Ready to test."); }
         });
         dialog.Closing += (_, _) => { open = false; lifetime.Cancel(); };
