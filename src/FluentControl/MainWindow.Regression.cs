@@ -420,6 +420,7 @@ public sealed partial class MainWindow
     }
     private async Task CheckDesktopModeSwitchAsync()
     {
+        var previousPage = Navigation.SelectedItem;
         var originalRows = state.Settings.DesktopRows.ToList();
         var originalLimit = state.Settings.DesktopMaxRows;
         var channels = displayDevices.SelectMany(d => d.Channels).Where(c => c.PropertyKey is "brightness" or "contrast").ToArray();
@@ -449,7 +450,11 @@ public sealed partial class MainWindow
             if (first.Value != 41 || second.Value != 41) throw new InvalidOperationException("Desktop mode toggle did not restore cross-model control.");
             await ClickMode();
             if (!state.Settings.DesktopRows.Contains("monitor/offline-screen/brightness")) throw new InvalidOperationException("Offline desktop selection was lost on mode switch.");
-            SelectSettingsSection("desktop"); SettingsPanel.UpdateLayout();
+            // The settings content now lives in its own scroll host and is
+            // realized only after its page/section is visible, as in normal use.
+            Navigation.SelectedItem = Navigation.SettingsItem;
+            SelectSettingsSection("desktop");
+            await Task.Delay(100); SettingsPanel.UpdateLayout();
             var mode = Descendants<ComboBox>(SettingsPanel).Single(c => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(c) == "setting-desktop-mode");
             mode.SelectedIndex = 1; await Task.Delay(100);
             if (!state.Settings.GroupDesktopMonitors || desktopPanel.RowCount != 2) throw new InvalidOperationException("Settings and desktop mode were not synchronized.");
@@ -461,6 +466,7 @@ public sealed partial class MainWindow
             state.Settings.DesktopIndividualRows = state.Settings.DesktopLinkedRows = null;
             state.Settings.DesktopMaxRows = originalLimit;
             RefreshDesktopPanel(); SynchronizeValues();
+            Navigation.SelectedItem = previousPage;
         }
         StartupLog.Write("PASS: desktop mode button and settings synchronized; M2 remains available beyond row limit; individual isolation and offline selections preserved.");
     }

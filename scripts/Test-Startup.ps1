@@ -39,6 +39,9 @@ try {
         if ($process.HasExited) { throw "FluentControl exited with code $($process.ExitCode)." }
         if ($process.MainWindowHandle -ne 0 -and (Test-Path $log)) {
             $content = Get-Content $log -Raw
+            if ($UiTest -and $content.Contains("[PID $($process.Id)] UI smoke checks failed")) {
+                throw 'FluentControl UI regression checks failed; see the startup log below.'
+            }
             if ($content.Contains("[PID $($process.Id)] Main window content loaded") -and
                 $content.Contains("[PID $($process.Id)] Main window activated") -and
                 (-not $UiTest -or $content.Contains("[PID $($process.Id)] UI smoke checks passed"))) {
