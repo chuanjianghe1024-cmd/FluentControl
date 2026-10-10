@@ -13,6 +13,7 @@
     <Compile Include="../../src/FluentControl/Services/UserState.cs" Link="UserState.cs" />
     <Compile Include="../../src/FluentControl/Services/ControlChannel.cs" Link="ControlChannel.cs" />
     <Compile Include="../../src/FluentControl/Services/SystemAudioControls.cs" Link="SystemAudioControls.cs" />
+    <Compile Include="../../src/FluentControl/Services/ReleaseUpdates.cs" Link="ReleaseUpdates.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorPreferences.cs" Link="MonitorPreferences.cs" />
     <Compile Include="../../src/FluentControl/Services/MouseService.cs" Link="MouseService.cs" />
     <Compile Include="../../src/FluentControl/Services/BrightnessMapping.cs" Link="BrightnessMapping.cs" />

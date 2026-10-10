@@ -77,6 +77,7 @@ public sealed partial class MainWindow : Window
         AudioPanel.Visibility = tag == "audio" ? Visibility.Visible : Visibility.Collapsed;
         MousePanel.Visibility = tag == "mouse" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPanel.Visibility = tag == "settings" ? Visibility.Visible : Visibility.Collapsed;
+        MainScroll.Visibility = tag == "settings" ? Visibility.Collapsed : Visibility.Visible;
         PresetLibraryPanel.Visibility = tag == "library" ? Visibility.Visible : Visibility.Collapsed;
         if (tag == "library") BuildPresetLibrary();
         UpdatePageTitle();

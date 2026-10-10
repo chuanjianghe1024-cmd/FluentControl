@@ -53,6 +53,7 @@ README 保留产品层面的计划，详细实现步骤、模块路径和验收�
 | DPI 与识别提示 | `WindowPlacement.cs`、`MonitorIdentificationWindow.cs`、`Services/WindowGeometry.cs` |
 | 场景、导入导出 | `MainWindow.Profiles.cs`、`MainWindow.Exchange.cs` |
 | 设置、托盘、快捷键、主题 | `MainWindow.Features.cs`、`MainWindow.Theme.cs` |
+| 设置导航、手动更新 | `MainWindow.Settings.cs`、`MainWindow.Updates.cs`、`Services/ReleaseUpdates.cs`；界面回归 `MainWindow.SettingsChecks.cs` |
 | 桌面面板 | `DesktopPanelWindow.cs`、`Services/DesktopLayer.cs`、`TransparentBackdrop.cs` |
 | 型号适配、只读采集 | `MainWindow.Adapters.cs`、`MainWindow.Adaptation.cs`、`Services/MonitorAdapters.cs`、`Services/MonitorDiagnostics.cs` |
 | DDC/CI 与能力 | `Services/MonitorService.cs`、`Services/MonitorReadBatch.cs`、`Services/MonitorCapabilityCache.cs`、`Services/VcpCatalog.cs`、`Services/VcpDiscovery.cs` |
@@ -85,6 +86,8 @@ README 保留产品层面的计划，详细实现步骤、模块路径和验收�
 - 保持 WinUI/Windows 11 风格、主题一致性及紧凑布局。用户可见文字经 `Strings.T/F` 本地化，维护八种语言相同键和占位符；不要翻译用户名称或硬件名称。
 - 桌面面板锁定时不激活或升层、不写入设备；双击必须立即解锁并激活到普通窗口前台，不能依赖第三次点击或永久置顶；失焦/Esc 锁定。桌面恢复任务不得覆盖更晚的解锁操作，Win+D 后解锁也必须保持前台。原生测试检查真实点击、前台句柄、Z 序及恢复定时器；拖动、缩放、透明度与最小尺寸提示布局同样需要验证。
 - 不修改系统默认音频路由，不为自启动索取管理员权限，不关闭系统防护。凭据、私钥和用户数据不能提交仓库。
+- 更新仅由用户点击触发，固定官方仓库的最新正式 Release；数字版本比较，不能降级或采用草稿/预发布。MSI 必须匹配官方附件 URL、大小和 SHA-256，下载与安装前分别验证；失败/取消清理临时文件，不自动安装或关闭应用。安装调用复用现有当前用户 MSI，先保存状态并等待待写入操作，关闭时取消网络任务。
+- 设置子菜单独立滚动、保留当前分类。刷新、切语言或切分类不能丢失更新请求状态，不重复发请求；更新文案同步八种语言。网络回归使用可注入的 HttpClient，不执行模拟安装包。
 
 ## 构建与验证
 

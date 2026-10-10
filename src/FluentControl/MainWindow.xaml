@@ -61,7 +61,7 @@
                 </StackPanel>
                 <TextBlock x:Name="ProfileFilterSummary" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"/>
             </StackPanel>
-            <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
+            <ScrollViewer x:Name="MainScroll" Grid.Row="2" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
                 <Grid>
                     <Grid.ChildrenTransitions><EntranceThemeTransition/></Grid.ChildrenTransitions>
                     <StackPanel x:Name="DisplayPanel" Spacing="16">
@@ -97,9 +97,11 @@
                         <HyperlinkButton x:Name="PointerSettingsLink" Content="Windows 指针设置" Tag="ms-settings:easeofaccess-mousepointer" Click="OpenSettings_Click" HorizontalAlignment="Left"/>
                     </StackPanel>
                     <StackPanel x:Name="PresetLibraryPanel" Spacing="12" Visibility="Collapsed"/>
-                    <StackPanel x:Name="SettingsPanel" Spacing="16" Visibility="Collapsed"/>
                 </Grid>
             </ScrollViewer>
+            <Grid x:Name="SettingsPanel" Grid.Row="2" RowSpacing="16" Visibility="Collapsed">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+            </Grid>
             <InfoBar x:Name="Status" Grid.Row="3" IsOpen="False" Visibility="Collapsed" IsClosable="False" Severity="Informational" Message="正在读取设备…"/>
         </Grid>
     </NavigationView>

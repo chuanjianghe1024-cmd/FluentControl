@@ -449,6 +449,7 @@ public sealed partial class MainWindow
             if (first.Value != 41 || second.Value != 41) throw new InvalidOperationException("Desktop mode toggle did not restore cross-model control.");
             await ClickMode();
             if (!state.Settings.DesktopRows.Contains("monitor/offline-screen/brightness")) throw new InvalidOperationException("Offline desktop selection was lost on mode switch.");
+            SelectSettingsSection("desktop"); SettingsPanel.UpdateLayout();
             var mode = Descendants<ComboBox>(SettingsPanel).Single(c => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(c) == "setting-desktop-mode");
             mode.SelectedIndex = 1; await Task.Delay(100);
             if (!state.Settings.GroupDesktopMonitors || desktopPanel.RowCount != 2) throw new InvalidOperationException("Settings and desktop mode were not synchronized.");
@@ -465,7 +466,7 @@ public sealed partial class MainWindow
     }
     private async Task CheckPanelTextSwitchAsync()
     {
-        Navigation.SelectedItem = Navigation.SettingsItem; BuildSettings();
+        Navigation.SelectedItem = Navigation.SettingsItem; BuildSettings(); SelectSettingsSection("desktop");
         await Task.Delay(100); SettingsPanel.UpdateLayout();
         var toggle = Descendants<ToggleSwitch>(SettingsPanel).First(t => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(t) == "setting-light-text");
         var peer = new ToggleSwitchAutomationPeer(toggle);
