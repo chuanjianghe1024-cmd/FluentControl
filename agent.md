@@ -137,7 +137,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 | 数据 | 当前路径 |
 | --- | --- |
-| 程序安装 | `%LOCALAPPDATA%\Programs\FluentControl` |
+| 程序安装 | 默认 `%LOCALAPPDATA%\Programs\FluentControl`，新安装可自定义；升级使用 HKCU 记录的原目录 |
 | 设置和总配置、型号预设 | `%LOCALAPPDATA%\FluentControl\user-state.json` |
 | 屏幕名称 | `%LOCALAPPDATA%\FluentControl\monitor-names.json` |
 | 能力缓存 | `%LOCALAPPDATA%\FluentControl\monitor-capabilities.json` |
@@ -152,6 +152,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 ### 已完成的基础
 
+- 正式版本 `v0.3.67`：安装目录选择、开机启动选项、完成后立即启动；Windows 实际向导覆盖中文/空格目录与返回导航，升级保留目录/自启动并支持取消，修复尊重应用关闭自启动，卸载保留配置。测试使用 Unicode Shell Link API，不能用 WScript.Shell 的 ANSI 路径结果判定中文快捷方式损坏。
 - 正式版本 `v0.3.60`：六个设置子菜单、手动检查官方 GitHub 正式版本、校验下载与用户选择后启动 MSI；README 品牌图、下载状态及问题反馈模板已完善。仓库 About / Social preview 设置需单独应用，不能与已提交素材混淆。
 - 正式版本 `v0.3.57`：在 v0.3.50 的多屏控制、总配置、型号预设库、软件 OSD、适配框架及桌面快捷操作基础上，加入两个系统音频控制、通知同步与旧配置迁移，以及桌面双击立即前置。
 - v0.3.50 之后的 OSD 状态展示、色温/场景模式回读校验和日志、无预设的已连接型号分组，以及 DDC/CI 音量说明也收入 v0.3.57；旧 Release 的附件和功能说明保持原版本边界。

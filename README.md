@@ -43,9 +43,9 @@ FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控�
 
 ### 下载与开始使用
 
-**[下载最新正式版 MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · 当前正式版 **v0.3.60** · [版本说明](docs/releases/v0.3.60.md)
+**[下载最新正式版 MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · 当前正式版 **v0.3.67** · [版本说明](docs/releases/v0.3.67.md)
 
-1. 下载并安装 MSI，从开始菜单打开 FluentControl。安装包包含所需运行库，可离线安装，无需管理员权限。
+1. 下载并安装 MSI。新安装可选择有写入权限的本地目录，并决定是否随 Windows 启动；完成页可直接启动应用。安装包包含运行库，可离线安装，无需管理员权限。升级沿用原目录；迁移目录时先卸载再安装，个人配置保留。
 2. 在外接显示器的实体菜单中开启 **DDC/CI**，连接后读取设备。
 3. 为屏幕命名，选择整体或单独控制，保存第一套配置。
 4. 按需开启桌面面板、快捷键和开机自启动。
@@ -115,9 +115,9 @@ Save a setup for work, gaming or late-night use and recall it when needed. Adjus
 
 ### Download and get started
 
-**[Download the latest stable MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · Current stable release: **v0.3.60** · [Release notes](docs/releases/v0.3.60.md)
+**[Download the latest stable MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · Current stable release: **v0.3.67** · [Release notes](docs/releases/v0.3.67.md)
 
-1. Install the MSI and open FluentControl from the Start menu. Required runtimes are included; installation works offline without administrator privileges.
+1. Install the MSI. For a fresh installation, choose a writable local folder and whether to start with Windows; launch directly from the completion page. Runtimes are included for offline installation without administrator privileges. Upgrades keep the existing folder; uninstall and reinstall to move it. Personal settings are retained.
 2. Enable **DDC/CI** in your external monitor's physical menu, then let the app read your devices.
 3. Name your displays, choose linked or individual control, and save your first profile.
 4. Enable the desktop panel, hotkeys or startup option as needed.
