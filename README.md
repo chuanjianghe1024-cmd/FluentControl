@@ -1,121 +1,152 @@
+<p align="center">
+  <img src="src/FluentControl/Assets/FluentControl.png" width="88" height="88" alt="FluentControl" />
+</p>
+
 # FluentControl · 聚合控制
 
-把显示器、声音、麦克风和鼠标放进一个 Windows 控制面板。使用 C# / .NET 8 / WinUI 3，遵循 Windows 11 的 Fluent 风格，支持半透明桌面面板、托盘和场景配置。
+**多屏、声音、麦克风与鼠标，一个面板就够。**  
+**Your displays, audio, microphone and mouse — in one panel.**
 
-**第二个正式 Release：v0.3.50** · Windows x64 · 单文件离线 MSI · **48.07 MiB**
+Windows 11 风格 · Windows x64 · 离线 MSI 安装 · 8 种界面语言
 
-[下载安装包](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/download/v0.3.50/FluentControl-0.3.50-x64.msi) · [发布说明与校验文件](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.50) · [更新记录](CHANGELOG.md)
+[简体中文](#zh-cn) · [English](#en) · [下载 / Download](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · [更新记录 / Changelog](CHANGELOG.md) · [反馈 / Issues](https://github.com/chuanjianghe1024-cmd/FluentControl/issues)
 
-## 安装与开始使用
+<a id="zh-cn"></a>
 
-1. 下载 MSI，双击安装，从开始菜单打开 FluentControl。升级前先从托盘彻底退出旧版本；安装会保留个人配置。
-2. 在显示器 OSD 菜单中启用 DDC/CI。启动时显示初始化进度环，读取真实设备信息后进入主界面。
-3. 为屏幕命名，例如“左屏 / 右屏”；选择“整体控制”一起调节，或“单独控制”逐台调整。
-4. 保存总配置，或在型号配置库中保存、复用每屏预设；在设置中按需开启桌面面板、快捷键、托盘和开机自启动。
+## 让桌面设备跟上你的使用场景
 
-主要面向 Windows 11 x64；安装器最低系统门槛为 Windows 10 2004（19041）x64，旧系统与具体硬件兼容性需自行验证。安装包自带 .NET 和必要的 WinUI 运行库，无需预装 Node.js 或 .NET，支持离线安装。安装到 `%LOCALAPPDATA%\Programs\FluentControl`，无需管理员权限。
+FluentControl 是一款面向 Windows 的设备聚合控制工具。把分散在显示器实体按键、系统声音设置和鼠标设置中的常用调节，放进统一的 Fluent 风格界面。
 
-外接显示器通过 HDMI / DisplayPort 的 DDC/CI 控制。显示器、显卡驱动、线缆、转接器和扩展坞都可能影响可用功能；HDR、ECO 和显示模式也可能锁定部分参数。
+从办公切换到游戏、从白天切换到夜间，保存一套配置后就能再次调用。多台显示器可以一起调，也可以分别调；常用控制还能留在桌面上，减少反复打开窗口和寻找菜单的操作。
 
-## 可以控制什么
+### 它解决什么问题
 
-| 模块 | 当前功能 |
+| 你遇到的情况 | FluentControl 的做法 |
 | --- | --- |
-| 显示器 | 亮度、对比度、色温预设、RGB 增益与黑电平、Gamma、饱和度/色相/六轴饱和度 |
-| 显示器扩展 | 输入源、扬声器音量/静音、锐度、缩放、显示模式、OSD/语言、电源/重置、使用时长和版本信息 |
-| 多屏 | 不同型号也能整体调节；取可用功能与选项的并集，只操作支持该项的屏幕，并标注部分支持 |
-| 声音与麦克风 | 优先显示 Windows 默认设备和默认通话设备；其他活动设备折叠，支持音量与静音 |
-| 鼠标 | 移动速度、指针大小，以及 Windows 原生设置入口 |
-| 快捷入口 | 托盘、全局快捷键、可移动和缩放的半透明桌面面板 |
+| 多块屏幕亮度不同，逐台按按钮很麻烦 | 整体或单独调节，并为每屏设置亮度映射 |
+| 办公、游戏、夜间需要重复调整设备 | 保存显示器、声音、麦克风和鼠标的总配置，随时切换 |
+| 好用的显示器参数难以整理、迁移和复用 | 按型号管理预设，支持批量导入、导出与兼容性检查 |
+| 常用控制分散在多个系统窗口 | 用主面板、托盘、快捷键和半透明桌面面板快速操作 |
 
-通用目录包含 31 项 VCP 功能，实际按显示器声明和读取结果开放；可隐藏不可设置项。未知私有功能保留适配位置，不发送猜测指令。标准 VCP 显示模式在硬件支持时可用，厂商专有游戏模式、护眼模式和硬件准星不保证可控。软件准星可选择屏幕，不保证覆盖独占全屏游戏；不提供游戏 FPS 测量。
+### 主要功能
 
-每屏可设置亮度上下限、偏移和曲线，用于手动匹配观感。单独控制显示硬件百分比，整体亮度经过各屏映射。输入源、电源、重置和按键锁等操作有确认；重置、电源和按键锁不会保存到场景，输入源最后应用。
+- **显示器控制**：在硬件支持时调节亮度、对比度、色温预设、RGB、Gamma、饱和度、显示模式、输入源和屏幕音量等。
+- **跨型号多屏联动**：不同型号也能整体调节；只向支持对应功能和选项的屏幕发送设置，并标明部分支持的情况。
+- **总配置与型号预设**：总配置保存整套设备状态，型号预设保存可复用的单屏参数。更新时保留离线设备参数，修改库中预设不会悄悄改变已有总配置。
+- **声音、麦克风与鼠标**：调节 Windows 音频设备的音量与静音、鼠标速度和指针大小。默认音频设备优先显示，其他活动设备按需展开。
+- **桌面面板与快捷操作**：半透明、可移动和缩放；双击解锁，失焦或 Esc 锁定；支持 Win+D 显示桌面、托盘驻留和全局快捷键。
+- **每屏软件菜单与诊断**：通过 FC 屏幕菜单集中调节当前屏幕，采集只读诊断信息，为具体型号适配提供依据。
+- **离线使用与多语言**：本地配置和 JSON 分享文件无需在线账户；支持简体中文、繁體中文、English、日本語、한국어、Deutsch、Français、Español。
 
-## 配置、分组与分享
+### 下载与开始使用
 
-- 总配置保存显示器、声音/麦克风与鼠标的完整状态；更新按字段合并，未连接屏幕和暂不可用参数保留。启动不自动应用上次配置，也不改变系统默认音频路由。
-- 型号配置库按型号自动分组，供不同总配置或同型号屏幕复用；每屏提供“选用配置 / 保存当前”。跨型号选择先检查兼容性，仅应用目标实际支持的参数，并可另存为本型号预设。
-- 总配置保存独立快照和预设来源，修改或删除库中预设不会改变已有总配置。旧场景自动迁移，迁移前保留备份；详见下方“总配置与型号配置库”。
-- 保留分组、应用/游戏、型号和品牌筛选，以及桌面面板、托盘和快捷键切换。标签用于查找，尚不自动监控程序或切换配置。
-- 型号预设支持批量 JSON 分享、离线导入、按型号合并和相同内容去重，兼容旧格式。公开文件仅包含显示器参数及可选能力信息，不分享音频/鼠标参数、序列号、本机路径或设备实例 ID。
-- 支持显式粘贴 HTTPS JSON 链接下载。导入仅保存配置，实际选择应用时才写入设备；网站登录、报告上传通过浏览器完成，在线服务尚未部署。
+**[下载最新正式版 MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · 当前正式版 **v0.3.50** · [版本说明](docs/releases/v0.3.50.md)
 
-[配置文件及接口说明](docs/monitor-profiles.md) · [配置库设计与迁移说明](docs/profile-library-design.md)
+1. 下载并安装 MSI，从开始菜单打开 FluentControl。安装包包含所需运行库，可离线安装，无需管理员权限。
+2. 在外接显示器的实体菜单中开启 **DDC/CI**，连接后读取设备。
+3. 为屏幕命名，选择整体或单独控制，保存第一套配置。
+4. 按需开启桌面面板、快捷键和开机自启动。
 
-## 桌面面板、托盘与语言
+主要面向 **Windows 11 x64**。升级前请从托盘彻底退出旧版本；升级和卸载均保留个人配置。当前正式安装包未做代码签名，Windows 可能显示“发布者未知”。开发分支的后续修复见 [更新记录](CHANGELOG.md)，测试安装包见 [Windows build](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/workflows/build.yml)。
 
-桌面面板使用真正的半透明背景，不透明度可设 10%–85%，默认 30%。双击解锁操作，失焦或 Esc 自动锁定；锁定时保持在普通应用窗口下方，单击不会提升层级。右上角拖动移动，右下角拖动缩放，位置和尺寸自动保存。按 Win+D 显示桌面时组件保持可见、锁定且不抢焦点；恢复应用后回到普通窗口下方。
+### 兼容性与当前进展
 
-顶部两行分别切换分组和配置；底部可切换整体/单独控制，各模式独立记住控制项并保留离线屏幕选择。可选浅色/深色文字、具体行和自动尺寸的 1–16 行高度上限，更多内容滚动查看。
+显示器可用功能取决于型号、固件、连接方式和当前模式。HDR、节能模式、转接器及扩展坞可能限制调节；带有音频输出也不一定支持显示器硬件音量遥控。FC 软件菜单已提供，**直接打开和导航显示器原厂 OSD 仍需经过验证的型号适配**。
 
-桌面整体控制的可选行覆盖所有实际支持的安全调节项，包括色温预设、RGB 增益和场景模式；两个屏幕共同支持的选项一起应用，部分支持的选项注明目标屏幕。可在设置的桌面面板控制项中勾选。危险操作仍保留在主面板确认执行，详见[更新记录](CHANGELOG.md)。
+**本地预设、JSON 导入导出已可用。** 配置分享站与在线型号适配库尚未部署，在线查询及报告提交暂不可用。计划域名为 [fctrl.app](https://fctrl.app)，配套网站独立维护于 [FluentControl-Web](https://github.com/chuanjianghe1024-cmd/FluentControl-Web)。
 
-关闭主窗口默认隐藏到托盘，可在设置中关闭；托盘菜单提供彻底退出。程序为单实例，再次启动会唤起已有窗口。开机自启动默认关闭，启用后使用当前用户启动文件夹快捷方式，不要求管理员或受保护的注册表写权限。便携版迁移到 MSI 后，请重新启用一次自启动以更新路径。
+### 后续方向
 
-| 快捷键 | 动作 |
+| 方向 | 目标 |
 | --- | --- |
-| Ctrl + Alt + Shift + Space | 打开主面板 |
-| Ctrl + Alt + Shift + ← | 上一个配置（跨组） |
-| Ctrl + Alt + Shift + → | 下一个配置（跨组） |
-| Ctrl + Alt + Shift + ↓ | 隐藏主面板 |
+| 更好的显示器兼容性 | 持续验证色温、场景模式、HDR 和原厂菜单控制，积累可靠的型号适配 |
+| 配置分享与适配库 | 上线型号预设分享、适配查询、诊断提交及审核流程 |
+| 更自然的多设备使用 | 改善插拔识别、离线设备管理、外部按键调节后的状态同步 |
+| 按场景自动调节 | 探索应用联动、定时配置和更多快捷操作 |
 
-快捷键可整体禁用，冲突会显示提示。支持跟随系统、简体中文、繁體中文、English、日本語、한국어、Deutsch、Français、Español；标题、菜单和托盘同步切换，硬件名及用户名称保留原文。主界面标题栏跟随深浅主题，普通提示约 4 秒、警告约 8 秒后消失，切页清除。
+以上是后续方向，未承诺发布时间。详细开发任务和验收条件维护在 [agent.md](agent.md)。
 
-## 读取速度与排错
+### 参考项目与参与方式
 
-显示器、音频和鼠标并行初始化；最多同时检测两台不同屏幕，同一屏幕的 DDC/CI 请求顺序执行。有效的 VCP 和色温能力按设备实例、型号及连接缓存 7 天，最多 32 台。**只缓存能力，不缓存当前亮度、对比度或输入源等值。** 首次读取仍受硬件响应速度限制，共用扩展坞也可能在驱动内串行。
+以下项目为显示器控制与适配研究提供参考，具体功能仍以 FC 对相应硬件的验证为准。
 
-固件、连接方式或显示模式改变后，可在“设置 → 显示器功能检测 → 重新检测”绕过缓存。日志记录单屏耗时、查询数量和慢查询，便于定位问题。
-
-| 内容 | 位置 |
+| 项目 | 参考内容 |
 | --- | --- |
-| 设置及场景 | `%LOCALAPPDATA%\FluentControl\user-state.json` |
-| 屏幕名称 | `%LOCALAPPDATA%\FluentControl\monitor-names.json` |
-| 能力缓存 | `%LOCALAPPDATA%\FluentControl\monitor-capabilities.json` |
-| 启动与读取日志 | `%LOCALAPPDATA%\FluentControl\Logs\startup.log` |
+| [ddcutil](https://github.com/rockowitz/ddcutil) | DDC/CI 控制、能力处理与自定义功能定义 |
+| [ddccontrol-db](https://github.com/ddccontrol/ddccontrol-db) | 按型号维护显示器控制描述的数据库 |
+| [msigd](https://github.com/couriersud/msigd) | MSI 显示器 USB/HID 控制与型号差异处理 |
+| [ddc-mode-switcher](https://github.com/Gunther-Schulz/ddc-mode-switcher) | 特定 ASUS 型号的原厂 OSD 指令序列 |
+| [ddc-toolkit](https://github.com/andres-valencia/ddc-toolkit) | 特定 Lenovo 型号的私有控制映射与证据记录 |
 
-升级和卸载均保留个人数据。接口或驱动变化可能改变设备身份，需要重新绑定或命名。报告问题时请附版本、系统版本、显示器型号、连接方式、操作步骤及相关日志，并移除不想分享的设备信息。
+欢迎通过 [Issues](https://github.com/chuanjianghe1024-cmd/FluentControl/issues) 提交问题、功能建议和型号兼容性反馈。报告时附上软件版本、显示器型号、连接方式和复现步骤；诊断信息请先检查并移除不想公开的内容。开发者与 AI 协作入口见 [agent.md](agent.md)。
 
-## 已知边界
+---
 
-- v0.3.50 安装包**未做 Authenticode 签名**，Windows 可能显示“发布者未知”或 SmartScreen 提示。SHA-256 用于校验文件，不替代签名；[签名方案](docs/code-signing.md)已预留。
-- 尚不支持笔记本内屏 WMI 亮度、自动热插拔刷新、外部 OSD 状态实时同步、应用自动切换场景、定时调节、托盘滚轮或动态厂商 SDK。
-- 不改变 Windows 默认音频路由。鼠标指针大小使用系统兼容接口，失败时保留原值并提供原生设置入口。
-- Windows CI 已验证逻辑、资源、窗口启动、模拟设备界面、桌面面板、真实 Win+D、MSI 安装/升级/卸载、文件占用及数据保留。4K 的 100%–200% 尺寸计算已测试；原生界面在测试屏幕 100% 下验证，实体 4K / 150%、混合 DPI 双屏及真实 DDC/CI 仍需对应硬件复测。
+<a id="en"></a>
 
-## 开发与 AI 协作
+## Make your desktop fit what you are doing
 
-桌面仓库只包含 C# / WinUI 应用、测试和 MSI。GitHub Actions 本身可能使用 Node 运行官方 action，这不表示桌面程序依赖 Node。
+FluentControl brings everyday display, audio, microphone and mouse controls into one Windows app with a Fluent-style interface.
 
-Windows 上安装 .NET 8 SDK、Windows SDK 和 WinUI 构建组件后：
+Save a setup for work, gaming or late-night use and recall it when needed. Adjust multiple displays together or individually, and keep frequent controls on a translucent desktop panel.
 
-```powershell
-dotnet build src/FluentControl/FluentControl.csproj -c Debug -p:Platform=x64
-dotnet run --project src/FluentControl/FluentControl.csproj -p:Platform=x64
-dotnet run --project tests/FluentControl.Tests -c Release
-```
+### Problems it solves
 
-[开发、验证与发布流程](docs/development.md) · [AI 协作指南 AGENTS.md](AGENTS.md) · [agent.md 兼容入口](agent.md)
+| Everyday friction | What FluentControl offers |
+| --- | --- |
+| Adjusting several monitors means reaching for several sets of buttons | Linked or individual controls with per-display brightness mapping |
+| Changing activities requires repeating the same device adjustments | Global profiles for display, audio, microphone and mouse settings |
+| Useful monitor settings are difficult to organize, move and reuse | Model-based presets, batch import/export and compatibility checks |
+| Frequent controls are spread across several settings windows | One main panel, a tray menu, hotkeys and a desktop panel |
 
-配置分享网站独立维护于 [FluentControl-Web](https://github.com/chuanjianghe1024-cmd/FluentControl-Web)，使用 Cloudflare Workers、PostgreSQL 和独立登录配置。官网计划使用 [fctrl.app](https://fctrl.app)，部署与桌面客户端接入分别进行；此 Release 不宣称在线服务已上线。
+### Features
 
-## 总配置与型号配置库
+- **Monitor controls**: brightness, contrast, color presets, RGB, gamma, saturation, picture modes, input source, monitor volume and more, where supported by the hardware.
+- **Linked controls across models**: adjust different monitor models together. Settings go only to displays that support the selected feature or option, with partial support clearly indicated.
+- **Global profiles and monitor presets**: save a complete device setup or reusable settings for one monitor model. Updates retain offline device settings; editing a library preset does not silently change existing profile snapshots.
+- **Audio, microphone and mouse**: control Windows endpoint volume and mute, mouse speed and pointer size. Default audio devices appear first; other active devices can be expanded.
+- **Desktop panel and shortcuts**: a movable, resizable translucent panel, double-click to unlock, blur or Esc to lock, support for Win+D, tray operation and global hotkeys.
+- **Per-display software menu and diagnostics**: adjust a display through the FC on-screen menu and collect read-only diagnostics for model-specific adaptation.
+- **Offline use and eight languages**: local profiles and JSON sharing files need no online account. Available in Simplified Chinese, Traditional Chinese, English, Japanese, Korean, German, French and Spanish.
 
-顶部总配置保存全部已读取的显示器、声音/麦克风音量与静音、鼠标速度和指针大小；左右按钮、桌面面板和快捷键切换完整状态。暂时离线的设备参数继续保留，不修改系统默认音频路由。
+### Download and get started
 
-型号配置库按 PnP 型号自动分组。同型号屏幕可以共用预设，每屏也可选不同预设。每块屏幕提供“选用配置 / 保存当前”；允许选择其他型号的预设，先显示兼容数量，仅应用目标支持的参数与选项，再提示另存为本型号配置。建议名称为“型号 - 场景/应用 - 短简介”，可自行修改。
+**[Download the latest stable MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · Current stable release: **v0.3.50** · [Release notes](docs/releases/v0.3.50.md)
 
-总配置保存参数快照和来源引用；修改或删除型号库预设不会改变已有总配置。保存/更新总配置时自动复用或新增对应的显示器预设。首次迁移前自动保存 `user-state.json.before-model-library-v1.bak`，旧总配置和离线参数保留。
+1. Install the MSI and open FluentControl from the Start menu. Required runtimes are included; installation works offline without administrator privileges.
+2. Enable **DDC/CI** in your external monitor's physical menu, then let the app read your devices.
+3. Name your displays, choose linked or individual control, and save your first profile.
+4. Enable the desktop panel, hotkeys or startup option as needed.
 
-分享/导入针对型号配置库；导入无需连接设备，按型号合并，相同内容去重。公开文件只含显示器参数和能力元数据，音频、鼠标和设备实例保留本地。
+Primarily designed for **Windows 11 x64**. Fully exit the previous version from the tray before upgrading. Upgrades and uninstallation retain personal settings. The current stable installer is unsigned, so Windows may show an unknown-publisher prompt. Later development changes are listed in the [changelog](CHANGELOG.md); test installers are available from [Windows build](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/workflows/build.yml).
 
+### Compatibility and current status
 
-## FC 软件 OSD 与显示器型号适配
+Available monitor controls depend on the model, firmware, connection and active mode. HDR, power-saving modes, adapters and docks may restrict adjustments. An audio output does not necessarily provide remote control of the monitor's hardware volume. The FC software menu is available; **opening and navigating a monitor's native OSD requires a verified model-specific adapter**.
 
-每块屏幕可打开 **FC 软件菜单** 调节该屏实际可控的参数，按 Esc 关闭。主窗口、识别显示器提示、FC 软件菜单和软件准星按目标屏幕 DPI 换算尺寸；识别名称自动换行并按内容增高。
+**Local presets and JSON import/export are available.** The sharing service and online adapter catalog have not been deployed, so online lookup and report submission are not available yet. The planned domain is [fctrl.app](https://fctrl.app); the companion website is maintained separately in [FluentControl-Web](https://github.com/chuanjianghe1024-cmd/FluentControl-Web).
 
-每块屏幕的 **型号适配** 入口可在线查找已审核、与型号及固件精确匹配的数据型适配包，支持安装、离线使用和移除。没有匹配项时可进入采集助手，记录基线与实体 OSD 调节前后的原始参数差异，导出后在网站登录提交为私有待适配报告。
+### Roadmap
 
-适配包独立于总配置和型号预设库。原厂菜单指令必须经过实机验证并由维护者发布；安装不意味着任意显示器都可以导航原厂 OSD。**网站尚未部署，在线查询和报告提交暂不可用。** 配套报告队列、审核发布和撤回代码已完成，需配置数据库、登录并部署后启用。详见 [型号适配与采集说明](docs/monitor-adapters.md)。
+| Direction | Goal |
+| --- | --- |
+| Better monitor compatibility | Validate color presets, picture modes, HDR behavior and native menu controls; build a reliable adapter catalog |
+| Sharing and model adapters | Launch preset sharing, adapter lookup, diagnostic submission and review workflows |
+| Smoother multi-device use | Improve hot-plug detection, offline device management and synchronization after physical OSD changes |
+| Context-aware adjustments | Explore application-triggered profiles, scheduled adjustments and more shortcuts |
 
+These are planned directions without committed release dates. Detailed engineering tasks and acceptance criteria are maintained in [agent.md](agent.md).
+
+### References and contributions
+
+These projects inform monitor-control and adaptation research. FC support still depends on validation against the relevant hardware.
+
+| Project | Reference area |
+| --- | --- |
+| [ddcutil](https://github.com/rockowitz/ddcutil) | DDC/CI control, capability handling and user-defined features |
+| [ddccontrol-db](https://github.com/ddccontrol/ddccontrol-db) | A database of model-specific monitor control descriptions |
+| [msigd](https://github.com/couriersud/msigd) | USB/HID control and model differences for MSI monitors |
+| [ddc-mode-switcher](https://github.com/Gunther-Schulz/ddc-mode-switcher) | Native OSD command sequences for a specific ASUS model |
+| [ddc-toolkit](https://github.com/andres-valencia/ddc-toolkit) | Private control mappings and recorded evidence for a specific Lenovo model |
+
+Bug reports, feature ideas and monitor compatibility reports are welcome in [Issues](https://github.com/chuanjianghe1024-cmd/FluentControl/issues). Include your app version, monitor model, connection and reproduction steps. Review diagnostics and remove anything you do not want to publish. Developer and AI collaboration guidance starts at [agent.md](agent.md).
