@@ -412,7 +412,7 @@ public sealed partial class MainWindow
             }
             unreadable = true;
             combo.SelectedItem = channel.Options[0]; await WaitForWritesAsync();
-            if (!Has(T("当前读值未确认", "Current readback unconfirmed")) || combo.SelectedItem is not null ||
+            if (!Has(Strings.T("当前读值未确认", "Current readback unconfirmed")) || combo.SelectedItem is not null ||
                 CaptureProfile().ContainsKey(ProfileGroups.MonitorKey(fixture.Id, channel.PropertyKey)))
                 throw new InvalidOperationException("Failed preset readback was shown or saved as a confirmed value.");
             unreadable = false;
