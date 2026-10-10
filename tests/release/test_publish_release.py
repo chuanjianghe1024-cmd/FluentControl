@@ -155,5 +155,97 @@ class ReleaseTests(unittest.TestCase):
             self.assertTrue(writes[1].args[0].endswith("/releases/42"))
 
 
+class ReleaseNotesTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        notes = self.root / "docs/releases"
+        notes.mkdir(parents=True)
+        self.body = "# FluentControl v0.3.50\n\n## 中文\n\n说明\n\n## English\n\nNotes\n"
+        (notes / "v0.3.50.md").write_text(self.body, encoding="utf-8")
+        root_patch = patch.object(release, "ROOT", self.root)
+        root_patch.start()
+        self.addCleanup(root_patch.stop)
+        self.original = {
+            "id": 42, "tag_name": "v0.3.50", "target_commitish": "a" * 40,
+            "name": "FluentControl v0.3.50", "draft": False, "prerelease": False,
+            "published_at": "2026-10-09T13:13:29Z", "body": "Old notes", "html_url": "release URL",
+            "assets": [{"id": 7, "name": "installer.msi", "size": 100,
+                        "digest": "sha256:" + "b" * 64, "state": "uploaded"}],
+        }
+        self.state = copy.deepcopy(self.original)
+        self.tag = {"type": "commit", "sha": "a" * 40}
+
+    def api(self, endpoint, optional=False, method="GET", payload=None):
+        if "/git/ref/tags/" in endpoint:
+            return {"object": copy.deepcopy(self.tag)}
+        if method == "PATCH":
+            self.assertEqual(endpoint, "repos/owner/repo/releases/42")
+            self.assertEqual(payload, {"body": self.body})
+            self.state.update(payload)
+        else:
+            self.assertEqual(method, "GET")
+        return copy.deepcopy(self.state)
+
+    def test_only_body_changes_and_retry_does_not_write(self):
+        with patch.object(release, "api", side_effect=self.api) as api, \
+             patch.object(release, "gh") as gh:
+            release.sync_notes("owner/repo")
+            self.assertEqual(self.state, {**self.original, "body": self.body})
+            self.assertEqual(sum(c.kwargs.get("method") == "PATCH" for c in api.call_args_list), 1)
+            api.reset_mock()
+            release.sync_notes("owner/repo")
+            self.assertFalse(any(c.kwargs.get("method") == "PATCH" for c in api.call_args_list))
+            gh.assert_not_called()
+
+    def test_unpublished_notes_never_create_a_release(self):
+        with patch.object(release, "api", return_value=None) as api:
+            release.sync_notes("owner/repo")
+            api.assert_called_once_with("repos/owner/repo/releases/tags/v0.3.50", optional=True)
+
+    def test_draft_prerelease_or_wrong_tag_cannot_be_updated(self):
+        for field, value in (("draft", True), ("prerelease", True), ("tag_name", "v0.3.33")):
+            with self.subTest(field=field), patch.dict(self.state, {field: value}), \
+                 patch.object(release, "api", side_effect=self.api) as api:
+                with self.assertRaisesRegex(ValueError, "matching published"):
+                    release.sync_notes("owner/repo")
+                self.assertFalse(any(c.kwargs.get("method") == "PATCH" for c in api.call_args_list))
+
+    def test_concurrent_body_asset_or_title_edit_stops_before_write(self):
+        for field, value in (("body", "Maintainer edit"), ("assets", []), ("name", "New title")):
+            with self.subTest(field=field):
+                changed = {**self.original, field: value}
+                responses = [self.original, {"object": self.tag}, changed]
+                with patch.object(release, "api", side_effect=responses) as api:
+                    with self.assertRaisesRegex(ValueError, "changed during sync"):
+                        release.sync_notes("owner/repo")
+                    self.assertFalse(any(c.kwargs.get("method") == "PATCH" for c in api.call_args_list))
+
+    def test_moved_tag_stops_before_write(self):
+        moved = {"object": {**self.tag, "sha": "c" * 40}}
+        responses = [self.original, {"object": self.tag}, self.original, moved]
+        with patch.object(release, "api", side_effect=responses) as api:
+            with self.assertRaisesRegex(ValueError, "tag changed"):
+                release.sync_notes("owner/repo")
+            self.assertFalse(any(c.kwargs.get("method") == "PATCH" for c in api.call_args_list))
+
+    def test_post_write_verification_detects_unsaved_notes_and_asset_changes(self):
+        for changed in (self.original, {**self.original, "body": self.body, "assets": []}):
+            responses = [self.original, {"object": self.tag}, self.original,
+                         {"object": self.tag}, {}, changed]
+            with self.subTest(changed=changed), patch.object(release, "api", side_effect=responses):
+                with self.assertRaises(ValueError):
+                    release.sync_notes("owner/repo")
+
+    def test_filename_heading_mismatch_stops_before_api_call(self):
+        path = self.root / "docs/releases/v0.3.50.md"
+        path.write_text("# FluentControl v0.3.33\n", encoding="utf-8")
+        with patch.object(release, "api") as api:
+            with self.assertRaisesRegex(ValueError, "heading differs"):
+                release.sync_notes("owner/repo")
+            api.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

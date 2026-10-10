@@ -7,6 +7,7 @@ on:
       - .github/workflows/release.yml
       - scripts/publish-release.py
       - tests/release/**
+      - docs/releases/**
   workflow_dispatch:
 permissions:
   contents: read
@@ -33,3 +34,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 scripts/publish-release.py
+      - name: Sync published release descriptions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish-release.py --sync-notes

@@ -137,6 +137,59 @@ def validate_assets(assets, expected, complete=False):
         require(asset.get("digest") == "sha256:" + digest, "Release asset checksum mismatch")
 
 
+def release_identity(release):
+    """Fields a notes-only update must preserve; omit counters and updated_at."""
+    fields = ("id", "tag_name", "target_commitish", "name", "draft", "prerelease", "published_at")
+    identity = {field: release[field] for field in fields}
+    identity["assets"] = sorted(
+        (a["id"], a["name"], a["size"], a["digest"], a["state"]) for a in release["assets"])
+    return identity
+
+
+def sync_notes(repo):
+    """Update descriptions of existing stable releases; never create a release."""
+    require(re.fullmatch(r"[\w.-]+/[\w.-]+", repo), "Invalid repository")
+    base = f"repos/{repo}"
+    pending = []
+    # Validate all targets before writing any descriptions.
+    for path in sorted((ROOT / "docs/releases").glob("v*.md")):
+        tag = path.stem
+        require(re.fullmatch(r"v0\.3\.\d+", tag), "Unexpected release notes filename")
+        body = path.read_text(encoding="utf-8")
+        require(body.splitlines() and body.splitlines()[0] == f"# FluentControl {tag}",
+                "Release notes heading differs from filename")
+        release = api(f"{base}/releases/tags/{tag}", optional=True)
+        if release is None:
+            print(f"Not published; description sync skipped: {tag}")
+            continue
+        require(release["tag_name"] == tag and not release["draft"] and not release["prerelease"],
+                "Notes sync requires a matching published stable release")
+        identity = release_identity(release)
+        tag_object = api(f"{base}/git/ref/tags/{tag}")["object"]
+        require(tag_object["type"] in ("commit", "tag"), "Unexpected tag target")
+        pending.append((tag, body, release, identity, tag_object))
+
+    for tag, body, original, identity, tag_object in pending:
+        if original.get("body") == body:
+            print(f"Release notes already current: {tag}")
+            continue
+        endpoint = f'{base}/releases/{original["id"]}'
+        current = api(endpoint)
+        require(release_identity(current) == identity and current.get("body") == original.get("body"),
+                "Release changed during sync; review and retry")
+        require(api(f"{base}/git/ref/tags/{tag}")["object"] == tag_object,
+                "Release tag changed during sync")
+        # Only body is sent: title, publication state, latest status, tags and
+        # installer/checksum assets are outside this operation's scope.
+        api(endpoint, method="PATCH", payload={"body": body})
+        updated = api(endpoint)
+        require(updated.get("body") == body, "Release notes were not saved")
+        require(release_identity(updated) == identity, "Release metadata or assets changed")
+        require(api(f"{base}/git/ref/tags/{tag}")["object"] == tag_object,
+                "Release tag changed during sync")
+        print(f'Synced release notes: {updated["html_url"]}')
+
+
 def publish(m, repo):
     require(re.fullmatch(r"[\w.-]+/[\w.-]+", repo), "Invalid repository")
     base, tag = f"repos/{repo}", "v" + m["version"]
@@ -203,11 +256,17 @@ def publish(m, repo):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--validate-only", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--validate-only", action="store_true")
+    mode.add_argument("--sync-notes", action="store_true",
+                      help="Sync docs/releases descriptions without publishing or changing assets")
     args = parser.parse_args()
-    manifest = json.loads((ROOT / ".github/release.json").read_text(encoding="utf-8"))
-    validate_manifest(manifest)
-    if args.validate_only:
-        print(f'Valid release manifest: v{manifest["version"]}')
+    if args.sync_notes:
+        sync_notes(os.environ["GITHUB_REPOSITORY"])
     else:
-        publish(manifest, os.environ["GITHUB_REPOSITORY"])
+        manifest = json.loads((ROOT / ".github/release.json").read_text(encoding="utf-8"))
+        validate_manifest(manifest)
+        if args.validate_only:
+            print(f'Valid release manifest: v{manifest["version"]}')
+        else:
+            publish(manifest, os.environ["GITHUB_REPOSITORY"])

@@ -108,6 +108,8 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 - `.github/workflows/build.yml` 先完成全部 Windows 检查再上传安装包；版本为 `0.3.<run_number>`。
 - 正式发布通过 `.github/release.json` 指定成功构建及确切安装包，工作流校验来源和 SHA-256 后发布。标签指向该安装包的源码提交，不因文档更新改指向其他构建。
 - 已发布标签和附件不能移动或替换；修复用新版本。签名状态如实记录，域名、Manufacturer 和文件摘要不等于 Authenticode 签名。
+- `docs/releases/v<版本>.md` 是对应 Release 正文的维护入口，采用同页中英文，突出用户收益、功能变化、升级和实际限制；不要把后续开发构建的修复追记为旧安装包的能力。标题首行为 `# FluentControl v<版本>`，链接使用绝对地址。
+- 修改发布说明会触发发布工作流：先验证既有发布，再用 `scripts/publish-release.py --sync-notes` 同步已发布正式版本的正文。同步只发送 `body`，核对前后标签、标题、发布状态、附件身份与摘要；未发布版本跳过，不因补写说明创建新 Release。
 
 交付说明清楚写出改了什么、验证结果、提交/Release 链接和实际限制；尚未通过的 CI 或未部署的服务不能写成完成。
 
