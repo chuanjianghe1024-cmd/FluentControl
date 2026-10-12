@@ -1,6 +1,6 @@
 # 系统色温（软件） / Software color temperature
 
-开发版在每屏卡片与整体视图中增加独立的「系统色温（软件）」折叠项。选择 2500–10000 K 后点击应用，软件通过当前屏幕的显卡颜色曲线调整冷暖，不发送 DDC 色温命令。内屏和外屏都按 Windows / 显卡接口实际可用性判断。
+v0.3.92 在每屏卡片与整体视图中增加独立的「系统色温（软件）」折叠项。选择 2500–10000 K 后点击应用，软件通过当前屏幕的显卡颜色曲线调整冷暖，不发送 DDC 色温命令。内屏和外屏都按 Windows / 显卡接口实际可用性判断。
 
 这是 **SDR 兼容功能**，不是校色工具。数值是软件效果的近似目标，不是仪器测得的面板色温；6500 K 完整保留开始控制时的曲线，不能据此声称把原本偏色的面板校准到了 D65。缩减 RGB 通道可能影响亮度与色阶。照片、印刷和需要准确颜色的工作应恢复原色并使用合适的校色流程。
 
@@ -34,7 +34,7 @@ ICC/MHC2 是 Windows 的现代颜色管理路径，可覆盖 SDR/HDR。本版没
 
 ## English
 
-Development builds add **System temperature (software)** for each display in both views. Choose 2500–10000 K and click Apply; moving the slider alone makes no change. This is an approximate SDR white-balance effect through the graphics driver, independent of DDC hardware presets. 6500 K preserves the captured curve rather than calibrating a panel to a measured white point.
+v0.3.92 adds **System temperature (software)** for each display in both views. Choose 2500–10000 K and click Apply; moving the slider alone makes no change. This is an approximate SDR white-balance effect through the graphics driver, independent of DDC hardware presets. 6500 K preserves the captured curve rather than calibrating a panel to a measured white point.
 
 Restore original colors returns to the captured baseline only while the current curve still belongs to FC. The tray keeps the effect active; normal exit attempts restoration before closing. Forced termination and display-driver changes can prevent restoration, so a durable local journal offers explicit recovery on the next launch. FC does not automatically apply a saved temperature at startup.
 

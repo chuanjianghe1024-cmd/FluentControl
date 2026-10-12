@@ -4,6 +4,12 @@
 
 ## 未发布 / Unreleased
 
+暂无待发布变更。 / No pending changes.
+
+## [0.3.92](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.92) — 2026-10-12
+
+汇总 v0.3.75 之后的系统色温、HDR 控制与提示、显示器通信及 OSD 配对增强。[中英文发布说明](docs/releases/v0.3.92.md)。
+
 - HDR 开启时，在单屏、整体控制和 FC 屏幕菜单中显示常驻限制提示，说明亮度、对比度、色温可能被显示器锁定，并提示调节无效时关闭 HDR 后重新读取设备；按屏幕显示，关闭并刷新后移除，不统一禁用仍可用的控制。
 - Show a persistent per-display HDR notice in individual, overall and FC on-screen controls. Explain possible brightness, contrast and color-temperature restrictions and suggest disabling HDR and refreshing if adjustments have no effect. Remove it after HDR is off and devices refresh; keep supported controls usable.
 

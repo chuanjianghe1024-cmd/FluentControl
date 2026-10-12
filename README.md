@@ -33,6 +33,7 @@ FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控�
 ### 主要功能
 
 - **显示器控制**：在硬件支持时调节亮度、对比度、色温预设、RGB、Gamma、饱和度、显示模式、输入源和屏幕音量等。
+- **系统色温与 HDR**：每屏独立调整 SDR 画面冷暖、恢复原颜色，并按 Windows 能力切换 HDR；HDR 下明确提示亮度、对比度等可能受限。
 - **跨型号多屏联动**：不同型号也能整体调节；只向支持对应功能和选项的屏幕发送设置，并标明部分支持的情况。
 - **总配置与型号预设**：总配置保存整套设备状态，型号预设保存可复用的单屏参数。更新时保留离线设备参数，修改库中预设不会悄悄改变已有总配置。
 - **声音、麦克风与鼠标**：调节声音和输入的音量与静音、鼠标速度和指针大小。音频简化为「音量」「输入」两项，自动跟随 Windows 当前默认选择；虚拟声卡同样通过系统控制，不需要在 FC 中重新选择或绑定。
@@ -43,7 +44,7 @@ FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控�
 
 ### 下载与开始使用
 
-**[下载最新正式版 MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · 当前正式版 **v0.3.75** · [版本说明](docs/releases/v0.3.75.md)
+**[下载最新正式版 MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · 当前正式版 **v0.3.92** · [版本说明](docs/releases/v0.3.92.md)
 
 1. 下载并安装 MSI。新安装可选择有写入权限的本地目录，并决定是否随 Windows 启动；完成页可直接启动应用。安装包包含运行库，可离线安装，无需管理员权限。升级沿用原目录；迁移目录时先卸载再安装，个人配置保留。
 2. 在外接显示器的实体菜单中开启 **DDC/CI**，连接后读取设备。
@@ -54,11 +55,11 @@ FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控�
 
 ### 兼容性与当前进展
 
-**开发版新增系统色温（软件）**：按屏调整画面冷暖，一键恢复原曲线，可保存到本机总配置；适用于接口可用的 SDR 内屏或外屏。HDR/自动颜色管理下暂不使用此兼容接口，提供 Windows 夜间模式入口。[范围与使用说明](docs/system-color-temperature.md)。
+**v0.3.92 新增系统色温（软件）**：按屏调整画面冷暖，一键恢复原曲线，可保存到本机总配置；适用于接口可用的 SDR 内屏或外屏。HDR/自动颜色管理下暂不使用此兼容接口，提供 Windows 夜间模式入口。[范围与使用说明](docs/system-color-temperature.md)。
 
-**开发版新增每屏 Windows HDR 开关**：切换后重新检测显示器控制项；与 DDC/CI 独立，Windows 支持 HDR 的内屏也可使用。WMI 笔记本亮度与厂商专有功能尚未接入，实体屏幕切换待本机验证。[控制范围与使用说明](docs/windows-hdr.md)。
+**v0.3.92 新增每屏 Windows HDR 开关**：切换后重新检测显示器控制项；与 DDC/CI 独立，Windows 支持 HDR 的内屏也可使用。WMI 笔记本亮度与厂商专有功能尚未接入，实体屏幕切换待本机验证。[控制范围与使用说明](docs/windows-hdr.md)。
 
-显示器可用功能取决于型号、固件、连接方式和当前模式。HDR、节能模式、转接器及扩展坞可能限制调节；带有音频输出也不一定支持显示器硬件音量遥控。FC 软件菜单已提供，**直接打开和导航显示器原厂 OSD 仍需经过验证的型号适配**。v0.3.75 提供实验性的[本地 OSD 配对助手](docs/osd-pairing.md)：自动列出已声明的未知指令，逐次试发并按观察到的效果绑定遥控，支持部分配对和可选文件分享，无需上传。
+显示器可用功能取决于型号、固件、连接方式和当前模式。HDR、节能模式、转接器及扩展坞可能限制调节；带有音频输出也不一定支持显示器硬件音量遥控。FC 软件菜单已提供，**直接打开和导航显示器原厂 OSD 仍需经过验证的型号适配**。v0.3.92 提供实验性的[本地 OSD 配对助手](docs/osd-pairing.md)：自动列出已声明的未知指令，逐次试发并按观察到的效果绑定遥控，支持部分配对和可选文件分享，无需上传。
 
 **本地预设、JSON 导入导出已可用。** 配置分享站与在线型号适配库尚未部署，在线查询及报告提交暂不可用。计划域名为 [fctrl.app](https://fctrl.app)，配套网站独立维护于 [FluentControl-Web](https://github.com/chuanjianghe1024-cmd/FluentControl-Web)。
 
@@ -110,6 +111,7 @@ Save a setup for work, gaming or late-night use and recall it when needed. Adjus
 ### Features
 
 - **Monitor controls**: brightness, contrast, color presets, RGB, gamma, saturation, picture modes, input source, monitor volume and more, where supported by the hardware.
+- **Software temperature and HDR**: adjust SDR warmth per display, restore original colors and switch HDR where Windows supports it, with clear notices when HDR may restrict picture controls.
 - **Linked controls across models**: adjust different monitor models together. Settings go only to displays that support the selected feature or option, with partial support clearly indicated.
 - **Global profiles and monitor presets**: save a complete device setup or reusable settings for one monitor model. Updates retain offline device settings; editing a library preset does not silently change existing profile snapshots.
 - **Audio, microphone and mouse**: adjust output/input volume and mute, mouse speed and pointer size. Audio is simplified to **Volume** and **Input**, following the current Windows defaults, including virtual audio endpoints, without selecting or binding devices in FC.
@@ -120,7 +122,7 @@ Save a setup for work, gaming or late-night use and recall it when needed. Adjus
 
 ### Download and get started
 
-**[Download the latest stable MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · Current stable release: **v0.3.75** · [Release notes](docs/releases/v0.3.75.md)
+**[Download the latest stable MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · Current stable release: **v0.3.92** · [Release notes](docs/releases/v0.3.92.md)
 
 1. Install the MSI. For a fresh installation, choose a writable local folder and whether to start with Windows; launch directly from the completion page. Runtimes are included for offline installation without administrator privileges. Upgrades keep the existing folder; uninstall and reinstall to move it. Personal settings are retained.
 2. Enable **DDC/CI** in your external monitor's physical menu, then let the app read your devices.
@@ -131,11 +133,11 @@ Primarily designed for **Windows 11 x64**. Fully exit the previous version from 
 
 ### Compatibility and current status
 
-**Development builds add software color temperature** per display, original-curve restoration and local global-profile saving for supported SDR internal or external displays. HDR/auto color management blocks this compatibility interface and offers Windows night light instead. See [scope and usage](docs/system-color-temperature.md).
+**v0.3.92 adds software color temperature** per display, original-curve restoration and local global-profile saving for supported SDR internal or external displays. HDR/auto color management blocks this compatibility interface and offers Windows night light instead. See [scope and usage](docs/system-color-temperature.md).
 
-**Development builds add per-display Windows HDR switches** and rediscover monitor controls after switching. HDR works independently of DDC/CI, including internal panels when Windows reports support. WMI laptop brightness and proprietary OEM controls remain unimplemented; physical HDR switching still needs local verification. See [control scope and usage](docs/windows-hdr.md).
+**v0.3.92 adds per-display Windows HDR switches** and rediscover monitor controls after switching. HDR works independently of DDC/CI, including internal panels when Windows reports support. WMI laptop brightness and proprietary OEM controls remain unimplemented; physical HDR switching still needs local verification. See [control scope and usage](docs/windows-hdr.md).
 
-Available monitor controls depend on the model, firmware, connection and active mode. HDR, power-saving modes, adapters and docks may restrict adjustments. An audio output does not necessarily provide remote control of the monitor's hardware volume. The FC software menu is available; **opening and navigating a monitor's native OSD requires a verified model-specific adapter**. v0.3.75 includes an experimental [local OSD pairing assistant](docs/osd-pairing.md): automatically discover advertised unknown commands, test them one at a time, bind observed effects and optionally exchange files without uploading or signing in.
+Available monitor controls depend on the model, firmware, connection and active mode. HDR, power-saving modes, adapters and docks may restrict adjustments. An audio output does not necessarily provide remote control of the monitor's hardware volume. The FC software menu is available; **opening and navigating a monitor's native OSD requires a verified model-specific adapter**. v0.3.92 includes an experimental [local OSD pairing assistant](docs/osd-pairing.md): automatically discover advertised unknown commands, test them one at a time, bind observed effects and optionally exchange files without uploading or signing in.
 
 **Local presets and JSON import/export are available.** The sharing service and online adapter catalog have not been deployed, so online lookup and report submission are not available yet. The planned domain is [fctrl.app](https://fctrl.app); the companion website is maintained separately in [FluentControl-Web](https://github.com/chuanjianghe1024-cmd/FluentControl-Web).
 

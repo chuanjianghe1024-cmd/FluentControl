@@ -28,7 +28,7 @@
 
 本地目录：`%LOCALAPPDATA%\FluentControl\OsdPairings\`。每个连接单独保存；文件名是型号/固件/能力指纹与本机连接身份的哈希，公开内容不含设备实例或自动采集的连接路径。
 
-新格式：`format: fluentcontrol.osd-pairing`、`version: 3`（当前开发版，可读取旧版 v1/v2；下次保存写为 v3），独立于场景配置和已审核适配包。主要字段：
+新格式：`format: fluentcontrol.osd-pairing`、`version: 3`（自 v0.3.92 起，可读取旧版 v1/v2；下次保存写为 v3），独立于场景配置和已审核适配包。主要字段：
 
 | 字段 | 含义 |
 | --- | --- |
@@ -62,7 +62,7 @@ There are three initial OSD commands. Disabling both OSD and button events requi
 
 The **Test advertised unknown commands (count)** entry automatically lists unknown codes from the current monitor’s valid capability declaration, including undefined codes below E0. Select a code and click a value to send once, then bind the observed effect. Advertised value lists are used as given. Codes with no value list offer explicitly labelled experimental values 0–5 and an optional custom hex value, without requiring the code or source to be typed. Experimental values may change unknown settings and are not claimed to be direction keys. Known standard, reset and information features are classified separately; an empty list is explained. Installed model adapters, matching local files and explicit manual candidates remain available. No universal HWV/HKC navigation codes are bundled. Read-only button events are evidence, not host-to-monitor navigation commands.
 
-The current development version writes v3 files with named buttons/choice groups, bounded settling delays, optional readback and a manually recorded video connection. Each named option requires local observed evidence; imports do not activate controls or overwrite local communication settings. Choice selectors clear after sending and do not claim to show hardware state. Versions 1 and 2 remain readable.
+v0.3.92 writes v3 files with named buttons/choice groups, bounded settling delays, optional readback and a manually recorded video connection. Each named option requires local observed evidence; imports do not activate controls or overwrite local communication settings. Choice selectors clear after sending and do not claim to show hardware state. Versions 1 and 2 remain readable.
 
 Version 2 pairing files distinguish advertised options from experimental values and retain the declaration timestamp and value list. Version 1 files remain readable. Automatic candidates are checked against the current session’s capabilities before testing or replay; imports alone never authorize them. Files contain model/firmware/capability identity, session metadata, diagnostic baselines, candidates, trials, raw read/write results, observations, bindings and bounded event captures. Files are saved per connected display in `%LOCALAPPDATA%\FluentControl\OsdPairings\`. Re-pairing archives the existing record locally and starts a new active history with the same candidates.
 
