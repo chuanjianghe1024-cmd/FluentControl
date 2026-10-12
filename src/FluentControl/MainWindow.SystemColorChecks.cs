@@ -35,6 +35,23 @@ public sealed partial class MainWindow
         await ChangeSystemColorAsync(displayDevices[0], generation, 7500);
         await ChangeSystemColorAsync(displayDevices[0], generation, 0);
         if (systemColor.Read(d.Id).Kelvin != 0) throw new InvalidOperationException("Software color restoration failed.");
+        // Hold the lifecycle gate so refresh invalidates an already queued profile.
+        // No physical display is touched by this regression.
+        var queuedProfile = new ControlProfile { Name = "Stale color profile", Values = new()
+        {
+            [SystemColorKey(d.Id)] = new SavedValue { Value = 4500 }
+        } };
+        Task queued, refresh;
+        await gate.WaitAsync();
+        try
+        {
+            queued = ApplyProfileAsync(queuedProfile);
+            refresh = RefreshAsync();
+        }
+        finally { gate.Release(); }
+        await Task.WhenAll(queued, refresh);
+        if (systemColor.Read(d.Id).Kelvin != 0 || state.SelectedProfileId == queuedProfile.Id)
+            throw new InvalidOperationException("A queued profile survived display refresh.");
         DisplayMode_SelectionChanged(DisplayMode, null!);
         StartupLog.Write("System color UI checks passed (simulated curves; no native gamma writes)");
     }

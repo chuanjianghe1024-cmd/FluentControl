@@ -46,3 +46,9 @@ Confirmed effects can be saved in local global profiles, independently of hardwa
 
 - [Microsoft: SetDeviceGammaRamp limitations](https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-setdevicegammaramp)
 - [Microsoft: Windows hardware display color calibration pipeline](https://learn.microsoft.com/en-us/windows/win32/wcs/display-calibration-mhc)
+
+## 后续开发修复（不属于 v0.3.92 MSI）
+
+恢复失败时保留最近读到的归属曲线，避免连续失败丢失恢复入口；原生写入前再次核对当前曲线，拒绝覆盖在落盘期间出现的外部变化。GDI 不提供原子比较写入，仍应避免同时运行调色工具。详见 [审查记录](reviews/v0.3.92-display-safety.md)与[实机验收](display-hardware-acceptance.md)。
+
+Post-v0.3.92 development fixes retain ownership across failed recovery and recheck the current curve immediately before a native write. GDI has no atomic compare-and-write operation; concurrent color tools still require caution. These fixes are not in the released v0.3.92 MSI.
