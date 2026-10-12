@@ -1,5 +1,7 @@
 # 开发、验证与发布
 
+社区贡献入口见 [CONTRIBUTING.md](../CONTRIBUTING.md)，Actions 分层、稳定检查名称、act 用法和未来强制评审切换见[维护手册](maintaining.md)。
+
 ## 开发环境
 
 Windows x64、.NET 8 SDK、Windows SDK、WinUI 构建组件（可通过 Visual Studio 2022 安装）。安装器工具通过仓库 `.config/dotnet-tools.json` 恢复，使用 WiX 5。项目结构、开发规范、当前进度与详细计划统一见 [agent.md](../agent.md)；[AGENTS.md](../AGENTS.md) 保留为自动发现入口。本页维护完整操作命令与测试副作用。
@@ -64,7 +66,7 @@ dotnet run --project tests/FluentControl.Tests -c Release -- --native
 4. 工作流校验构建来源、成功状态、产物归属、ZIP 和 MSI 摘要，创建草稿并上传 MSI 与 `SHA256SUMS.txt`；核对附件后转为正式 Latest Release。
 5. 检查 Release、标签目标与下载附件。标签指向原构建源码，主分支随后更新的文档不改变安装包来源。
 
-工作流仅使用本仓库 `GITHUB_TOKEN` 的 `actions: read` 与 `contents: write` 权限，无需个人访问令牌。已发布版本只验证、不改写；失败草稿可重试，但已有同名不同内容的附件会阻止发布。不要移动发布标签、覆盖附件或把哈希校验描述为代码签名。
+工作流只在官方仓库 main 执行，fork 中跳过发布。工作流仅使用本仓库 `GITHUB_TOKEN` 的 `actions: read` 与 `contents: write` 权限，无需个人访问令牌。已发布版本只验证、不改写；失败草稿可重试，但已有同名不同内容的附件会阻止发布。不要移动发布标签、覆盖附件或把哈希校验描述为代码签名。
 
 发布脚本的本地验证不访问 GitHub、不发布内容：
 

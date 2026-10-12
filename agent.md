@@ -11,6 +11,14 @@
 - 分享网站位于独立的 `chuanjianghe1024-cmd/FluentControl-Web`；不要在这里重新引入 `web/`、前端依赖或网站构建。品牌域名为 `fctrl.app`。
 - 当前行为以代码与 CHANGELOG 为准。README 面向用户介绍产品；`docs/profile-library-design.md` 是后续设计备忘录，不代表其中所有内容已实现。
 
+## 社区协作与 CI
+
+- 按用户本次要求保留维护者直接推送 main 的能力；社区贡献走 PR。`CONTRIBUTING.md` 负责贡献入口，`docs/maintaining.md` 维护角色、CI 与未来规则切换步骤。
+- `.github/rulesets/community-main.json` 仅为禁用的严格规则模板，不能自动应用或开启。未来经用户明确决定后，启用 PR、独立批准、讨论解决、必需检查；当前不得宣称分支保护已生效。CODEOWNERS 不等于强制审批，不授予访问权。
+- 稳定必需检查候选名为 `Repository checks`、`Windows validation`。工作流保持每个 PR 都触发，文档跳过只在 job 内处理；最终门禁必须拒绝失败/取消，未知变更和比较失败走完整 Windows。
+- PR CI 使用只读 token、不保留 checkout 凭据、不用 pull_request_target 执行贡献者代码；发布只在官方仓库 main 的独立流程进行。未来修改 job 名称须同步规则模板和验证器。
+- Dependabot 仅提交依赖更新 PR，不自动合并或发布。不要为 fork CI 授予写 token、生产凭据或管理员令牌。
+
 ## 文档职责
 
 - `README.md`：同页中英文产品简介、使用价值、主要功能、下载、兼容性、参考项目及产品方向；两种语言同步维护。
@@ -37,6 +45,7 @@ README 保留产品层面的计划，详细实现步骤、模块路径和验收�
 | `src/FluentControl/Properties/PublishProfiles/` | 离线安装包的发布配置 |
 | `tests/FluentControl.Tests/` | 控制逻辑、配置、适配与可选原生接口回归 |
 | `tests/release/` | 发布脚本的离线验证 |
+| `tests/ci/` | 变更分类、必需检查接线和社区资料验证 |
 | `tests/wiki/` | Wiki 链接校验、同步及页面保留验证 |
 | `scripts/` | 启动、MSI、发布与签名辅助脚本 |
 | `installer/` | WiX 安装器定义及组件组织 |

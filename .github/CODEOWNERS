@@ -1,0 +1,11 @@
+# Default reviewer routing. This does not grant access or enforce review.
+# Add consenting maintainers with repository write access as the community grows.
+# The last matching pattern wins; list all applicable owners on the same line.
+* @chuanjianghe1024-cmd
+
+# Sensitive maintenance areas, explicit for future ownership delegation.
+/.github/ @chuanjianghe1024-cmd
+/scripts/ @chuanjianghe1024-cmd
+/installer/ @chuanjianghe1024-cmd
+/src/FluentControl/Services/ @chuanjianghe1024-cmd
+/LICENSE @chuanjianghe1024-cmd

@@ -4,6 +4,9 @@
 
 ## 未发布 / Unreleased
 
+- 社区协作：贡献与行为/安全报告指南、PR 和型号兼容性模板、CODEOWNERS、Dependabot，以及分层 CI。新增默认禁用的 PR/评审规则模板，保留维护者当前直推 main 的能力；发布流程限制官方仓库。
+- Community setup: contribution/conduct/security guides, PR and monitor issue templates, CODEOWNERS, Dependabot and layered CI. Add a disabled PR/review ruleset template while retaining current maintainer direct pushes; restrict publishing to the official repository.
+
 - 文档与许可：新增 MIT LICENSE、中英文用户手册、Wiki 导航及同步流程；README 增加手册入口和许可说明。应用功能与 v0.3.92 已发布安装包不变。
 - Documentation and licensing: add the MIT LICENSE, bilingual user guide, Wiki navigation and synchronization workflow, with guide and license links in the README. No application changes or replacement of the published v0.3.92 installer.
 

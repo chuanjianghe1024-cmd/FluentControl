@@ -1,0 +1,44 @@
+name: Repository CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: repository-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  repository-checks:
+    name: Repository checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install validation dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/fc-ci"
+          "$RUNNER_TEMP/fc-ci/bin/python" -m pip install -r .github/requirements-ci.txt
+      - name: Validate metadata, guides and review rules
+        run: '"$RUNNER_TEMP/fc-ci/bin/python" scripts/check-repository.py'
+      - name: Lint GitHub Actions syntax and expressions
+        run: |
+          curl --fail --location --retry 2 --output "$RUNNER_TEMP/actionlint.tar.gz" \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color -shellcheck= -pyflakes= .github/workflows/*.yml
+      - name: Validate publishing without publishing
+        run: |
+          python3 scripts/publish-release.py --validate-only
+          python3 scripts/publish-wiki.py --validate-only
+      - name: Test CI decisions and publishing boundaries
+        run: |
+          "$RUNNER_TEMP/fc-ci/bin/python" -m unittest discover -s tests/ci -v
+          python3 -m unittest discover -s tests/release -v
+          python3 -m unittest discover -s tests/wiki -v

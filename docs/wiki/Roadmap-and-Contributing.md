@@ -21,7 +21,7 @@
 - 报告问题：按[诊断模板](Diagnostics-and-Compatibility.md)给出环境、复现步骤和实测证据。
 - 提交型号适配：注明完整型号、固件、连接、HDR 状态、指令来源、请求/返回与实体效果，不把别的品牌指令当作通用协议。
 - 改进翻译或文档：提交修正，说明对应界面或页面；保留八种界面的键和占位符一致性。
-- 开发贡献：先看 [agent.md](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/agent.md) 与[开发手册](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/development.md)。用户手册源文件在 `docs/wiki/`，工程结构和开发约束不混入普通使用步骤。
+- 开发贡献：先看[贡献指南](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/CONTRIBUTING.md)；社区以 PR 协作，维护者当前仍可直推，未来强制评审步骤见[维护手册](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/maintaining.md)。工程细节见 [agent.md](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/agent.md) 与[开发手册](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/development.md)。用户手册源文件在 `docs/wiki/`，工程结构和开发约束不混入普通使用步骤。
 
 ### 参考项目
 
@@ -46,6 +46,6 @@ This repository uses the **[MIT License](https://github.com/chuanjianghe1024-cmd
 
 ### Contribute
 
-Report issues with the [diagnostic checklist](Diagnostics-and-Compatibility.md). Model adaptations need exact model/firmware, connection, HDR state, protocol provenance and observed results. Translation fixes should preserve locale keys and placeholders. For code contributions, read [agent.md](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/agent.md) and the [development guide](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/development.md). User-guide sources live in `docs/wiki/`.
+Report issues with the [diagnostic checklist](Diagnostics-and-Compatibility.md). Model adaptations need exact model/firmware, connection, HDR state, protocol provenance and observed results. Translation fixes should preserve locale keys and placeholders. For code contributions, start with [CONTRIBUTING.md](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/CONTRIBUTING.md). Community changes use PRs; the maintainer retains direct push access until the [strict review policy](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/maintaining.md) is activated. For engineering details, read [agent.md](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/agent.md) and the [development guide](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/development.md). User-guide sources live in `docs/wiki/`.
 
 The reference projects above inform discovery, DDC interpretation, model libraries and specific USB/native-menu research. They are not promises of equivalent FC hardware coverage. Respect the relevant licenses when reusing external code or data.

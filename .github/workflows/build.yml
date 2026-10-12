@@ -1,17 +1,42 @@
 name: Windows build
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
+  merge_group:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: windows-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
+  changes:
+    name: Classify Windows changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      windows: ${{ steps.scope.outputs.windows }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Determine validation scope
+        id: scope
+        run: python3 scripts/ci-changes.py
   build:
+    needs: changes
+    if: needs.changes.outputs.windows == 'true'
     runs-on: windows-latest
+    timeout-minutes: 30
     env:
       PACKAGE_VERSION: 0.3.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-dotnet@v6.0.0
         with:
           dotnet-version: '8.0.x'
@@ -71,3 +96,29 @@ jobs:
           name: FluentControl-startup-logs
           path: ~/AppData/Local/FluentControl/Logs/
           if-no-files-found: ignore
+
+  windows-validation:
+    name: Windows validation
+    if: always()
+    needs: [changes, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require successful validation or an explicit documentation-only skip
+        env:
+          CLASSIFICATION: ${{ needs.changes.result }}
+          WINDOWS_REQUIRED: ${{ needs.changes.outputs.windows }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: |
+          if [[ "$CLASSIFICATION" != "success" ]]; then
+            echo "Change classification failed or was cancelled."
+            exit 1
+          fi
+          if [[ "$WINDOWS_REQUIRED" == "false" && "$BUILD_RESULT" == "skipped" ]]; then
+            echo "Documentation/metadata only; Windows validation not needed."
+          elif [[ "$WINDOWS_REQUIRED" == "true" && "$BUILD_RESULT" == "success" ]]; then
+            echo "Full Windows, native UI and MSI validation passed."
+          else
+            echo "Windows validation did not pass: $BUILD_RESULT"
+            exit 1
+          fi

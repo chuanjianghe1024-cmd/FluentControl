@@ -88,7 +88,7 @@ FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控�
 | [ddc-mode-switcher](https://github.com/Gunther-Schulz/ddc-mode-switcher) | 特定 ASUS 型号的原厂 OSD 指令序列 |
 | [ddc-toolkit](https://github.com/andres-valencia/ddc-toolkit) | 特定 Lenovo 型号的私有控制映射与证据记录 |
 
-欢迎通过 [Issues](https://github.com/chuanjianghe1024-cmd/FluentControl/issues) 提交问题、功能建议和型号兼容性反馈。报告时附上软件版本、显示器型号、连接方式和复现步骤；诊断信息请先检查并移除不想公开的内容。开发者与 AI 协作入口见 [agent.md](agent.md)。
+欢迎通过 [Issues](https://github.com/chuanjianghe1024-cmd/FluentControl/issues) 提交问题、功能建议和型号兼容性反馈。报告时附上软件版本、显示器型号、连接方式和复现步骤；诊断信息请先检查并移除不想公开的内容。参与开发请先看[贡献指南](CONTRIBUTING.md)；工程与 AI 协作入口见 [agent.md](agent.md)。社区贡献使用 PR，维护者当前保留直推权限；未来评审流程见[维护手册](docs/maintaining.md)。
 
 ### 开源许可
 
@@ -170,7 +170,7 @@ These projects inform monitor-control and adaptation research. FC support still 
 | [ddc-mode-switcher](https://github.com/Gunther-Schulz/ddc-mode-switcher) | Native OSD command sequences for a specific ASUS model |
 | [ddc-toolkit](https://github.com/andres-valencia/ddc-toolkit) | Private control mappings and recorded evidence for a specific Lenovo model |
 
-Bug reports, feature ideas and monitor compatibility reports are welcome in [Issues](https://github.com/chuanjianghe1024-cmd/FluentControl/issues). Include your app version, monitor model, connection and reproduction steps. Review diagnostics and remove anything you do not want to publish. Developer and AI collaboration guidance starts at [agent.md](agent.md).
+Bug reports, feature ideas and monitor compatibility reports are welcome in [Issues](https://github.com/chuanjianghe1024-cmd/FluentControl/issues). Include your app version, monitor model, connection and reproduction steps. Review diagnostics and remove anything you do not want to publish. Start with [CONTRIBUTING.md](CONTRIBUTING.md) for contributions and [agent.md](agent.md) for engineering guidance. Community contributions use PRs while the maintainer currently retains direct push access; see the [maintenance guide](docs/maintaining.md) for the future review policy.
 
 ### License
 

@@ -1,0 +1,2 @@
+# CI/document validation only; not an application dependency.
+PyYAML==6.0.3

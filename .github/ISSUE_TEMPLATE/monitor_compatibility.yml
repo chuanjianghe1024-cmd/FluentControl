@@ -1,0 +1,40 @@
+name: 显示器兼容性 / Monitor compatibility
+description: 提交型号实测、OSD 配对或读写差异 / Report model behavior, OSD pairing or readback differences
+body:
+  - type: markdown
+    attributes:
+      value: |
+        无需上传全部个人配置。请区分已声明、可读取、写入返回成功与实际效果正确。
+        No full settings folder is needed. Separate advertised support, reads, transport success and observed effects.
+  - type: input
+    id: app_version
+    attributes:
+      label: FC / Windows 版本 / Versions
+    validations:
+      required: true
+  - type: input
+    id: monitor
+    attributes:
+      label: 型号、PnP ID 与固件 / Model, PnP ID and firmware
+      description: 不填设备序列号 / Do not include the serial number.
+    validations:
+      required: true
+  - type: textarea
+    id: connection
+    attributes:
+      label: 连接与环境 / Connection and environment
+      description: 显卡和驱动、HDMI/DP/USB-C、扩展坞/KVM、HDR、节能、画面模式 / GPU and driver, video link, dock/KVM, HDR, ECO and picture mode.
+    validations:
+      required: true
+  - type: textarea
+    id: observation
+    attributes:
+      label: 操作与实际效果 / Actions and observed results
+      description: 原厂按键操作、FC 请求代码和值、回读值/错误、实际画面；一次只改变一个条件 / Physical controls, requested code/value, readback/errors and visible result; change one variable at a time.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 可选证据 / Optional evidence
+      description: 脱敏的诊断 JSON、配对文件、日志片段或截图；注明是否模拟 / Redacted diagnostics, pairing records, logs or screenshots; identify simulated results.

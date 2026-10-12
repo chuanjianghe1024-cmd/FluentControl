@@ -3,3 +3,12 @@ contact_links:
   - name: 下载与发布说明 / Downloads and release notes
     url: https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest
     about: 查看最新正式版及更新内容 / Find the latest stable installer and changes
+  - name: 用户手册 / User guide
+    url: https://github.com/chuanjianghe1024-cmd/FluentControl/wiki
+    about: 安装、HDR、OSD 配对与诊断 / Installation, HDR, OSD pairing and diagnostics
+  - name: 使用交流 / Questions and discussions
+    url: https://github.com/chuanjianghe1024-cmd/FluentControl/discussions
+    about: 使用问题与开放讨论 / Usage questions and open discussion
+  - name: 安全报告说明 / Security reporting
+    url: https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/SECURITY.md
+    about: 先阅读私密报告流程，不要公开漏洞细节 / Read the private-reporting policy before sharing details
