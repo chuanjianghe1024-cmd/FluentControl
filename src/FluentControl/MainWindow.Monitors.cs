@@ -36,6 +36,7 @@ public sealed partial class MainWindow
                 body.Children.Add(CreateAdaptationButton(device));
                 body.Children.Add(CreateMonitorPresetRow(device));
                 body.Children.Add(CreateHdrRow(device, version, true));
+                body.Children.Add(CreateSystemColorRow(device, version, true));
             }
             AddFeatureSections(body, devices, version, true); CombinedRows.Children.Add(Card(body));
         }

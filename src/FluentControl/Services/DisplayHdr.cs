@@ -9,11 +9,16 @@ public enum HdrAvailability { Available, Unsupported, Limited, Unknown, Disconne
 // On new Windows versions these may differ (for example under a power policy).
 public sealed record DisplayHdrState(HdrAvailability Availability, bool? Enabled = null, bool? Active = null, string Error = "")
 {
+    public bool LegacyGammaAllowed { get; init; }
     public bool CanSet => Availability == HdrAvailability.Available || Availability == HdrAvailability.Limited && Enabled == true;
     public static DisplayHdrState Unknown(string error = "") => new(HdrAvailability.Unknown, Error: error);
 }
 
-internal sealed record HdrTarget(string DevicePath, uint AdapterLow, int AdapterHigh, uint TargetId, bool Modern, DisplayHdrState State);
+internal sealed record HdrTarget(string DevicePath, uint AdapterLow, int AdapterHigh, uint TargetId, bool Modern, DisplayHdrState State)
+{
+    public string SourceName { get; init; } = "";
+    public int SourceTargetCount { get; init; }
+}
 internal interface IDisplayHdrBackend
 {
     IReadOnlyList<HdrTarget> ReadActive();
@@ -79,10 +84,10 @@ internal sealed class WindowsDisplayHdrBackend : IDisplayHdrBackend
     {
         if (modern)
             return new((flags & 16) == 0 ? HdrAvailability.Unsupported : (flags & 8) != 0 ? HdrAvailability.Limited : HdrAvailability.Available,
-                (flags & 32) != 0, activeMode == 2);
+                (flags & 32) != 0, activeMode == 2) { LegacyGammaAllowed = activeMode == 0 && (flags & (2 | 32 | 128)) == 0 };
         if ((flags & 4) != 0) return DisplayHdrState.Unknown(); // Legacy wideColorEnforced is not HDR.
         return new((flags & 1) == 0 ? HdrAvailability.Unsupported : (flags & 8) != 0 ? HdrAvailability.Limited : HdrAvailability.Available,
-            (flags & 2) != 0, (flags & 2) != 0);
+            (flags & 2) != 0, (flags & 2) != 0) { LegacyGammaAllowed = (flags & 6) == 0 };
     }
 
     public IReadOnlyList<HdrTarget> ReadActive()
@@ -119,7 +124,13 @@ internal sealed class WindowsDisplayHdrBackend : IDisplayHdrBackend
                         error = GetColorInfo(ref info);
                         state = error == 0 ? Decode(false, info.Flags) : DisplayHdrState.Unknown(new Win32Exception(error).Message + $" ({error})");
                     }
-                    result.Add(new(name.Path, path.Target.Adapter.Low, path.Target.Adapter.High, path.Target.Id, modern, state));
+                    var source = new SourceName { Header = Header.For<SourceName>(1, path.Source.Adapter, path.Source.Id) };
+                    var sourceOk = GetSourceName(ref source) == 0;
+                    result.Add(new(name.Path, path.Target.Adapter.Low, path.Target.Adapter.High, path.Target.Id, modern, state)
+                    {
+                        SourceName = sourceOk ? source.Name : "",
+                        SourceTargetCount = paths.Take((int)pathCount).Count(p => p.Source.Id == path.Source.Id && p.Source.Adapter.Low == path.Source.Adapter.Low && p.Source.Adapter.High == path.Source.Adapter.High)
+                    });
                 }
                 return result;
             }
@@ -165,11 +176,17 @@ internal sealed class WindowsDisplayHdrBackend : IDisplayHdrBackend
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string Path;
     }
     [StructLayout(LayoutKind.Sequential)] internal struct ColorInfo { public Header Header; public uint Flags, Encoding, Bits; }
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] internal struct SourceName
+    {
+        public Header Header;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string Name;
+    }
     [StructLayout(LayoutKind.Sequential)] internal struct ColorInfo2 { public Header Header; public uint Flags, Encoding, Bits, ActiveMode; }
     [StructLayout(LayoutKind.Sequential)] internal struct ColorState { public Header Header; public uint Flags; }
     [DllImport("user32.dll")] private static extern int GetDisplayConfigBufferSizes(uint flags, out uint paths, out uint modes);
     [DllImport("user32.dll")] private static extern int QueryDisplayConfig(uint flags, ref uint paths, [Out] DisplayPath[] data, ref uint modes, nint modeData, nint topology);
     [DllImport("user32.dll", EntryPoint = "DisplayConfigGetDeviceInfo", CharSet = CharSet.Unicode)] private static extern int GetTargetName(ref TargetName info);
+    [DllImport("user32.dll", EntryPoint = "DisplayConfigGetDeviceInfo", CharSet = CharSet.Unicode)] private static extern int GetSourceName(ref SourceName info);
     [DllImport("user32.dll", EntryPoint = "DisplayConfigGetDeviceInfo")] private static extern int GetColorInfo(ref ColorInfo info);
     [DllImport("user32.dll", EntryPoint = "DisplayConfigGetDeviceInfo")] private static extern int GetColorInfo2(ref ColorInfo2 info);
     [DllImport("user32.dll")] private static extern int DisplayConfigSetDeviceInfo(ref ColorState state);

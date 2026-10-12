@@ -54,6 +54,8 @@ FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控�
 
 ### 兼容性与当前进展
 
+**开发版新增系统色温（软件）**：按屏调整画面冷暖，一键恢复原曲线，可保存到本机总配置；适用于接口可用的 SDR 内屏或外屏。HDR/自动颜色管理下暂不使用此兼容接口，提供 Windows 夜间模式入口。[范围与使用说明](docs/system-color-temperature.md)。
+
 **开发版新增每屏 Windows HDR 开关**：切换后重新检测显示器控制项；与 DDC/CI 独立，Windows 支持 HDR 的内屏也可使用。WMI 笔记本亮度与厂商专有功能尚未接入，实体屏幕切换待本机验证。[控制范围与使用说明](docs/windows-hdr.md)。
 
 显示器可用功能取决于型号、固件、连接方式和当前模式。HDR、节能模式、转接器及扩展坞可能限制调节；带有音频输出也不一定支持显示器硬件音量遥控。FC 软件菜单已提供，**直接打开和导航显示器原厂 OSD 仍需经过验证的型号适配**。v0.3.75 提供实验性的[本地 OSD 配对助手](docs/osd-pairing.md)：自动列出已声明的未知指令，逐次试发并按观察到的效果绑定遥控，支持部分配对和可选文件分享，无需上传。
@@ -128,6 +130,8 @@ Save a setup for work, gaming or late-night use and recall it when needed. Adjus
 Primarily designed for **Windows 11 x64**. Fully exit the previous version from the tray before upgrading. Upgrades and uninstallation retain personal settings. The current stable installer is unsigned, so Windows may show an unknown-publisher prompt. Later development changes are listed in the [changelog](CHANGELOG.md); test installers are available from [Windows build](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/workflows/build.yml).
 
 ### Compatibility and current status
+
+**Development builds add software color temperature** per display, original-curve restoration and local global-profile saving for supported SDR internal or external displays. HDR/auto color management blocks this compatibility interface and offers Windows night light instead. See [scope and usage](docs/system-color-temperature.md).
 
 **Development builds add per-display Windows HDR switches** and rediscover monitor controls after switching. HDR works independently of DDC/CI, including internal panels when Windows reports support. WMI laptop brightness and proprietary OEM controls remain unimplemented; physical HDR switching still needs local verification. See [control scope and usage](docs/windows-hdr.md).
 

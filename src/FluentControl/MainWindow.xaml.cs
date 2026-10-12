@@ -28,7 +28,9 @@ public sealed partial class MainWindow : Window
 
     public MainWindow()
     {
-        hdr = new DisplayHdrController(uiTest ? new UiTestData.HdrBackend() : new WindowsDisplayHdrBackend(), StartupLog.Write);
+        IDisplayHdrBackend hdrBackend = uiTest ? new UiTestData.HdrBackend() : new WindowsDisplayHdrBackend();
+        hdr = new DisplayHdrController(hdrBackend, StartupLog.Write);
+        InitializeSystemColor(hdrBackend);
         InitializeComponent();
         InitializeTitleTheme();
         Title = "FluentControl";
@@ -59,6 +61,7 @@ public sealed partial class MainWindow : Window
         {
             closed = true;
             audioRefreshTimer.Stop();
+            colorRefreshTimer.Stop();
             CloseMonitorAdaptation();
             ShutdownFeatures();
             generation++;
@@ -93,7 +96,7 @@ public sealed partial class MainWindow : Window
 
     private async Task RefreshAsync(bool forceMonitorCapabilities = false)
     {
-        if (refreshing || closed || hdrChanging) return;
+        if (refreshing || closed || hdrChanging || colorExiting) return;
         refreshing = true;
         var refreshWatch = System.Diagnostics.Stopwatch.StartNew();
         RefreshButton.IsEnabled = false;
@@ -154,6 +157,8 @@ public sealed partial class MainWindow : Window
                 catch (Exception ex) { device.Preference = new() { Label = "M" + (i + 1) }; result.errors.Add(T("名称保存失败：", "Cannot save name: ") + ex.Message); }
                 BindBrightnessMapping(device);
             }
+            BindColorChannels();
+            await RefreshColorStatesAsync();
             RecordMonitorMetadata();
             RenderMonitorControls(version);
             foreach (var channel in result.a)
@@ -253,6 +258,7 @@ public sealed partial class MainWindow : Window
         actions.Children.Add(menu); actions.Children.Add(CreateAdaptationButton(device)); actions.Children.Add(rename);
         Grid.SetColumn(actions, 1); header.Children.Add(actions); body.Children.Add(header);
         body.Children.Add(CreateHdrRow(device, version));
+        body.Children.Add(CreateSystemColorRow(device, version));
         body.Children.Add(CreateMonitorPresetRow(device));
         AddFeatureSections(body, new[] { device }, version, false);
         body.Children.Add(CreateMappingRow(device));
@@ -433,6 +439,7 @@ public sealed partial class MainWindow : Window
             Navigation.SelectedItem = Navigation.MenuItems[0];
             await RunFeatureChecksAsync();
             await RunHdrChecksAsync();
+            await RunSystemColorChecksAsync();
             StartupLog.Write("UI smoke checks passed");
         }
         catch (Exception ex) { StartupLog.Write("UI smoke checks failed: " + ex); }

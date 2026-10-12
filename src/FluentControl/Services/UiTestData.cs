@@ -3,6 +3,21 @@ namespace FluentControl.Services;
 // Only used by --ui-test. These channels never change real hardware or settings.
 internal static class UiTestData
 {
+    internal sealed class ColorBackend(IDisplayHdrBackend hdr) : ISystemColorBackend
+    {
+        private readonly Dictionary<string, ushort[]> ramps = new();
+        public ColorReading Read(string id)
+        {
+            var target = hdr.ReadActive().Single(t => t.DevicePath == id);
+            if (!ramps.TryGetValue(id, out var ramp)) ramps[id] = ramp = Enumerable.Range(0, 768).Select(i => (ushort)((i % 256) * 257)).ToArray();
+            return new(id, target.State.Active == false && target.State.Enabled == false, ramp.ToArray());
+        }
+        public void Write(string id, string token, ushort[] ramp)
+        {
+            if (!Read(id).Allowed || token != id) throw new IOException("Simulated color target changed.");
+            ramps[id] = ramp.ToArray();
+        }
+    }
     internal sealed class HdrBackend : IDisplayHdrBackend
     {
         private bool enabled;

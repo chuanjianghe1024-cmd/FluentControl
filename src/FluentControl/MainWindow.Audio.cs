@@ -45,6 +45,7 @@ public sealed partial class MainWindow
     private async Task ReadAudioForProfileAsync()
     {
         if (systemAudio is not null) await Task.Run(systemAudio.Refresh);
+        await RefreshColorStatesAsync();
         if (!closed) SynchronizeValues();
     }
 }

@@ -6,6 +6,7 @@ public sealed class MonitorPreference
     public string Label { get; set; } = "";
     public string Alias { get; set; } = "";
     public BrightnessMapping Brightness { get; set; } = new();
+    public int SystemTemperature { get; set; } = 6500;
     public string DisplayName => string.IsNullOrWhiteSpace(Alias) ? Label : Alias;
 }
 

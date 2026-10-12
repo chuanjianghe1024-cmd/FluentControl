@@ -84,6 +84,7 @@ README 保留产品层面的计划，详细实现步骤、模块路径和验收�
 
 ## 数据和界面约束
 
+- 系统色温见 `Services/SystemColor.cs` / `MainWindow.SystemColor.cs` / `docs/system-color-temperature.md`：SDR 兼容接口，不能与 DDC 色温、实测 CCT 或 ICC 校色混同。HDR/ACM/复制输出/未知状态禁写；每次写前重定位、捕获原曲线、先落盘恢复记录，再单次写和回读。外部曲线变化不得抢写或被旧恢复覆盖。正常退出在关窗前等待恢复；崩溃恢复由用户显式触发。仅本机总配置保存独立 `display-color/` 键，不进入型号预设和分享。无启动自动应用、定时写入或私有 Night Light 注册表操作。
 - Windows HDR 通过 `Services/DisplayHdr.cs` 和 `MainWindow.Hdr.cs` 独立控制，与 DDC 能力分离。以精确目标接口路径匹配，写前重解析；Windows 11 24H2 使用 HDR 专用请求，不能把广色域/ACM 当 HDR。切换走 `gate` / `generation`，单次写入和有限只读回读，随后刷新重建 DDC 连接；不自动重放旧参数，不加入场景、预设或启动动作。详见 `docs/windows-hdr.md`。
 
 - 保存场景按字段合并：离线屏幕、暂不可读/不可写项、别名和亮度映射不能因为本次枚举缺失而丢失。涉及结构迁移时保留旧格式读取并设计备份/恢复。
@@ -171,6 +172,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 ### 已完成的基础
 
+- 当前开发版（未发布）：每屏系统色温软件调整、原曲线恢复、本机总配置保存、持久恢复记录与外部曲线变更处理；仅已确认 SDR 独立输出，HDR/ACM 不走 legacy gamma。ICC/MHC2 未接入，实体 GPU/显示器效果待本机验证。
 - 当前开发版（未发布）：每屏 Windows HDR 开关及切换后重新检测，内外屏均按 Windows 能力报告；区分 HDR/WCG、策略限制与状态未确认。WMI 内屏亮度和 OEM 专有接口未接入，实体 HDR 切换待本机验证。另含分阶段显示基础控制与高级功能；按逻辑显示连接隔离的 DDC 辅助进程、8 秒 IPC 限时、高级扫描恢复标记和普通只读传输重试。机制与验证边界见 `docs/windows-hdr.md`、`docs/ddc-reliability.md`；USB/HID 仍仅在 `docs/usb-hid-adaptation.md` 中记录研究及实机步骤。
 - 当前开发版配对 v3：用户确认后可绑定自定义按钮/选项组；0–2000ms 发送等待、可关闭写后回读，试验保存实际策略；视频接口为用户手动记录。旧 v1/v2 可读，导入不激活任何自定义控件、不覆盖本机兼容设置；失败观察撤销该命令全部绑定。没有自动生成未知连续范围的滑块。
 

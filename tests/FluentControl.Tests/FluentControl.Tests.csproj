@@ -39,6 +39,7 @@
     <Compile Include="../../src/FluentControl/Services/StartupService.cs" Link="StartupService.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorNames.cs" Link="MonitorNames.cs" />
     <Compile Include="../../src/FluentControl/Services/DisplayHdr.cs" Link="DisplayHdr.cs" />
+    <Compile Include="../../src/FluentControl/Services/SystemColor.cs" Link="SystemColor.cs" />
     <Compile Include="../../src/FluentControl/Services/ProfileUpdates.cs" Link="ProfileUpdates.cs" />
   </ItemGroup>
 </Project>

@@ -129,7 +129,7 @@ public sealed partial class MainWindow
             cancellation.Token.ThrowIfCancellationRequested();
             using var process = Process.Start(new ProcessStartInfo(downloadedUpdate) { UseShellExecute = true });
             if (process is null) throw new IOException("Installer did not start.");
-            exitRequested = true; Close();
+            await ExitWithColorRestoreAsync();
         }
         catch (OperationCanceledException) { updateStage = UpdateStage.Cancelled; }
         catch (Exception ex) { downloadedUpdate = null; UpdateFailed(ex); }

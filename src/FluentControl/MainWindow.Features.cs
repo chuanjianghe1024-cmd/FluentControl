@@ -46,6 +46,11 @@ public sealed partial class MainWindow
                 e.Cancel = true;
                 AppWindow.Hide();
             }
+            else if (!colorExitReady)
+            {
+                e.Cancel = true;
+                _ = ExitWithColorRestoreAsync();
+            }
         };
         LocalizeUi();
         RefreshProfiles();
@@ -103,7 +108,7 @@ public sealed partial class MainWindow
                 case 5:
                     state.Settings.DesktopPanelEnabled = !state.Settings.DesktopPanelEnabled;
                     SaveState(); RefreshDesktopPanel(); BuildSettings(); break;
-                case 6: exitRequested = true; Close(); break;
+                case 6: await ExitWithColorRestoreAsync(); break;
             }
         }
         catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error); }
@@ -161,6 +166,7 @@ public sealed partial class MainWindow
         foreach (var d in displayDevices) foreach (var c in d.Channels.Where(c => c.CanSave && !c.IsAction)) result[$"monitor/{Uri.EscapeDataString(d.Id)}/{c.PropertyKey}"] = c;
         foreach (var c in audioChannels) result[$"audio/{Uri.EscapeDataString(c.DeviceId)}/{c.PropertyKey}"] = c;
         foreach (var c in mouseChannels) result["mouse/" + c.PropertyKey] = c;
+        foreach (var pair in colorChannels) result[SystemColorKey(pair.Key)] = pair.Value;
         return result;
     }
     private void RefreshProfiles()
@@ -221,7 +227,7 @@ public sealed partial class MainWindow
     }
     private async Task ApplyProfileAsync(ControlProfile profile)
     {
-        if (applyingProfile || refreshing || closed || monitorAdaptationDialog is not null) return;
+        if (applyingProfile || refreshing || closed || colorExiting || monitorAdaptationDialog is not null) return;
         applyingProfile = true; var page = notificationContext;
         try
         {
@@ -257,6 +263,7 @@ public sealed partial class MainWindow
                     return (errors, missing, applied);
                 });
                 if (closed) return;
+                await RefreshColorStatesAsync();
                 foreach (var device in displayDevices)
                     if (profile.BrightnessMappings.TryGetValue(device.Id, out var mapping)) { mapping.Validate(); device.Preference.Brightness = mapping.Copy(); BindBrightnessMapping(device); }
                 preferences?.Save();

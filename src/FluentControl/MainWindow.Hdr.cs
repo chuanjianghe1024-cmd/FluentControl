@@ -51,7 +51,7 @@ public sealed partial class MainWindow
 
     private async Task ChangeHdrAsync(MonitorDevice device, int version, bool enabled)
     {
-        if (closed || refreshing || hdrChanging || version != generation || !device.Hdr.CanSet) return;
+        if (closed || refreshing || hdrChanging || colorExiting || version != generation || !device.Hdr.CanSet) return;
         hdrChanging = true; pendingWrites++;
         RefreshButton.IsEnabled = false; MainScroll.IsEnabled = false;
         var page = notificationContext;
@@ -66,8 +66,10 @@ public sealed partial class MainWindow
             // signal mode; no stale DDC request may run on the previous handles.
             generation++; invalidated = true;
             ShowStatus(T("正在切换 HDR，随后重新读取设备…", "Changing HDR, then refreshing devices…"), InfoBarSeverity.Informational, page);
+            if (enabled && systemColor is not null) await Task.Run(() => systemColor.Restore(device.Id));
             result = await Task.Run(() => hdr.Set(device.Id, enabled));
         }
+        catch (Exception ex) { result = new(false, false, device.Hdr, ex.Message); }
         finally
         {
             gate.Release(); hdrChanging = false; pendingWrites--;

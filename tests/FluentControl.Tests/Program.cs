@@ -16,6 +16,7 @@ Strings.ValidateCatalog();
 DdcReliabilityTests.Run();
 SystemAudioTests.Run();
 DisplayHdrTests.Run();
+SystemColorTests.Run();
 await ReleaseUpdateTests.RunAsync();
 WindowGeometryTests.Run();
 MonitorDiscoveryTests.Run();

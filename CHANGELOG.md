@@ -4,6 +4,9 @@
 
 ## 未发布 / Unreleased
 
+- 新增独立的「系统色温（软件）」：每屏 2500–10000 K 近似冷暖调整，显式应用、原曲线恢复、读回确认、本机总配置保存和异常恢复记录；与 DDC 硬件色温分离。仅支持已确认的 SDR 独立输出，HDR/ACM/复制模式禁用并提供 Windows 夜间模式入口。正常退出尝试恢复自己的曲线，外部颜色变更不会被持续覆盖。
+- Add independent per-display software temperature controls (approximate 2500–10000 K), explicit Apply, original-curve restoration, verified readback, local global-profile values and crash recovery records. Keep them separate from DDC presets. Restrict legacy gamma to confirmed independent SDR outputs; block HDR/ACM/duplicated modes and offer Windows night light. Normal exit attempts to restore FC-owned curves without overwriting newer external color settings. [Scope and usage](docs/system-color-temperature.md).
+
 - 新增每屏 Windows HDR 开关：单屏和整体视图均可独立切换，不依赖 DDC/CI；内屏在 Windows 报告支持时也可用。切换后核对状态并重建显示器控制连接，不自动恢复旧参数。区分 HDR、广色域、策略限制和读取失败；HDR 开启仅提示可能受限，不一律禁用亮度/对比度。
 - Add per-display Windows HDR switches in individual and overall views, independently of DDC/CI, including internal panels when Windows reports support. Verify state and rediscover monitor controls after switching without replaying old values. Distinguish HDR from WCG, policy limits and unknown states; keep available picture controls usable.
 - 本次不包含 WMI 内屏亮度和厂商专有屏幕接口；Windows HDR 与笔记本控制边界见 [说明](docs/windows-hdr.md)。实体屏幕切换仍待本机验证。
