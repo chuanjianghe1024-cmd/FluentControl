@@ -4,7 +4,8 @@
 
 ## 未发布 / Unreleased
 
-暂无待发布变更。 / No pending changes.
+- 文档与许可：新增 MIT LICENSE、中英文用户手册、Wiki 导航及同步流程；README 增加手册入口和许可说明。应用功能与 v0.3.92 已发布安装包不变。
+- Documentation and licensing: add the MIT LICENSE, bilingual user guide, Wiki navigation and synchronization workflow, with guide and license links in the README. No application changes or replacement of the published v0.3.92 installer.
 
 ## [0.3.92](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.92) — 2026-10-12
 

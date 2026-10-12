@@ -17,6 +17,8 @@
 - `agent.md`：项目结构、开发约束、当前工程状态、详细任务和验收条件，是开发计划的统一入口。
 - `AGENTS.md`：指向本文件，供 Codex 等工具自动发现，避免重复维护规则。
 - `CHANGELOG.md` 与 `docs/releases/`：分别记录未发布变更和已发布版本，不把开发构建写成正式发布。
+- `LICENSE`：按用户明确选择采用 MIT，版权署名为 FluentControl contributors；保留第三方原有许可，不将本仓库许可套用于独立的网站仓库。
+- `docs/wiki/`：中英文用户手册及 Wiki 导航的维护源；同步流程、首次初始化和验证方法见 `docs/wiki-maintenance.md`。修改对应功能时同步用户说明，不能将已提交源文件等同于线上 Wiki 已发布。
 - `docs/development.md`：完整构建、测试、安装与发布操作手册。
 - `docs/monitor-profiles.md`、`docs/monitor-adapters.md`：文件格式、接口与型号适配协议；计划不能覆盖现行协议。
 - `docs/profile-library-design.md`：配置组织与迁移的详细设计备忘录，实施状态以本文件和代码为准。
@@ -35,9 +37,10 @@ README 保留产品层面的计划，详细实现步骤、模块路径和验收�
 | `src/FluentControl/Properties/PublishProfiles/` | 离线安装包的发布配置 |
 | `tests/FluentControl.Tests/` | 控制逻辑、配置、适配与可选原生接口回归 |
 | `tests/release/` | 发布脚本的离线验证 |
+| `tests/wiki/` | Wiki 链接校验、同步及页面保留验证 |
 | `scripts/` | 启动、MSI、发布与签名辅助脚本 |
 | `installer/` | WiX 安装器定义及组件组织 |
-| `.github/workflows/` | Windows 构建验收与独立正式发布流程 |
+| `.github/workflows/` | Windows 构建验收、独立正式发布及 Wiki 同步流程 |
 | `.github/release.json` | 正式发布的确切构建、附件及校验信息 |
 | `docs/` | 协议、操作手册、设计备忘录与发布说明 |
 
@@ -235,4 +238,4 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 ## 仓库展示
 
-仓库简介、主页、Topics 的期望值在 `.github/repository-metadata.json`；分享图与可编辑源在 `docs/assets/`，操作与实际应用边界见 `docs/repository-presentation.md`。提交素材不等于 GitHub About 或 Social preview 已生效，必须读取页面核验；网站未部署前下载主页使用正式 Release 链接，不擅自补许可证或承诺搜索排名。
+仓库简介、主页、Topics 的期望值在 `.github/repository-metadata.json`；分享图与可编辑源在 `docs/assets/`，操作与实际应用边界见 `docs/repository-presentation.md`。提交素材不等于 GitHub About 或 Social preview 已生效，必须读取页面核验；网站未部署前下载主页使用正式 Release 链接，许可证已按用户明确授权采用 MIT；变更许可仍需用户授权，不承诺搜索排名。

@@ -7,11 +7,12 @@
 
 Windows 11 风格 · Windows x64 · 离线 MSI 安装 · 8 种界面语言
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/chuanjianghe1024-cmd/FluentControl)](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)
 [![Windows build](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/workflows/build.yml/badge.svg)](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/workflows/build.yml)
 [![Downloads](https://img.shields.io/github/downloads/chuanjianghe1024-cmd/FluentControl/total)](https://github.com/chuanjianghe1024-cmd/FluentControl/releases)
 
-[简体中文](#zh-cn) · [English](#en) · [下载 / Download](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · [更新记录 / Changelog](CHANGELOG.md) · [反馈 / Issues](https://github.com/chuanjianghe1024-cmd/FluentControl/issues)
+[简体中文](#zh-cn) · [English](#en) · [下载 / Download](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · [使用手册 / Wiki](https://github.com/chuanjianghe1024-cmd/FluentControl/wiki) · [更新记录 / Changelog](CHANGELOG.md) · [反馈 / Issues](https://github.com/chuanjianghe1024-cmd/FluentControl/issues)
 
 <a id="zh-cn"></a>
 
@@ -88,6 +89,10 @@ FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控�
 | [ddc-toolkit](https://github.com/andres-valencia/ddc-toolkit) | 特定 Lenovo 型号的私有控制映射与证据记录 |
 
 欢迎通过 [Issues](https://github.com/chuanjianghe1024-cmd/FluentControl/issues) 提交问题、功能建议和型号兼容性反馈。报告时附上软件版本、显示器型号、连接方式和复现步骤；诊断信息请先检查并移除不想公开的内容。开发者与 AI 协作入口见 [agent.md](agent.md)。
+
+### 开源许可
+
+采用 [MIT 许可证](LICENSE)，允许商业使用、修改与再分发；分发时请保留版权声明和许可证。第三方组件遵循各自许可证。完整操作说明见 [Wiki 用户手册](https://github.com/chuanjianghe1024-cmd/FluentControl/wiki)，也可在仓库内阅读[手册源文件](docs/wiki/Home.md)。
 
 ---
 
@@ -166,3 +171,7 @@ These projects inform monitor-control and adaptation research. FC support still 
 | [ddc-toolkit](https://github.com/andres-valencia/ddc-toolkit) | Private control mappings and recorded evidence for a specific Lenovo model |
 
 Bug reports, feature ideas and monitor compatibility reports are welcome in [Issues](https://github.com/chuanjianghe1024-cmd/FluentControl/issues). Include your app version, monitor model, connection and reproduction steps. Review diagnostics and remove anything you do not want to publish. Developer and AI collaboration guidance starts at [agent.md](agent.md).
+
+### License
+
+Licensed under the [MIT License](LICENSE), allowing commercial use, modification and redistribution with the copyright and license notice retained. Third-party components keep their own licenses. See the [Wiki user guide](https://github.com/chuanjianghe1024-cmd/FluentControl/wiki) for detailed instructions, or read the [guide sources](docs/wiki/Home.md) in this repository.

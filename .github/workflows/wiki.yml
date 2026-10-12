@@ -1,0 +1,35 @@
+name: Publish Wiki
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/wiki/**
+      - docs/wiki-maintenance.md
+      - scripts/publish-wiki.py
+      - tests/wiki/**
+      - .github/workflows/wiki.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: publish-wiki
+  cancel-in-progress: false
+jobs:
+  wiki:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate guide and synchronization
+        run: |
+          python3 scripts/publish-wiki.py --validate-only
+          python3 -m unittest discover -s tests/wiki -v
+      - name: Publish user guide
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish-wiki.py
