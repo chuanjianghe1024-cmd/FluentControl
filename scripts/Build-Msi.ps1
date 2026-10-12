@@ -26,6 +26,8 @@ try {
     if (-not ((Test-Path "$publish/resources.pri") -or (Test-Path "$publish/FluentControl.pri"))) { throw 'Application PRI is missing.' }
     $runtime = Get-Content "$publish/FluentControl.runtimeconfig.json" -Raw | ConvertFrom-Json
     if ($runtime.runtimeOptions.framework -or $runtime.runtimeOptions.frameworks) { throw 'The MSI payload must contain its .NET runtime.' }
+    $ddcRuntime = Get-Content "$publish/FluentControl.DdcHost.runtimeconfig.json" -Raw | ConvertFrom-Json
+    if ($ddcRuntime.runtimeOptions.framework -or $ddcRuntime.runtimeOptions.frameworks) { throw 'The DDC host must use the bundled .NET runtime.' }
     if ((Test-Path "$publish/PresentationFramework.dll") -or (Test-Path "$publish/System.Windows.Forms.dll")) {
         throw 'Unused WindowsDesktop runtime detected. Use the WASAPI-only audio package and a clean publish folder.'
     }

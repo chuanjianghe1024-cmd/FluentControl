@@ -20,7 +20,7 @@
     <PackageProjectUrl>https://fctrl.app</PackageProjectUrl>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../FluentControl.DdcHost/FluentControl.DdcHost.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../FluentControl.DdcHost/FluentControl.DdcHost.csproj" ReferenceOutputAssembly="false" AdditionalProperties="SelfContained=$(SelfContained)" />
     <EmbeddedResource Include="Services/Locales.json" LogicalName="FluentControl.Locales.json" />
 
     <!-- The application uses WinUI/windowing, not the AI/ML/widgets metapackage.
@@ -32,7 +32,7 @@
     <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
   </ItemGroup>
   <Target Name="CopyDdcHostToOutput" AfterTargets="Build">
-    <MSBuild Projects="../FluentControl.DdcHost/FluentControl.DdcHost.csproj" Targets="GetDdcHostPayload" Properties="Configuration=$(Configuration);Platform=$(Platform)">
+    <MSBuild Projects="../FluentControl.DdcHost/FluentControl.DdcHost.csproj" Targets="GetDdcHostPayload" Properties="Configuration=$(Configuration);Platform=$(Platform);SelfContained=$(SelfContained)">
       <Output TaskParameter="TargetOutputs" ItemName="DdcHostPayload" />
     </MSBuild>
     <Copy SourceFiles="@(DdcHostPayload)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
