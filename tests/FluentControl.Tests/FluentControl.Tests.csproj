@@ -21,6 +21,9 @@
     <Compile Include="../../src/FluentControl/Services/VcpDiscovery.cs" Link="VcpDiscovery.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorCapabilityCache.cs" Link="MonitorCapabilityCache.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorReadBatch.cs" Link="MonitorReadBatch.cs" />
+    <Compile Include="../../src/FluentControl/Services/DdcProtocol.cs" Link="DdcProtocol.cs" />
+    <Compile Include="../../src/FluentControl/Services/DdcProcessClient.cs" Link="DdcProcessClient.cs" />
+    <Compile Include="../../src/FluentControl/Services/DdcProbeRecovery.cs" Link="DdcProbeRecovery.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorService.cs" Link="MonitorService.cs" />
     <Compile Include="../../src/FluentControl/Services/MonitorDiagnostics.cs" Link="MonitorDiagnostics.cs" />
     <Compile Include="../../src/FluentControl/Services/OsdPairing.cs" Link="OsdPairing.cs" />

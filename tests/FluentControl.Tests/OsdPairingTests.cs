@@ -22,6 +22,9 @@ internal static class OsdPairingTests
         Check(profile.Bindings.Count == 0, "transport cannot bind automatically");
         profile.Confirm(trial, "success", new[] { "open", "enable" }, "Physical menu opens");
         Check(profile.BoundCommand("open") == enable, "explicit local observations bind actions");
+        profile.BindCustom(trial, "Menu", "button", "");
+        profile.BindCustom(trial, "Presets", "choice", "Example option");
+        Check(profile.CustomControls.Count == 2, "observed actions become named buttons or choices");
         var blocked = engine.Send(profile.Commands[1], session.Id, "main-menu", false, default);
         Check(!blocked.WriteSucceeded && writes.Count == 1, "failed pre-read blocks default write");
         var recovery = engine.Send(profile.Commands[1], session.Id, "main-menu", true, default);
@@ -33,7 +36,18 @@ internal static class OsdPairingTests
         Reject(() => profile.Confirm(failed, "success", new[] { "open" }, ""), "failed writes as bindings");
         profile.Confirm(failed, "failure", Array.Empty<string>(), "No response");
         Check(profile.BoundCommand("open") is null, "a user-confirmed failure revokes previous bindings for that command");
+        Check(profile.CustomControls.Count == 0, "failure also revokes named controls for that command");
         profile.Confirm(trial, "success", new[] { "open" }, "Retested");
+        profile.BindCustom(trial, "Menu", "button", "");
+        profile.Compatibility.SettleMilliseconds = 250; profile.Compatibility.Readback = "none";
+        session.VideoConnection = "DP";
+        var policyReads = 0; var policyWrites = 0;
+        var raw = new OsdCommand { Name = "Fixture action", Code = 0xE1, Value = 1, Source = "Test fixture" };
+        var noReadback = new OsdPairingSession(_ => { policyReads++; return new(0, 0, 0); }, (_, _) => policyWrites++)
+            .Send(raw, session.Id, "unknown", false, default, new() { Readback = "none", SettleMilliseconds = 0 });
+        Check(policyReads == 0 && policyWrites == 1 && noReadback.After is null && noReadback.Outcome == "unconfirmed", "no-readback policy sends once without inventing verified state");
+        Reject(() => new OsdCompatibility { Transport = "usb-hid" }.Validate(), "unimplemented USB transport");
+        Reject(() => new OsdCompatibility { SettleMilliseconds = 2001 }.Validate(), "unbounded delays");
         using (var cts = new CancellationTokenSource())
         {
             cts.Cancel(); try { engine.Send(enable, session.Id, "closed", true, cts.Token); throw new Exception("Cancellation ignored"); } catch (OperationCanceledException) { }
@@ -46,8 +60,12 @@ internal static class OsdPairingTests
         Check(!json.Contains("PRIVATE_"), "default exports omit instance paths and raw capability identifiers");
         Check(OsdPairingStore.Serialize(profile, true).Contains("PRIVATE_SERIAL"), "raw capabilities require explicit export opt-in");
         var roundtrip = OsdPairingStore.Parse(json); Check(roundtrip.Bindings.Count == 1 && roundtrip.Trials.Count == 2, "round-trip preserves observed evidence");
+        Check(roundtrip.Version == 3 && roundtrip.CustomControls.Count == 1 && roundtrip.Compatibility.Readback == "none" &&
+            roundtrip.Compatibility.SettleMilliseconds == 250 && roundtrip.Sessions[0].VideoConnection == "DP", "named controls, compatibility and connection context round-trip");
         var imported = OsdPairingProfile.Create(device, true); imported.ImportCandidates(roundtrip);
         Check(imported.Bindings.Count == 0 && imported.EventCaptures.Count == 1 && imported.Trials.All(t => t.SourceProfileId == roundtrip.Id), "imports preserve evidence without granting remote buttons");
+        Check(imported.CustomControls.Count == 0 && imported.Compatibility.Readback == "once", "imports cannot grant named controls or silently replace local communication policy");
+        Reject(() => imported.BindCustom(imported.Trials[0], "Imported", "button", ""), "imported named controls without local testing");
         Reject(() => imported.Confirm(imported.Trials[0], "success", new[] { "up" }, ""), "imported observations as local confirmations");
         var mismatch = OsdPairingProfile.Create(device, true); mismatch.Identity.Firmware = "0.2";
         Reject(() => mismatch.ImportCandidates(roundtrip), "wrong firmware");

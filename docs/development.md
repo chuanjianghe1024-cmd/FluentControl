@@ -72,3 +72,10 @@ dotnet run --project tests/FluentControl.Tests -c Release -- --native
 python3 scripts/publish-release.py --validate-only
 python3 -m unittest discover -s tests/release -v
 ```
+
+
+## DDC 通信辅助进程
+
+`FluentControl.DdcHost` 是独立 .NET 8 x64 控制台项目，构建/发布由主项目引用并复制到同一目录。发布包括它的 exe、dll、deps.json 和 runtimeconfig.json，复用安装包中已有的自包含 .NET 运行时。`Build-Msi.ps1` 检查这些文件；配置代码签名时辅助 exe/dll 同样签名。
+
+Windows 发布目录验证：`./scripts/Test-DdcHost.ps1`。它只发送一个未打开句柄的读取请求，验证离线启动、IPC 和退出，不改动显示器。逻辑测试中的 `--ddc-fixture` 是隔离进程故障注入入口，仅在测试可执行文件中存在，不随应用发布。实机 USB/HID 调试参考 [usb-hid-adaptation.md](usb-hid-adaptation.md)。

@@ -1,6 +1,8 @@
 using FluentControl.Services;
 using Microsoft.Win32;
 
+if (args.Length >= 3 && args[0] == "--ddc-fixture") { DdcReliabilityTests.Fixture(args); return; }
+
 static void Check(bool condition, string message)
 {
     if (!condition) throw new Exception(message);
@@ -11,6 +13,7 @@ static ControlChannel Channel(string name, double initial, Action<double> write,
 };
 
 Strings.ValidateCatalog();
+DdcReliabilityTests.Run();
 SystemAudioTests.Run();
 await ReleaseUpdateTests.RunAsync();
 WindowGeometryTests.Run();

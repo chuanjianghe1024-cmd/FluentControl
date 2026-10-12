@@ -75,6 +75,7 @@ FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控�
 
 | 项目 | 参考内容 |
 | --- | --- |
+| [Twinkle Tray](https://github.com/xanderfrangos/twinkle-tray) | 分阶段检测、隔离通信和显示器兼容处理 |
 | [ddcutil](https://github.com/rockowitz/ddcutil) | DDC/CI 控制、能力处理与自定义功能定义 |
 | [ddccontrol-db](https://github.com/ddccontrol/ddccontrol-db) | 按型号维护显示器控制描述的数据库 |
 | [msigd](https://github.com/couriersud/msigd) | MSI 显示器 USB/HID 控制与型号差异处理 |
@@ -147,6 +148,7 @@ These projects inform monitor-control and adaptation research. FC support still 
 
 | Project | Reference area |
 | --- | --- |
+| [Twinkle Tray](https://github.com/xanderfrangos/twinkle-tray) | Staged discovery, isolated communication and monitor compatibility |
 | [ddcutil](https://github.com/rockowitz/ddcutil) | DDC/CI control, capability handling and user-defined features |
 | [ddccontrol-db](https://github.com/ddccontrol/ddccontrol-db) | A database of model-specific monitor control descriptions |
 | [msigd](https://github.com/couriersud/msigd) | USB/HID control and model differences for MSI monitors |

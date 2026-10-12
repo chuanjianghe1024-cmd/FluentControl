@@ -30,7 +30,7 @@ public sealed partial class MainWindow
     };
     private Button CreateOsdPairingButton(MonitorDevice device)
     {
-        var button = new Button { Content = T("OSD 配对 / 遥控", "OSD pairing / remote") };
+        var button = new Button { Content = T("OSD 配对 / 遥控", "OSD pairing / remote"), IsEnabled = !device.CapabilitiesPending };
         AutomationProperties.SetAutomationId(button, "osd-pairing-" + device.Id);
         button.Click += async (_, _) => { CloseMonitorOsd(); Activate(); await ShowOsdPairingAsync(device); };
         return button;
@@ -126,6 +126,7 @@ public sealed partial class MainWindow
         pages[1].Children.Add(new Expander { Header = T("手工添加实验指令", "Add an experimental command"), Content = manual, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
         pages[2].Children.Add(Empty(T("只有本机观察并绑定的操作可以使用。未配齐也可以保存；返回和确认可分别对应摇杆左、右。", "Only locally observed bindings can be used. Partial pairings can be saved; back and confirm may correspond to joystick left and right.")));
         var remoteButtons = new Dictionary<string, Button>();
+        var customRemote = new StackPanel { Spacing = 8 };
         var remoteGrid = new Grid { ColumnSpacing = 8, RowSpacing = 8 };
         for (int i = 0; i < 3; i++) { remoteGrid.ColumnDefinitions.Add(new()); remoteGrid.RowDefinitions.Add(new() { Height = GridLength.Auto }); }
         foreach (var pos in new[] { ("up", 0, 1), ("back", 1, 0), ("enter", 1, 2), ("down", 2, 1) })
@@ -135,12 +136,17 @@ public sealed partial class MainWindow
             AutomationProperties.SetAutomationId(button, "pairing-remote-" + pos.Item1);
         }
         pages[2].Children.Add(remoteGrid);
+        pages[2].Children.Add(customRemote);
         var extras = new StackPanel { Spacing = 8 }; pages[2].Children.Add(extras);
         foreach (var action in OsdPairingProfile.Actions.Except(new[] { "up", "down", "back", "enter" }))
         { var button = new Button { Content = PairingAction(action) }; extras.Children.Add(button); remoteButtons[action] = button; AutomationProperties.SetAutomationId(button, "pairing-remote-" + action); }
         var bindingsText = new TextBlock { TextWrapping = TextWrapping.Wrap }; pages[2].Children.Add(bindingsText);
         var rePair = new Button { Content = T("重新配对（保留记录，清除绑定）", "Pair again (keep history, clear bindings)") }; pages[2].Children.Add(rePair);
         var connection = new TextBox { Header = T("连接方式", "Connection setup"), PlaceholderText = "HDMI / DP / USB-C / Dock", MaxLength = 500 };
+        var videoConnection = new ComboBox { Header = T("视频接口（手动记录）", "Video connection (manual record)") };
+        foreach (var value in new[] { "unknown", "HDMI", "DP", "USB-C", "DVI", "VGA" })
+            videoConnection.Items.Add(new ComboBoxItem { Content = value == "unknown" ? T("未知", "Unknown") : value, Tag = value });
+        videoConnection.SelectedIndex = 0; pages[3].Children.Add(videoConnection);
         var hdr = new ComboBox { Header = "HDR" }; foreach (var v in new[] { "unknown", "on", "off" }) hdr.Items.Add(new ComboBoxItem { Content = v == "unknown" ? T("未知", "Unknown") : v == "on" ? T("开启", "On") : T("关闭", "Off"), Tag = v }); hdr.SelectedIndex = 0;
         var environment = new TextBox { Header = T("固件、模式与厂商软件备注", "Firmware, modes and vendor software notes"), MaxLength = 1000, TextWrapping = TextWrapping.Wrap };
         pages[3].Children.Add(connection); pages[3].Children.Add(hdr); pages[3].Children.Add(environment);
@@ -156,6 +162,15 @@ public sealed partial class MainWindow
         var save = new Button { Content = T("保存配对", "Save pairing") }; AutomationProperties.SetAutomationId(save, "pairing-save");
         foreach (var control in new FrameworkElement[] { includeRaw, export, import, save, Empty(directory) }) pages[3].Children.Add(control);
         var context = new ComboBox { Header = T("发送前菜单所在位置", "Menu context before sending"), HorizontalAlignment = HorizontalAlignment.Stretch };
+        var settle = new NumberBox { Header = T("发送后等待（毫秒）", "Wait after sending (ms)"), Minimum = 0, Maximum = 2000,
+            SmallChange = 50, Value = profile.Compatibility.SettleMilliseconds, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
+        var readAfter = new CheckBox { Content = T("发送后回读一次", "Read once after sending"), IsChecked = profile.Compatibility.Readback == "once" };
+        AutomationProperties.SetAutomationId(settle, "pairing-settle");
+        AutomationProperties.SetAutomationId(readAfter, "pairing-readback");
+        var compatibilityPanel = new StackPanel { Spacing = 8 };
+        compatibilityPanel.Children.Add(settle); compatibilityPanel.Children.Add(readAfter);
+        compatibilityPanel.Children.Add(Empty(T("取消回读仍需观察实际效果；指令不会自动重发。", "Without readback, confirm the effect by observation. Commands are never automatically resent.")));
+        pages[1].Children.Add(new Expander { Header = T("通信兼容设置", "Communication settings"), Content = compatibilityPanel });
         foreach (var c in OsdPairingProfile.Contexts) context.Items.Add(new ComboBoxItem { Content = PairingContext(c), Tag = c }); context.SelectedIndex = 0;
         root.Children.Add(context);
         var confirmation = new StackPanel { Spacing = 8, Visibility = Visibility.Collapsed };
@@ -176,17 +191,36 @@ public sealed partial class MainWindow
         foreach (var item in new[] { ("success", T("成功", "Success")), ("failure", T("失败", "Failure")), ("other", T("其他效果", "Other effect")), ("uncertain", T("不确定", "Uncertain")) })
         { var b = new Button { Content = item.Item2, Tag = item.Item1 }; AutomationProperties.SetAutomationId(b, "pairing-result-" + item.Item1); outcomes.Children.Add(b); outcomeButtons.Add(b); }
         root.Children.Add(outcomes);
+        var customName = new TextBox { Header = T("自定义控件名称", "Custom control name"), MaxLength = 80 };
+        var customKind = new ComboBox { Header = T("控件类型", "Control type") };
+        customKind.Items.Add(T("按钮", "Button")); customKind.Items.Add(T("选项组", "Choice group")); customKind.SelectedIndex = 0;
+        var customLabel = new TextBox { Header = T("选项名称", "Option name"), MaxLength = 80 };
+        AutomationProperties.SetAutomationId(customName, "pairing-custom-name");
+        AutomationProperties.SetAutomationId(customKind, "pairing-custom-kind");
+        AutomationProperties.SetAutomationId(customLabel, "pairing-custom-label");
+        var bindCustom = new Button { Content = T("保存已确认的自定义控件", "Save confirmed custom control") };
+        AutomationProperties.SetAutomationId(bindCustom, "pairing-bind-custom");
+        var customPanel = new StackPanel { Spacing = 8 };
+        customPanel.Children.Add(Empty(T("先确认本次效果，再保存控件。同名选项组可以逐项添加已验证的指令。", "Confirm this trial first, then save a control. Add verified commands to the same choice group one option at a time.")));
+        foreach (var control in new FrameworkElement[] { customName, customKind, customLabel, bindCustom }) customPanel.Children.Add(control);
+        root.Children.Add(new Expander { Header = T("保存为自定义控件", "Save as custom control"), Content = customPanel });
         var status = new TextBlock { TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true }; AutomationProperties.SetAutomationId(status, "pairing-status"); root.Children.Add(status);
         var dialog = new ContentDialog { Title = T("本地 OSD 配对", "Local OSD pairing"), XamlRoot = Root.XamlRoot, CloseButtonText = T("关闭", "Close"), Content = new ScrollViewer { Content = root, MaxHeight = 490, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } };
         monitorAdaptationDialog = dialog;
         bool Active() => open && !closed && generation == version && displayDevices.Contains(device) && ReferenceEquals(monitorAdaptationDialog, dialog);
         void SaveLocal()
         {
+            session.VideoConnection = (string)((ComboBoxItem)videoConnection.SelectedItem).Tag;
+            if (!double.IsFinite(settle.Value)) throw new InvalidDataException(T("请输入有效的等待时间。", "Enter a valid wait time."));
+            profile.Compatibility.SettleMilliseconds = (int)settle.Value;
+            profile.Compatibility.Readback = readAfter.IsChecked == true ? "once" : "none";
             session.Connection = connection.Text.Trim(); session.Hdr = (string)((ComboBoxItem)hdr.SelectedItem).Tag; session.Notes = environment.Text.Trim(); store.Save(profile);
         }
         void Update()
         {
             var ready = !busy && baselineReady && Active();
+            settle.IsEnabled = readAfter.IsEnabled = customRemote.IsEnabled = customPanel.IsEnabled = ready;
+            bindCustom.IsEnabled = ready && selectedTrial is { WriteSucceeded: true, SourceProfileId.Length: 0, Outcome: "success" or "other" };
             foreach (var item in basicButtons) item.Value.IsEnabled = ready && (item.Key != "osd-disable-events" || canDisableEvents);
             discover.IsEnabled = ready;
             advertised.IsEnabled = ready && advertised.Items.Count > 0;
@@ -219,7 +253,35 @@ public sealed partial class MainWindow
             history.Items.Clear();
             foreach (var trial in profile.Trials.AsEnumerable().Reverse()) history.Items.Add(new ComboBoxItem { Content = trial.At.ToLocalTime().ToString("HH:mm:ss") + " · " + trial.Command.Display, Tag = trial });
             if (history.Items.Count > 0) history.SelectedIndex = 0;
+            BuildCustomRemote();
             Update();
+        }
+        void BuildCustomRemote()
+        {
+            customRemote.Children.Clear();
+            foreach (var control in profile.CustomControls)
+            {
+                var options = control.Options.Select(o => (Option: o, Command: profile.Commands.First(c => c.Id == o.CommandId)))
+                    .Where(o => engine.CanSend(o.Command) && (!o.Command.DisablesEvents || canDisableEvents)).ToArray();
+                if (control.Kind == "button")
+                {
+                    var button = new Button { Content = control.Name, IsEnabled = options.Length > 0 };
+                    button.Click += (_, _) => { if (options.Length > 0) RequestSend(options[0].Command); };
+                    customRemote.Children.Add(button);
+                }
+                else
+                {
+                    var choice = new ComboBox { Header = control.Name, HorizontalAlignment = HorizontalAlignment.Stretch };
+                    AutomationProperties.SetAutomationId(choice, "pairing-custom-choice-" + control.Name);
+                    foreach (var option in options) choice.Items.Add(new ComboBoxItem { Content = option.Option.Label, Tag = option.Command });
+                    choice.SelectionChanged += (_, _) =>
+                    {
+                        if (choice.SelectedItem is not ComboBoxItem { Tag: OsdCommand command }) return;
+                        choice.SelectedIndex = -1; RequestSend(command); // A repeatable command selector, never current hardware state.
+                    };
+                    customRemote.Children.Add(choice);
+                }
+            }
         }
         async Task Run(Func<CancellationToken, Task> operation, bool hardware = true)
         {
@@ -241,10 +303,11 @@ public sealed partial class MainWindow
         void Start(Func<CancellationToken, Task> operation, bool hardware = true) { if (!busy && Active()) osdPairingOperation = Run(operation, hardware); }
         async Task Send(OsdCommand command, CancellationToken token)
         {
+            SaveLocal();
             if (profile.Trials.Count >= 512) throw new InvalidOperationException(T("配对记录已满，请先导出记录再重新配对。", "Pairing history is full. Export it before pairing again."));
             if (command.DisablesEvents && !canDisableEvents) throw new InvalidOperationException("MCCS 2.2 required.");
             var menuContext = (string)((ComboBoxItem)context.SelectedItem).Tag; var allowReuse = reuse.IsChecked == true;
-            var trial = await Task.Run(() => engine.Send(command, session.Id, menuContext, allowReuse, token));
+            var trial = await Task.Run(() => engine.Send(command, session.Id, menuContext, allowReuse, token, profile.Compatibility));
             profile.Trials.Add(trial);
             // Display the current write even if saving fails; never leave an older trial selected.
             if (Active()) { ReloadLists(); ShowTrial(trial); details.StartBringIntoView(); }
@@ -325,7 +388,18 @@ public sealed partial class MainWindow
                 var outcome = (string)b.Tag;
                 profile.Confirm(selectedTrial, outcome, outcome is "success" or "other" ? effectBoxes.Where(x => x.Value.IsChecked == true).Select(x => x.Key) : Array.Empty<string>(), notes.Text.Trim());
                 if (selectedTrial.Effects.Contains("open")) accessible.IsChecked = true;
-                SaveLocal(); ShowTrial(selectedTrial); status.Text = T("观察与绑定已保存到本机。", "Observation and bindings saved locally.");
+                SaveLocal(); BuildCustomRemote(); ShowTrial(selectedTrial); status.Text = T("观察与绑定已保存到本机。", "Observation and bindings saved locally.");
+            }
+            catch (Exception ex) { status.Text = ex.Message; }
+        };
+        bindCustom.Click += (_, _) =>
+        {
+            if (selectedTrial is null || busy) return;
+            try
+            {
+                profile.BindCustom(selectedTrial, customName.Text, customKind.SelectedIndex == 0 ? "button" : "choice", customLabel.Text);
+                SaveLocal(); BuildCustomRemote(); Update();
+                status.Text = T("自定义控件已保存，可在遥控页使用。", "Custom control saved. Use it on the Remote page.");
             }
             catch (Exception ex) { status.Text = ex.Message; }
         };

@@ -178,6 +178,32 @@ public sealed partial class MainWindow : Window
                 InitializationRing.IsActive = false; InitializationPanel.Visibility = Visibility.Collapsed;
             }
         }
+        if (!uiTest && !closed && monitors is { } service)
+            _ = EnrichMonitorsAsync(service, version, forceMonitorCapabilities);
+    }
+
+    private async Task EnrichMonitorsAsync(MonitorService service, int version, bool force)
+    {
+        var pending = displayDevices.Where(d => d.CapabilitiesPending).ToArray();
+        foreach (var device in pending)
+        {
+            // Let the basic controls paint and release the gate between displays,
+            // so user writes can run before the next display's advanced scan.
+            await Task.Yield();
+            await gate.WaitAsync();
+            try
+            {
+                if (closed || generation != version || !ReferenceEquals(monitors, service)) return;
+                var enriched = await Task.Run(() => service.Enrich(device, force));
+                if (closed || generation != version) return;
+                MonitorService.MergeEnrichment(device, enriched);
+                BindBrightnessMapping(device);
+                RecordMonitorMetadata(); RenderMonitorControls(version);
+                RefreshDesktopPanel();
+            }
+            catch (Exception ex) { StartupLog.Write("Monitor enrichment: " + ex); }
+            finally { gate.Release(); }
+        }
     }
 
     private FrameworkElement CreateMonitorCard(MonitorDevice device, int version, bool overview = false)
@@ -192,6 +218,10 @@ public sealed partial class MainWindow : Window
         if (overview) text.Children.Add(ModelBadge(SingleModelLabel(device)));
         text.Children.Add(new TextBlock { Text = $"{device.Model}" + (device.ModelId.Length > 0 ? " · " + device.ModelId : "") + $" · {device.Width} × {device.Height}" + (device.IsPrimary ? T(" · 主显示器", " · Primary") : ""), FontSize = 12, Opacity = .7, TextWrapping = TextWrapping.Wrap });
         header.Children.Add(text);
+        if (device.CapabilitiesPending || device.DiscoveryWarning.Length > 0)
+            text.Children.Add(new TextBlock { Text = device.CapabilitiesPending
+                ? T("基础控制已就绪，正在读取高级功能…", "Basic controls ready. Reading advanced features…")
+                : device.DiscoveryWarning, FontSize = 12, TextWrapping = TextWrapping.Wrap });
         var rename = new Button { Content = T("重命名", "Rename"), VerticalAlignment = VerticalAlignment.Center, IsEnabled = preferences is not null };
         AutomationProperties.SetName(rename, T("重命名 ", "Rename ") + device.Preference.Label);
         rename.Click += async (_, _) =>

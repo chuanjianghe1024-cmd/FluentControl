@@ -4,6 +4,16 @@
 
 ## 未发布 / Unreleased
 
+- 显示器分阶段读取：先显示真实亮度/对比度，再补齐高级能力与型号适配；保留基础通道对象和已有能力缓存边界。
+- DDC/CI 移入每个逻辑显示连接独立的辅助进程，8 秒通信限时；中断后旧连接失效，刷新重建，绝不自动重发写入。高级扫描中断会留下本机恢复标记，下次跳过，用户可主动重新检测。
+- 普通读取仅对指定传输错误有限重试；事件、配对、诊断和所有写入不自动重试，不将历史读数伪装成当前状态。
+- OSD 配对新增已确认的自定义按钮/选项组、发送后等待时间与可选回读。v3 文件保留兼容设置、试验执行策略和用户填写的视频接口，兼容读取 v1/v2；导入不激活自定义控件。
+- 增加 Twinkle Tray 设计来源、USB Monitor / HID 研究与 HDMI/DP 对照调试方案；USB 执行尚未接入。
+- Show live brightness/contrast first, then enrich advanced monitor controls. Isolate DDC/CI per logical display connection with bounded IPC and recovery markers; never replay writes automatically.
+- Retry only selected transient ordinary reads; retain real readback semantics and single-send pairing/diagnostic behavior.
+- Add observed custom buttons/choice groups, configurable settling/readback and manually recorded video connections to v3 pairing files. Read v1/v2 files; imported evidence still requires local verification.
+- Document Twinkle Tray design references, USB Monitor/HID research and controlled HDMI/DP comparisons. USB execution remains unimplemented.
+
 ## [0.3.75](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.75) — 2026-10-12
 
 新增本地 OSD 配对与未知指令试发，修复 OSD、色温和场景模式的重复选择。[中英文发布说明](docs/releases/v0.3.75.md)。

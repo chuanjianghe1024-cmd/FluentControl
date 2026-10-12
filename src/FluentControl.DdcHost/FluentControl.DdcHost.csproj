@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../FluentControl/Services/DdcProtocol.cs" Link="DdcProtocol.cs" />
+  </ItemGroup>
+  <Target Name="GetDdcHostPayload" Returns="@(DdcHostPayload)">
+    <ItemGroup><DdcHostPayload Include="$(TargetDir)FluentControl.DdcHost.exe;$(TargetDir)FluentControl.DdcHost.dll;$(TargetDir)FluentControl.DdcHost.deps.json;$(TargetDir)FluentControl.DdcHost.runtimeconfig.json" /></ItemGroup>
+  </Target>
+</Project>

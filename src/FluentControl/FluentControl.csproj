@@ -20,6 +20,7 @@
     <PackageProjectUrl>https://fctrl.app</PackageProjectUrl>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../FluentControl.DdcHost/FluentControl.DdcHost.csproj" ReferenceOutputAssembly="false" />
     <EmbeddedResource Include="Services/Locales.json" LogicalName="FluentControl.Locales.json" />
 
     <!-- The application uses WinUI/windowing, not the AI/ML/widgets metapackage.
@@ -30,6 +31,16 @@
          and the entire WindowsDesktop runtime into self-contained publishing. -->
     <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
   </ItemGroup>
+  <Target Name="CopyDdcHostToOutput" AfterTargets="Build">
+    <MSBuild Projects="../FluentControl.DdcHost/FluentControl.DdcHost.csproj" Targets="GetDdcHostPayload" Properties="Configuration=$(Configuration);Platform=$(Platform)">
+      <Output TaskParameter="TargetOutputs" ItemName="DdcHostPayload" />
+    </MSBuild>
+    <Copy SourceFiles="@(DdcHostPayload)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyDdcHostToPublish" AfterTargets="Publish">
+    <ItemGroup><DdcHostPublished Include="$(OutDir)FluentControl.DdcHost.exe;$(OutDir)FluentControl.DdcHost.dll;$(OutDir)FluentControl.DdcHost.deps.json;$(OutDir)FluentControl.DdcHost.runtimeconfig.json" /></ItemGroup>
+    <Copy SourceFiles="@(DdcHostPublished)" DestinationFolder="$(PublishDir)" />
+  </Target>
   <!-- ApplicationIcon is already indexed by the SDK. Copy the native tray icon
        after resource generation instead of adding a duplicate Content item. -->
   <Target Name="CopyTrayIconToOutput" AfterTargets="Build">

@@ -20,13 +20,20 @@ public sealed class MonitorDevice
     public List<MonitorFeature> Features { get; } = new();
     public MonitorPreference Preference { get; set; } = new();
     public List<ControlChannel> Channels { get; } = new();
+    public bool CapabilitiesPending { get; set; }
+    public string DiscoveryWarning { get; set; } = "";
     public string DisplayName => Preference.DisplayName;
 }
 
 public sealed class MonitorService : IDisposable
 {
-    private readonly List<nint> handles = new();
-    private readonly Dictionary<MonitorDevice, nint> diagnosticHandles = new();
+    private sealed record Endpoint(DdcProcessClient Client, int Index)
+    {
+        public DdcResponse Call(string operation, byte code = 0, uint value = 0) => Client.Request(new(operation, Index, code, value));
+    }
+    private readonly List<DdcProcessClient> hosts = new();
+    private readonly Dictionary<MonitorDevice, Endpoint> diagnosticHandles = new();
+    private readonly DdcProbeRecovery recovery;
     private readonly MonitorCapabilityCache capabilityCache;
     private readonly MonitorAdapterStore adapters = new();
     private readonly Action<string>? diagnostic;
@@ -35,17 +42,12 @@ public sealed class MonitorService : IDisposable
     public MonitorService(Action<string>? diagnostic = null)
     {
         this.diagnostic = diagnostic;
+        recovery = new DdcProbeRecovery(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentControl", "DdcRecovery"), diagnostic);
         capabilityCache = new MonitorCapabilityCache(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "FluentControl", "monitor-capabilities.json"), diagnostic);
     }
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct PhysicalMonitor
-    {
-        public nint Handle;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string Description;
-    }
     [StructLayout(LayoutKind.Sequential)]
     private struct Rect { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -70,102 +72,138 @@ public sealed class MonitorService : IDisposable
     [DllImport("user32.dll")] private static extern bool EnumDisplayMonitors(nint dc, nint clip, MonitorCallback callback, nint data);
     [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW", CharSet = CharSet.Unicode)] private static extern bool GetMonitorInfo(nint monitor, ref MonitorInfo info);
     [DllImport("user32.dll", EntryPoint = "EnumDisplayDevicesW", CharSet = CharSet.Unicode)] private static extern bool EnumDisplayDevices(string device, uint index, ref DisplayDevice info, uint flags);
-    [DllImport("dxva2.dll", SetLastError = true)] private static extern bool GetNumberOfPhysicalMonitorsFromHMONITOR(nint monitor, out uint count);
-    [DllImport("dxva2.dll", SetLastError = true)] private static extern bool GetPhysicalMonitorsFromHMONITOR(nint monitor, uint count, [Out] PhysicalMonitor[] monitors);
-    [DllImport("dxva2.dll", SetLastError = true)] private static extern bool GetVCPFeatureAndVCPFeatureReply(nint monitor, byte code, out uint type, out uint current, out uint maximum);
-    [DllImport("dxva2.dll", SetLastError = true)] private static extern bool SetVCPFeature(nint monitor, byte code, uint value);
-    [DllImport("dxva2.dll", SetLastError = true)] private static extern bool GetMonitorCapabilities(nint monitor, out uint capabilities, out uint temperatures);
-    [DllImport("dxva2.dll", SetLastError = true)] private static extern bool GetMonitorColorTemperature(nint monitor, out uint temperature);
-    [DllImport("dxva2.dll", SetLastError = true)] private static extern bool SetMonitorColorTemperature(nint monitor, uint temperature);
-    [DllImport("dxva2.dll")] private static extern bool DestroyPhysicalMonitor(nint monitor);
-    [DllImport("dxva2.dll", SetLastError = true)] private static extern bool GetCapabilitiesStringLength(nint monitor, out uint length);
-    [DllImport("dxva2.dll", CharSet = CharSet.Ansi, SetLastError = true)] private static extern bool CapabilitiesRequestAndCapabilitiesReply(nint monitor, System.Text.StringBuilder text, uint length);
-
+    // Phase one reads only live brightness/contrast. No capability query, firmware
+    // scan or private-code probe can delay these controls becoming visible.
     public List<MonitorDevice> Enumerate(bool forceCapabilities = false)
     {
-        var scan = Stopwatch.StartNew();
         Errors.Clear();
         var devices = new List<MonitorDevice>();
-        var pending = new List<(MonitorDevice Device, nint Handle)>();
+        var logical = new List<MonitorInfo>();
         var friendlyNames = MonitorNames.ReadActive();
-        Exception? callbackError = null;
         MonitorCallback callback = (monitor, _, _, _) =>
         {
+            var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+            if (GetMonitorInfo(monitor, ref info)) logical.Add(info);
+            return true;
+        };
+        if (!EnumDisplayMonitors(0, 0, callback, 0)) throw new IOException("Cannot enumerate displays.");
+        GC.KeepAlive(callback);
+        MonitorReadBatch.Run(logical, x => x.Device, info =>
+        {
+            var identity = new DisplayDevice { Size = Marshal.SizeOf<DisplayDevice>() };
+            EnumDisplayDevices(info.Device, 0, ref identity, 1);
+            DdcProcessClient? host = null;
+            string[] descriptions = Array.Empty<string>();
+            string warning = "";
             try
             {
-                var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
-                if (!GetMonitorInfo(monitor, ref info)) return true;
-                PhysicalMonitor[] physical = Array.Empty<PhysicalMonitor>();
-                if (GetNumberOfPhysicalMonitorsFromHMONITOR(monitor, out var count) && count > 0)
-                {
-                    var found = new PhysicalMonitor[count];
-                    if (GetPhysicalMonitorsFromHMONITOR(monitor, count, found))
-                    {
-                        physical = found;
-                        handles.AddRange(found.Select(x => x.Handle));
-                    }
-                }
-                for (var i = 0; i < Math.Max(physical.Length, 1); i++)
-                {
-                    var display = new DisplayDevice { Size = Marshal.SizeOf<DisplayDevice>() };
-                    var hasIdentity = EnumDisplayDevices(info.Device, (uint)i, ref display, 1);
-                    var item = physical.Length > 0 ? physical[i] : default;
-                    var model = !string.IsNullOrWhiteSpace(item.Description) ? item.Description : display.Description;
-                    if (!string.IsNullOrEmpty(display.Id) && friendlyNames.TryGetValue(display.Id, out var friendly)) model = friendly;
-                    var device = new MonitorDevice
-                    {
-                        Id = hasIdentity && !string.IsNullOrWhiteSpace(display.Id) ? display.Id.ToUpperInvariant() : $"{info.Device}/{model}/{i}",
-                        Model = string.IsNullOrWhiteSpace(model) ? "显示器" : model,
-                        ModelId = ModelIdentity.FromDevicePath(display.Id ?? ""),
-                        Connection = info.Device,
-                        Left = info.Monitor.Left, Top = info.Monitor.Top,
-                        Width = info.Monitor.Right - info.Monitor.Left, Height = info.Monitor.Bottom - info.Monitor.Top,
-                        IsPrimary = (info.Flags & 1) != 0
-                    };
-                    devices.Add(device);
-                    if (physical.Length == 0)
-                        device.Features.AddRange(VcpCatalog.All.Select(d => new MonitorFeature { Definition = d, Reason = Strings.T("DDC/CI 不可用", "DDC/CI unavailable") }));
-                    else { diagnosticHandles.Add(device, item.Handle); pending.Add((device, item.Handle)); }
-                }
-                return true;
+                host = new DdcProcessClient();
+                lock (hosts) hosts.Add(host);
+                var opened = host.Request(new("open", Connection: info.Device, Identity: identity.Id ?? ""));
+                if (opened.Error != 0) throw new Win32Exception(opened.Error);
+                descriptions = opened.Descriptions ?? Array.Empty<string>();
             }
-            catch (Exception ex) { callbackError = ex; return false; }
-        };
-        var success = EnumDisplayMonitors(0, 0, callback, 0);
-        GC.KeepAlive(callback);
-        if (callbackError is not null || !success)
-        {
-            Dispose();
-            throw callbackError ?? new InvalidOperationException(Strings.T("无法枚举显示器。", "Cannot enumerate monitors."));
-        }
-        var enumerationMs = scan.ElapsedMilliseconds;
-        MonitorReadBatch.Run(pending, x => x.Device.Id,
-            x => ReadControls(x.Device, x.Handle, forceCapabilities),
-            (x, error) =>
+            catch (Exception ex) { warning = ex.Message; host?.Dispose(); }
+            for (var i = 0; i < Math.Max(descriptions.Length, 1); i++)
             {
-                lock (Errors) Errors.Add(x.Device.Model + "：" + error.Message);
-                diagnostic?.Invoke($"Monitor scan failed [{x.Device.Model}]: {error}");
-                foreach (var definition in VcpCatalog.All.Where(d => !x.Device.Features.Any(f => f.Definition.Code == d.Code)))
-                    x.Device.Features.Add(new() { Definition = definition, Reason = Strings.T("不支持或当前无法读取", "Unsupported or currently unreadable") });
-            });
-        capabilityCache.Save();
-        diagnostic?.Invoke($"Monitor scan complete: displays={devices.Count}, enumeration={enumerationMs}ms, total={scan.ElapsedMilliseconds}ms, forceCapabilities={forceCapabilities}");
-        return devices.OrderBy(x => x.Left).ThenBy(x => x.Top).ThenBy(x => x.Id).ToList();
+                var display = new DisplayDevice { Size = Marshal.SizeOf<DisplayDevice>() };
+                var hasIdentity = EnumDisplayDevices(info.Device, (uint)i, ref display, 1);
+                var model = descriptions.Length > 0 && !string.IsNullOrWhiteSpace(descriptions[i]) ? descriptions[i] : display.Description;
+                if (!string.IsNullOrEmpty(display.Id) && friendlyNames.TryGetValue(display.Id, out var friendly)) model = friendly;
+                var device = new MonitorDevice
+                {
+                    Id = hasIdentity && !string.IsNullOrWhiteSpace(display.Id) ? display.Id.ToUpperInvariant() : $"{info.Device}/{model}/{i}",
+                    Model = string.IsNullOrWhiteSpace(model) ? "显示器" : model,
+                    ModelId = ModelIdentity.FromDevicePath(display.Id ?? ""), Connection = info.Device,
+                    Left = info.Monitor.Left, Top = info.Monitor.Top, Width = info.Monitor.Right - info.Monitor.Left,
+                    Height = info.Monitor.Bottom - info.Monitor.Top, IsPrimary = (info.Flags & 1) != 0,
+                    CapabilitiesPending = descriptions.Length > 0, DiscoveryWarning = warning
+                };
+                lock (devices) devices.Add(device);
+                if (descriptions.Length > 0 && host is not null)
+                {
+                    var endpoint = new Endpoint(host, i);
+                    lock (diagnosticHandles) diagnosticHandles.Add(device, endpoint);
+                    device.Features.AddRange(VcpDiscovery.Discover(device.Id, VcpCapabilities.Parse(""),
+                        code => ReadLive(endpoint, code), (code, value) => WriteLive(device, endpoint, code, value),
+                        definitions: VcpCatalog.All.Where(d => d.Code is 0x10 or 0x12)));
+                    device.Channels.AddRange(device.Features.Where(f => f.Channel is not null).Select(f => f.Channel!));
+                }
+                else device.Features.AddRange(VcpCatalog.All.Select(d => new MonitorFeature { Definition = d, Reason = Strings.T("DDC/CI 不可用", "DDC/CI unavailable") }));
+                if (warning.Length > 0) lock (Errors) Errors.Add(device.Model + ": " + warning);
+            }
+        }, (info, error) => { lock (Errors) Errors.Add(info.Device + ": " + error.Message); });
+        return devices.OrderBy(d => d.Left).ThenBy(d => d.Top).ThenBy(d => d.Id).ToList();
     }
 
-    private void ReadControls(MonitorDevice device, nint handle, bool forceCapabilities)
+    private static VcpReply? ReadLive(Endpoint endpoint, byte code)
+    {
+        var result = DdcReadPolicy.Read(() => endpoint.Call("read", code), code);
+        return result.Error == 0 ? new(result.Current, result.Maximum) : null;
+    }
+    private void WriteLive(MonitorDevice device, Endpoint endpoint, byte code, uint value)
+    {
+        var watch = Stopwatch.StartNew();
+        var result = endpoint.Call("write", code, value); // One request, no retry.
+        diagnostic?.Invoke($"Monitor write [{device.DisplayName} / {device.Model} / {device.ModelId}]: VCP=0x{code:X2}, value=0x{value:X4}, error=0x{unchecked((uint)result.Error):X8}, duration={watch.ElapsedMilliseconds}ms");
+        if (result.Error != 0) throw new Win32Exception(result.Error);
+    }
+
+    // Return an independent feature set; only the UI thread merges it into the
+    // visible device. Failure retains the basic controls and never cached values.
+    public MonitorDevice Enrich(MonitorDevice device, bool forceCapabilities)
+    {
+        var enriched = new MonitorDevice { Id = device.Id, Model = device.Model, ModelId = device.ModelId, Connection = device.Connection, Preference = device.Preference };
+        try
+        {
+            if (!diagnosticHandles.TryGetValue(device, out var endpoint)) return enriched;
+            var key = MonitorCapabilityCache.Identity(device.Id, device.Model, device.Connection);
+            if (recovery.ShouldSkip(key, forceCapabilities))
+            {
+                enriched.DiscoveryWarning = Strings.T("上次高级检测中断，已保留基础控制；可用“重新检测”再次尝试。", "The previous advanced scan was interrupted. Basic controls remain; use Detect again to retry.");
+                return enriched;
+            }
+            recovery.Begin(key);
+            ReadControls(enriched, endpoint, forceCapabilities);
+            if (endpoint.Client.IsStopped) throw new IOException(Strings.T("显示器通信已中止，请重新检测。", "Display communication stopped. Detect displays again."));
+            recovery.Complete(key);
+        }
+        catch (Exception ex) { enriched.DiscoveryWarning = ex.Message; diagnostic?.Invoke($"Monitor enrichment failed [{device.Model}]: {ex}"); }
+        finally { capabilityCache.Save(); }
+        return enriched;
+    }
+
+    public static void MergeEnrichment(MonitorDevice device, MonitorDevice enriched)
+    {
+        device.CapabilitiesPending = false; device.DiscoveryWarning = enriched.DiscoveryWarning;
+        device.CapabilitiesText = enriched.CapabilitiesText; device.FirmwareVersion = enriched.FirmwareVersion;
+        device.InstalledAdapter = enriched.InstalledAdapter;
+        // Preserve basic channel objects: a queued slider operation still refers to
+        // exactly this connection. New advanced controls are added after discovery.
+        var basic = device.Features.Where(f => f.Definition.Code is 0x10 or 0x12).ToDictionary(f => f.Definition.Code);
+        foreach (var feature in enriched.Features)
+        {
+            if (basic.TryGetValue(feature.Definition.Code, out var original) && original.Channel is { } channel)
+            {
+                if (feature.Channel is { } latest) channel.Value = latest.Value;
+                continue;
+            }
+            device.Features.RemoveAll(f => f.Definition.Key == feature.Definition.Key);
+            device.Features.Add(feature);
+        }
+        device.Channels.Clear(); device.Channels.AddRange(device.Features.Where(f => f.Channel is not null).Select(f => f.Channel!));
+        device.Channels.AddRange(enriched.Channels.Where(c => !device.Channels.Any(existing => existing.PropertyKey == c.PropertyKey)));
+    }
+
+    private void ReadControls(MonitorDevice device, Endpoint handle, bool forceCapabilities)
     {
         var scan = Stopwatch.StartNew();
         var key = MonitorCapabilityCache.Identity(device.Id, device.Model, device.Connection);
         var metadata = capabilityCache.GetOrRead(key, () =>
         {
-            var text = "";
-            if (GetCapabilitiesStringLength(handle, out var length) && length is > 0 and <= 65536)
-            {
-                var buffer = new System.Text.StringBuilder((int)length);
-                if (CapabilitiesRequestAndCapabilitiesReply(handle, buffer, length)) text = buffer.ToString();
-            }
-            return new MonitorCapabilityData(text, ReadTemperatureFlags(handle));
+            var response = handle.Call("capabilities");
+            if (response.Error != 0) diagnostic?.Invoke($"Capabilities query [{device.Model}]: 0x{unchecked((uint)response.Error):X8}");
+            return new MonitorCapabilityData(response.Error == 0 ? response.Text : "", ReadTemperatureFlags(handle));
         }, forceCapabilities, out var cacheHit);
         device.CapabilitiesText = metadata.VcpText;
         var capabilityMs = scan.ElapsedMilliseconds;
@@ -173,23 +211,15 @@ public sealed class MonitorService : IDisposable
         VcpReply? Read(byte code)
         {
             var watch = Stopwatch.StartNew();
-            var ok = GetVCPFeatureAndVCPFeatureReply(handle, code, out _, out var current, out var maximum);
-            var error = ok ? 0 : Marshal.GetLastWin32Error();
+            var response = DdcReadPolicy.Read(() => handle.Call("read", code), code);
+            var ok = response.Error == 0; var current = response.Current; var maximum = response.Maximum; var error = response.Error;
             var elapsed = watch.ElapsedMilliseconds;
             if (code is 0x14 or 0xDC || !ok) diagnostic?.Invoke($"Monitor read [{device.DisplayName} / {device.Model} / {device.ModelId}]: VCP=0x{code:X2}, current=0x{current:X4}, maximum=0x{maximum:X4}, success={ok}, error=0x{unchecked((uint)error):X8}, duration={elapsed}ms");
             reads++; if (!ok) failures++; longestRead = Math.Max(longestRead, elapsed);
             if (elapsed >= 250) diagnostic?.Invoke($"Slow monitor read [{device.Model}]: VCP=0x{code:X2}, duration={elapsed}ms, success={ok}");
             return ok ? new VcpReply(current, maximum) : null;
         }
-        void Write(byte code, uint value)
-        {
-            var watch = Stopwatch.StartNew();
-            var ok = SetVCPFeature(handle, code, value);
-            var error = ok ? 0 : Marshal.GetLastWin32Error();
-            diagnostic?.Invoke($"Monitor write [{device.DisplayName} / {device.Model} / {device.ModelId}]: VCP=0x{code:X2}, value=0x{value:X4}, success={ok}, error=0x{unchecked((uint)error):X8}, duration={watch.ElapsedMilliseconds}ms");
-            if (!ok) throw new Win32Exception(error, device.DisplayName + $" · VCP 0x{code:X2}: " +
-                Strings.F("写入失败（Windows 错误 {0}）：{1}", "Write failed (Windows error {0}): {1}", $"0x{unchecked((uint)error):X8}", new Win32Exception(error).Message));
-        }
+        void Write(byte code, uint value) => WriteLive(device, handle, code, value);
         // The known read-only firmware query is needed even when capabilities omit C9.
         // Reuse this reply during discovery so each refresh reads it only once.
         var firmware = Read(0xC9);
@@ -218,11 +248,11 @@ public sealed class MonitorService : IDisposable
         try
         {
             var temperature = MonitorColorTemperature.Create(device.Id, preset, flags,
-                () => GetMonitorColorTemperature(handle, out var value) ? value : throw new Win32Exception(Marshal.GetLastWin32Error()),
+                () => Require(handle.Call("temperature-read")).Current,
                 value =>
                 {
                     diagnostic?.Invoke($"Windows color temperature write [{device.Model}]: enum={value}");
-                    if (!SetMonitorColorTemperature(handle, value)) throw new Win32Exception(Marshal.GetLastWin32Error());
+                    Require(handle.Call("temperature-write", value: value));
                 });
             if (temperature is not null) device.Channels.Add(temperature);
         }
@@ -231,8 +261,12 @@ public sealed class MonitorService : IDisposable
         diagnostic?.Invoke($"Monitor read [{device.Model}]: capabilities={(cacheHit ? "cache" : "hardware")}, capabilitiesTime={capabilityMs}ms, vcpReads={reads}, failures={failures}, longestRead={longestRead}ms, total={scan.ElapsedMilliseconds}ms");
     }
 
-    private static uint? ReadTemperatureFlags(nint handle) =>
-        GetMonitorCapabilities(handle, out var flags, out var temperatures) ? (flags & 8) != 0 ? temperatures & 255 : 0 : null;
+    private static DdcResponse Require(DdcResponse response) => response.Error == 0 ? response : throw new Win32Exception(response.Error);
+    private static uint? ReadTemperatureFlags(Endpoint handle)
+    {
+        var response = handle.Call("temperature-flags");
+        return response.Error == 0 ? response.Current : null;
+    }
 
     internal static string NativeMenuName(string action) => action switch
     {
@@ -257,23 +291,17 @@ public sealed class MonitorService : IDisposable
         }
         else
         {
-            // Explicit diagnostic session reads hardware metadata once, bypassing the regular cache.
-            var text = ""; int? error = null;
-            if (!GetCapabilitiesStringLength(handle, out var length)) error = Marshal.GetLastWin32Error();
-            else if (length is 0 or > 65536) error = 13; // invalid data
-            else
-            {
-                token.ThrowIfCancellationRequested();
-                var buffer = new System.Text.StringBuilder((int)length);
-                if (CapabilitiesRequestAndCapabilitiesReply(handle, buffer, length)) text = buffer.ToString();
-                else error = Marshal.GetLastWin32Error();
-            }
-            capabilities = new(text, error.HasValue ? "unavailable" : "hardware", error);
+            // Explicit diagnostic session bypasses the cache and capability quarantine.
+            var key = MonitorCapabilityCache.Identity(device.Id, device.Model, device.Connection);
+            recovery.Begin(key);
+            var response = handle.Call("capabilities");
+            recovery.Complete(key);
+            capabilities = new(response.Text, response.Error == 0 ? "hardware" : "unavailable", response.Error == 0 ? null : response.Error);
         }
         var snapshot = MonitorDiagnostics.Capture(device, capabilities, code =>
         {
-            var ok = GetVCPFeatureAndVCPFeatureReply(handle, code, out var type, out var current, out var maximum);
-            return new(type, current, maximum, ok ? null : Marshal.GetLastWin32Error());
+            var response = handle.Call("read", code);
+            return new(response.Type, response.Current, response.Maximum, response.Error == 0 ? null : response.Error);
         }, token, progress);
         diagnostic?.Invoke($"Monitor diagnostics: controls={snapshot.Readings.Count}, success={snapshot.Readings.Count(r => r.Status == "ok")}, total={watch.ElapsedMilliseconds}ms");
         return snapshot;
@@ -285,8 +313,9 @@ public sealed class MonitorService : IDisposable
         if (!diagnosticHandles.TryGetValue(device, out var handle))
             throw new InvalidOperationException(Strings.T("DDC/CI 不可用", "DDC/CI unavailable"));
         var timer = Stopwatch.StartNew();
-        var ok = GetVCPFeatureAndVCPFeatureReply(handle, code, out var type, out var current, out var maximum);
-        int? error = ok ? null : Marshal.GetLastWin32Error();
+        var response = handle.Call("read", code);
+        var ok = response.Error == 0; var type = response.Type; var current = response.Current; var maximum = response.Maximum;
+        int? error = ok ? null : response.Error;
         diagnostic?.Invoke($"OSD pairing read [{device.Model} / {device.ModelId}]: VCP=0x{code:X2}, current=0x{current:X4}, maximum=0x{maximum:X4}, success={ok}, error=0x{unchecked((uint)(error ?? 0)):X8}, duration={timer.ElapsedMilliseconds}ms");
         return new(type, current, maximum, error);
     }
@@ -297,8 +326,8 @@ public sealed class MonitorService : IDisposable
             throw new InvalidDataException("Invalid pairing command.");
         if (!diagnosticHandles.TryGetValue(device, out var handle))
             throw new InvalidOperationException(Strings.T("DDC/CI 不可用", "DDC/CI unavailable"));
-        var timer = Stopwatch.StartNew(); var ok = SetVCPFeature(handle, code, value);
-        var error = ok ? 0 : Marshal.GetLastWin32Error();
+        var timer = Stopwatch.StartNew(); var response = handle.Call("write", code, value);
+        var ok = response.Error == 0; var error = response.Error;
         diagnostic?.Invoke($"OSD pairing write [{device.Model} / {device.ModelId}]: VCP=0x{code:X2}, value=0x{value:X4}, success={ok}, error=0x{unchecked((uint)error):X8}, duration={timer.ElapsedMilliseconds}ms");
         if (!ok) throw new System.ComponentModel.Win32Exception(error);
     }
@@ -306,7 +335,7 @@ public sealed class MonitorService : IDisposable
     public void Dispose()
     {
         diagnosticHandles.Clear();
-        foreach (var handle in handles) DestroyPhysicalMonitor(handle);
-        handles.Clear();
+        foreach (var host in hosts) host.Dispose();
+        hosts.Clear();
     }
 }

@@ -5,11 +5,11 @@ public readonly record struct VcpReply(uint Current, uint Maximum);
 public static class VcpDiscovery
 {
     // Discovery only reads. Write-only reset becomes available only if advertised.
-    public static List<MonitorFeature> Discover(string deviceId, VcpCapabilities capabilities, Func<byte, VcpReply?> read, Action<byte, uint> write, MonitorAdapter? adapter = null)
+    public static List<MonitorFeature> Discover(string deviceId, VcpCapabilities capabilities, Func<byte, VcpReply?> read, Action<byte, uint> write, MonitorAdapter? adapter = null, IEnumerable<VcpDefinition>? definitions = null)
     {
         adapter?.Validate();
         var features = new List<MonitorFeature>();
-        foreach (var definition in VcpCatalog.All)
+        foreach (var definition in definitions ?? VcpCatalog.All)
         {
             var code = definition.Code;
             var adaptedOptions = adapter?.Controls.FirstOrDefault(c => c.Key == definition.Key)?.Options;

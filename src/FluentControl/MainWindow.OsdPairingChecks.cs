@@ -89,6 +89,25 @@ public sealed partial class MainWindow
             saved = store.Load(OsdIdentity.Capture(device), true)!;
             if (writes.Count != 9 || writes[^1] != ((byte)0xFD, 1u) || saved.Trials[^1].Command.Discovery != "capability-experiment" || saved.BoundCommand("up")?.Code != 0x4D)
                 throw new InvalidOperationException("Experimental values or local unknown-code bindings were not persisted");
+            await Invoke("pairing-result-other");
+            foreach (var expander in Descendants<Expander>(Content())) expander.IsExpanded = true;
+            Find<TextBox>("pairing-custom-name").Text = "Fixture mode";
+            Find<ComboBox>("pairing-custom-kind").SelectedIndex = 1;
+            Find<TextBox>("pairing-custom-label").Text = "Mode A";
+            await Invoke("pairing-bind-custom");
+            Find<NumberBox>("pairing-settle").Value = 0;
+            Find<CheckBox>("pairing-readback").IsChecked = false;
+            Find<ComboBox>("pairing-navigation").SelectedIndex = 2; await Task.Delay(50);
+            for (var repeat = 0; repeat < 2; repeat++)
+            {
+                var choice = Find<ComboBox>("pairing-custom-choice-Fixture mode");
+                if (choice.SelectedIndex != -1) throw new InvalidOperationException("Named choice falsely shows hardware state");
+                choice.SelectedIndex = 0; await Task.Delay(50); await osdPairingOperation;
+            }
+            saved = store.Load(OsdIdentity.Capture(device), true)!;
+            if (writes.Count != 11 || saved.CustomControls.Single().Kind != "choice" || saved.Trials[^1].After is not null || saved.Trials[^1].Readback != "none")
+                throw new InvalidOperationException("Named choice replay or no-readback compatibility failed");
+            StartupLog.Write("PASS: observed named choices, repeatable selection, compatibility persistence and optional no-readback.");
             StartupLog.Write("PASS: automatic advertised unknown candidates, below-E0 values, single sends, observed navigation binding, no-option experiments and local persistence.");
             StartupLog.Write("PASS: local OSD pairing UI, explicit success binding, failed readback, repeated recovery, second confirmation, remote, offline reload and close cancellation.");
         }

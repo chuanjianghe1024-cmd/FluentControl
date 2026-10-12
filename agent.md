@@ -29,6 +29,7 @@ README 保留产品层面的计划，详细实现步骤、模块路径和验收�
 | 路径 | 职责 |
 | --- | --- |
 | `src/FluentControl/` | WinUI 主窗口、桌面面板、每屏软件菜单及其他窗口 |
+| `src/FluentControl.DdcHost/` | 每个逻辑显示连接的独立原生 DDC 通信进程，与主程序共用离线 .NET 运行时 |
 | `src/FluentControl/Services/` | 硬件通信、能力解析、配置存储、分享、适配及本地化 |
 | `src/FluentControl/Assets/` | 应用图标与品牌资源 |
 | `src/FluentControl/Properties/PublishProfiles/` | 离线安装包的发布配置 |
@@ -70,7 +71,7 @@ README 保留产品层面的计划，详细实现步骤、模块路径和验收�
 ## 硬件控制约束
 
 1. 常规功能发现只能读取，不以写入、重置或电源切换探测支持情况。按用户 2026-10-12 明确要求，本地 OSD 配对会从本次有效能力声明自动列出未知代码（包括 E0 以下未定义代码）：声明了值则列出这些值；未声明值则提供明确标为试验值的 0–5 及用户自填值。必须逐次由用户点击试发，再按实际效果绑定；生成列表、选择代码、导入和打开窗口都不写入。已知标准功能、重置和信息项单独分类，不能当作未知导航候选。手工具体指令及来源入口保留；禁止自动扫描、穷举或把事件读值转换成写命令。
-2. 同一物理屏幕的读取保持顺序，当前最多两台不同屏幕并行。所有任务结束后才能释放物理句柄；不能用超时返回后任由原生调用继续运行并销毁其句柄。
+2. 同一物理屏幕的读取保持顺序，当前最多两台不同屏幕并行。所有任务结束后才能释放物理句柄；主程序不持有物理句柄；DDC 辅助进程拥有并顺序使用句柄。通信超时中止该进程并永久失效旧客户端，不能用超时返回后任由原生调用继续运行并从别的线程销毁其句柄。
 3. 能力缓存仅保存经过校验的能力元数据，不保存句柄或当前控制值。键包含设备实例/连接身份，不能仅按型号复用；保留失效回退和强制重新检测。
 4. 保留刷新与写入的生命周期保护，旧队列不能写入已替换或已释放的设备。某台失败不能阻止其他设备；准确报告部分完成、跳过和失败。
 5. 联动取已连接设备能力的并集，不因型号不同拆成多个整体滑块。每个值只写到支持它的目标，UI 标明部分支持。
@@ -139,7 +140,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 ## 当前交互与持久化约定
 
-- 显示器、音频、鼠标并行初始化；显示器读取按前述同屏顺序和最多两屏并发执行。能力缓存有效期 7 天、最多 32 个条目；“重新检测”绕过缓存。当前值始终从设备读取。
+- 显示器、音频、鼠标并行初始化；显示器读取按前述同屏顺序和最多两屏并发执行。先发布仅含亮度/对比度的实时结果，再逐屏补齐高级功能，每屏之间释放 gate；能力缓存有效期 7 天、最多 32 个条目；“重新检测”绕过缓存。当前值始终从设备读取。
 - 总配置保存全部设备快照；型号预设用于单屏复用。总配置保留来源引用和独立参数副本，不能因预设后续编辑或删除而改变。库视图合并已连接型号与已有预设型号，不为展示空分组创建伪预设。
 - 声音页面只显示「音量」「输入」两个逻辑控制，不显示或选择具体音频设备，不合并默认通话设备。原生后端每次操作解析 `Role.Console` 的 Render/Capture 默认端点；同等处理物理和虚拟端点，不修改系统路由。设备及音量通知只排队，200ms 合并后在生命周期门控内读取，禁止在 COM 回调中读写、注销或释放端点。
 - 音频配置键固定为 `audio/system-output/volume`、`audio/system-input/volume`，保存前刷新真实音量与静音；不可用项不写入快照，更新总配置时保留已存值。旧端点音量数据留存但不执行，缺少系统控制快照时提示更新配置。旧桌面音频选项备份到 `.before-system-audio-v1.bak` 后迁移为两个系统项，不能从不透明端点 ID 猜测方向。
@@ -155,6 +156,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 | 设置和总配置、型号预设 | `%LOCALAPPDATA%\FluentControl\user-state.json` |
 | 屏幕名称 | `%LOCALAPPDATA%\FluentControl\monitor-names.json` |
 | 能力缓存 | `%LOCALAPPDATA%\FluentControl\monitor-capabilities.json` |
+| DDC 中断恢复标记 | `%LOCALAPPDATA%\FluentControl\DdcRecovery\`，仅连接哈希与高级探测状态 |
 | 本地 OSD 配对 | `%LOCALAPPDATA%\FluentControl\OsdPairings\`，型号/固件/能力指纹与连接身份的哈希文件名；重新配对时保留 archive 文件 |
 | 诊断日志 | `%LOCALAPPDATA%\FluentControl\Logs\startup.log` |
 | 型号库首次迁移备份 | `%LOCALAPPDATA%\FluentControl\user-state.json.before-model-library-v1.bak` |
@@ -166,6 +168,9 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 状态基线：**2026-10-12**。这里只列工程进度与后续验收；不因条目写入计划就宣称已完成或已发布。
 
 ### 已完成的基础
+
+- 当前开发版（未发布）：分阶段显示基础控制与高级功能；按逻辑显示连接隔离的 DDC 辅助进程、8 秒 IPC 限时、高级扫描恢复标记和普通只读传输重试。机制与验证边界见 `docs/ddc-reliability.md`；USB/HID 仍仅在 `docs/usb-hid-adaptation.md` 中记录研究及实机步骤。
+- 当前开发版配对 v3：用户确认后可绑定自定义按钮/选项组；0–2000ms 发送等待、可关闭写后回读，试验保存实际策略；视频接口为用户手动记录。旧 v1/v2 可读，导入不激活任何自定义控件、不覆盖本机兼容设置；失败观察撤销该命令全部绑定。没有自动生成未知连续范围的滑块。
 
 - 正式版本 `v0.3.75`：离线 OSD 配对、已声明未知指令自动候选与单次试发、用户观察绑定和本机遥控、完整 JSON 记录；包含 OSD、色温和场景模式重复选择及失败读回处理。发布复用构建 #75 / `cf780020086231155e1150987c6c3b845cb85d16` 的 MSI，配对界面用模拟显示器验证，不宣称已完成实体型号导航适配。
 - 正式版本 `v0.3.67`：安装目录选择、开机启动选项、完成后立即启动；Windows 实际向导覆盖中文/空格目录与返回导航，升级保留目录/自启动并支持取消，修复尊重应用关闭自启动，卸载保留配置。测试使用 Unicode Shell Link API，不能用 WScript.Shell 的 ANSI 路径结果判定中文快捷方式损坏。
@@ -214,6 +219,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 | 项目 | 适用参考 | 使用边界 |
 | --- | --- | --- |
+| [Twinkle Tray](https://github.com/xanderfrangos/twinkle-tray) | 分阶段检测、隔离进程、异常探测恢复和错误分类 | 独立 C# 实现，不引入 Electron；禁止照搬写入重试或将旧值缓存当成当前状态 |
 | [ddcutil](https://github.com/rockowitz/ddcutil) / [UDF 文档](https://www.ddcutil.com/udf/) | 能力解析、用户定义功能、按型号覆盖选项 | 自定义定义不自动证明硬件支持写入 |
 | [ddccontrol-db](https://github.com/ddccontrol/ddccontrol-db) | 独立型号描述库、贡献与校验流程 | 跨型号和跨固件不能直接继承写入权限 |
 | [msigd](https://github.com/couriersud/msigd) | MSI USB/HID 协议、设备识别和型号差异 | MSI 协议不视为 HKC 协议，也不等同于通用原厂菜单导航 |

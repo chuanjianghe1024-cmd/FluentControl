@@ -37,7 +37,9 @@ jobs:
           Get-Item $appResources | Select-Object Name,Length | Format-Table -AutoSize
       - name: Verify published application opens a window
         shell: pwsh
-        run: ./scripts/Test-Startup.ps1
+        run: |
+          ./scripts/Test-DdcHost.ps1
+          ./scripts/Test-Startup.ps1
       - name: Build single compressed offline MSI
         shell: pwsh
         run: ./scripts/Build-Msi.ps1 -Version $env:PACKAGE_VERSION

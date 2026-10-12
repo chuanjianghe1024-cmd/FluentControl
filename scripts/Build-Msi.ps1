@@ -20,7 +20,7 @@ try {
         throw 'MSI version must fit major.minor.build (255.255.65535).'
     }
     $publish = (Resolve-Path $PublishDirectory).Path
-    foreach ($required in @('FluentControl.exe', 'FluentControl.dll', 'FluentControl.runtimeconfig.json', 'coreclr.dll', 'Microsoft.UI.Xaml.dll', 'Assets/FluentControl.ico')) {
+    foreach ($required in @('FluentControl.exe', 'FluentControl.dll', 'FluentControl.runtimeconfig.json', 'FluentControl.DdcHost.exe', 'FluentControl.DdcHost.dll', 'FluentControl.DdcHost.deps.json', 'FluentControl.DdcHost.runtimeconfig.json', 'coreclr.dll', 'Microsoft.UI.Xaml.dll', 'Assets/FluentControl.ico')) {
         if (-not (Test-Path (Join-Path $publish $required))) { throw "Missing required offline payload: $required" }
     }
     if (-not ((Test-Path "$publish/resources.pri") -or (Test-Path "$publish/FluentControl.pri"))) { throw 'Application PRI is missing.' }
@@ -31,7 +31,7 @@ try {
     }
     # Sign our own binaries BEFORE hashing/packaging them. Never replace vendor signatures.
     if ($CertificateThumbprint) {
-        & "$PSScriptRoot/Sign-Artifacts.ps1" -Path @("$publish/FluentControl.exe", "$publish/FluentControl.dll") @signing
+        & "$PSScriptRoot/Sign-Artifacts.ps1" -Path @("$publish/FluentControl.exe", "$publish/FluentControl.dll", "$publish/FluentControl.DdcHost.exe", "$publish/FluentControl.DdcHost.dll") @signing
     }
     # Never blanket-delete DLLs/resources from publish. Exclude only debug symbols.
     $files = @(Get-ChildItem $publish -File -Recurse | Where-Object { $_.Extension -notin @('.pdb', '.dbg') } | Sort-Object FullName)

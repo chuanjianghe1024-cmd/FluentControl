@@ -40,14 +40,14 @@ internal static class OsdCandidateTests
         var experiment = engine.Send(probe, session.Id, "main-menu", false, default); profile.Trials.Add(experiment);
         Check(writes.Count == 3 && writes.Last() == ((byte)0xFD, 1u), "no-option code accepts a user-selected single experimental value");
         var json = OsdPairingStore.Serialize(profile); var restored = OsdPairingStore.Parse(json);
-        Check(restored.Version == 2 && restored.Trials[0].Command.DeclaredValues.SequenceEqual(new byte[] { 1, 2 }) && restored.Trials[2].Command.Discovery == "capability-experiment", "file roundtrip retains declared values, experimental provenance and observations");
+        Check(restored.Version == 3 && restored.Trials[0].Command.DeclaredValues.SequenceEqual(new byte[] { 1, 2 }) && restored.Trials[2].Command.Discovery == "capability-experiment", "file roundtrip retains declared values, experimental provenance and observations");
         var imported = OsdPairingProfile.Create(device, true); imported.ImportCandidates(restored);
         Check(imported.Bindings.Count == 0 && imported.Commands.Any(c => c.FromCapabilities), "import keeps candidate metadata but requires local confirmation");
         engine.SetCapabilities(new() { CapabilitiesParsed = true, Readings = new() { new() { Code = 0x4D, Advertised = true, AdvertisedOptions = new() { 1 } } } });
         Check(!engine.CanSend(command) && !engine.CanSend(probe), "changed or missing current declarations disable old candidates");
         Reject(() => engine.Send(command, session.Id, "main-menu", false, default));
         Check(writes.Count == 3, "rejected replay does not write");
-        var legacy = OsdPairingStore.Parse(OsdPairingStore.Serialize(OsdPairingProfile.Create(device, true)).Replace("\"version\": 2", "\"version\": 1"));
+        var legacy = OsdPairingStore.Parse(OsdPairingStore.Serialize(OsdPairingProfile.Create(device, true)).Replace("\"version\": 3", "\"version\": 1"));
         Check(legacy.Commands.Count == 3, "existing local pairing files remain readable");
         Console.WriteLine("PASS: advertised unknown OSD discovery, explicit single-send experiments, observed bindings, provenance, fresh-capability validation and offline files.");
     }

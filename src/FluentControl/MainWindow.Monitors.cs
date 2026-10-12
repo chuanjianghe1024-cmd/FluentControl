@@ -47,12 +47,14 @@ public sealed partial class MainWindow
     {
         foreach (var category in VcpCatalog.All.Select(x => x.Category).Append("extensions").Distinct())
         {
+            if (devices.All(d => d.CapabilitiesPending) && category != "picture") continue;
             var rows = new StackPanel { Spacing = 6 };
             if (category == "osd")
                 foreach (var device in devices) rows.Children.Add(CreateNativeMenuStatus(device, linked));
             var definitions = category == "extensions" ? devices.SelectMany(x => x.Features).Where(x => x.Definition.Category == category).Select(x => x.Definition).DistinctBy(x => x.Key) : VcpCatalog.All.Where(x => x.Category == category);
             foreach (var definition in definitions)
             {
+                if (devices.All(d => d.CapabilitiesPending) && definition.Code is not (0x10 or 0x12)) continue;
                 var entries = devices.Select(d => (Device: d, Feature: d.Features.FirstOrDefault(f => f.Definition.Key == definition.Key) ?? new MonitorFeature { Definition = definition, Channel = d.Channels.FirstOrDefault(c => c.PropertyKey == definition.Key), Reason = T("不支持或当前无法读取", "Unsupported or currently unreadable") })).ToArray();
                 var targets = entries.Where(x => x.Feature.Channel is not null).Select(x => x.Feature.Channel!).ToArray();
                 if (state.Settings.HideUnavailableMonitorControls && targets.Length == 0 &&

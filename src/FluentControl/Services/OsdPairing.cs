@@ -91,10 +91,37 @@ public sealed class OsdTrial
     public bool UsedSessionButtonFields { get; set; }
     public OsdSample? Before { get; set; }
     public OsdSample? After { get; set; }
+    public int SettleMilliseconds { get; set; }
+    public string Readback { get; set; } = "once";
     public string Outcome { get; set; } = "unconfirmed";
     public List<string> Effects { get; set; } = new();
     public string Notes { get; set; } = "";
     public DateTimeOffset? ConfirmedAt { get; set; }
+}
+
+public sealed class OsdCompatibility
+{
+    public string Transport { get; set; } = "ddcci";
+    public int SettleMilliseconds { get; set; } = 100;
+    public string Readback { get; set; } = "once";
+    public void Validate()
+    {
+        if (Transport != "ddcci" || SettleMilliseconds is < 0 or > 2000 || Readback is not ("once" or "none"))
+            throw new InvalidDataException("Invalid OSD compatibility settings.");
+    }
+}
+
+public sealed class OsdCustomOption
+{
+    public string Label { get; set; } = "";
+    public string CommandId { get; set; } = "";
+    public string TrialId { get; set; } = "";
+}
+public sealed class OsdCustomControl
+{
+    public string Name { get; set; } = "";
+    public string Kind { get; set; } = "button";
+    public List<OsdCustomOption> Options { get; set; } = new();
 }
 
 public sealed class OsdBinding
@@ -114,6 +141,7 @@ public sealed class OsdSessionRecord
     public int Width { get; set; }
     public int Height { get; set; }
     public string Connection { get; set; } = "";
+    public string VideoConnection { get; set; } = "unknown";
     public string Hdr { get; set; } = "unknown";
     public string Notes { get; set; } = "";
     public MonitorDiagnosticSnapshot? Baseline { get; set; }
@@ -132,7 +160,9 @@ public sealed class OsdPairingProfile
 {
     public const int MaxCommands = 512;
     [JsonRequired] public string Format { get; set; } = "fluentcontrol.osd-pairing";
-    [JsonRequired] public int Version { get; set; } = 2;
+    [JsonRequired] public int Version { get; set; } = 3;
+    public OsdCompatibility Compatibility { get; set; } = new();
+    public List<OsdCustomControl> CustomControls { get; set; } = new();
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public int Revision { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -171,6 +201,29 @@ public sealed class OsdPairingProfile
         trial.Outcome = outcome; trial.Effects = selected; trial.Notes = notes; trial.ConfirmedAt = DateTimeOffset.UtcNow;
         Bindings.RemoveAll(b => b.TrialId == trial.Id || selected.Contains(b.Action) || outcome == "failure" && b.CommandId == trial.Command.Id);
         Bindings.AddRange(selected.Select(a => new OsdBinding { Action = a, CommandId = trial.Command.Id, TrialId = trial.Id, Context = trial.Context }));
+        foreach (var control in CustomControls)
+            control.Options.RemoveAll(o => o.TrialId == trial.Id || outcome == "failure" && o.CommandId == trial.Command.Id);
+        CustomControls.RemoveAll(c => c.Options.Count == 0);
+    }
+    private bool LocallyObserved(string trialId, string commandId) => Trials.Any(t => t.Id == trialId && t.Command.Id == commandId &&
+        t.SourceProfileId.Length == 0 && t.WriteSucceeded && t.ConfirmedAt is not null && t.Outcome is "success" or "other");
+    public void BindCustom(OsdTrial trial, string name, string kind, string label)
+    {
+        name = name.Trim(); label = label.Trim();
+        if (!Trials.Contains(trial) || !LocallyObserved(trial.Id, trial.Command.Id) || name.Length is < 1 or > 80 ||
+            kind is not ("button" or "choice") || kind == "choice" && label.Length is < 1 or > 80)
+            throw new InvalidDataException("A named control requires a local successful observation and a valid name.");
+        var control = CustomControls.FirstOrDefault(c => c.Name == name);
+        if (control is not null && control.Kind != kind) throw new InvalidDataException("The existing control uses a different type.");
+        if (control is null)
+        {
+            if (CustomControls.Count >= 32) throw new InvalidDataException("Too many named controls.");
+            control = new() { Name = name, Kind = kind }; CustomControls.Add(control);
+        }
+        if (kind == "button") label = name;
+        if (control.Options.Count >= 32 && control.Options.All(o => o.Label != label)) throw new InvalidDataException("Too many options.");
+        control.Options.RemoveAll(o => o.Label == label);
+        control.Options.Add(new() { Label = label, CommandId = trial.Command.Id, TrialId = trial.Id });
     }
     // Imported observations remain evidence; they cannot authorize local remote buttons.
     public void ImportCandidates(OsdPairingProfile source)
@@ -206,21 +259,32 @@ public sealed class OsdPairingProfile
     }
     public void Validate()
     {
-        if (Format != "fluentcontrol.osd-pairing" || Version is not (1 or 2) || Id.Length is < 1 or > 80 || Revision < 0 ||
+        if (Format != "fluentcontrol.osd-pairing" || Version is not (1 or 2 or 3) || Id.Length is < 1 or > 80 || Revision < 0 ||
             Identity is null || Identity.ModelId.Length > 80 || Identity.Model.Length > 200 || Identity.Manufacturer.Length > 80 ||
             Identity.Firmware.Length > 80 || Identity.MccsVersion.Length > 80 || Identity.CapabilitiesFingerprint.Length > 64 ||
             Commands is null || Commands.Count > MaxCommands || Trials is null || Trials.Count > 512 || Bindings is null || Bindings.Count > Actions.Length ||
             Sessions is null || Sessions.Count > 64 || EventCaptures is null || EventCaptures.Count > 32)
             throw new InvalidDataException("Invalid OSD pairing profile.");
+        if (Compatibility is null || CustomControls is null || CustomControls.Count > 32) throw new InvalidDataException("Invalid compatibility data.");
+        Compatibility.Validate();
+        if (CustomControls.Any(c => c is null) || CustomControls.Select(c => c.Name).Distinct().Count() != CustomControls.Count)
+            throw new InvalidDataException("Duplicate named controls.");
+        foreach (var c in CustomControls)
+            if (c.Name.Length is < 1 or > 80 || c.Kind is not ("button" or "choice") || c.Options is null ||
+                c.Options.Count is < 1 or > 32 || c.Kind == "button" && c.Options.Count != 1 ||
+                c.Options.Select(o => o?.Label).Distinct().Count() != c.Options.Count ||
+                c.Options.Any(o => o is null || o.Label.Length is < 1 or > 80 || !LocallyObserved(o.TrialId, o.CommandId)))
+                throw new InvalidDataException("Named control has no local observation.");
         if (Commands.Any(c => c is null) || Commands.Select(c => c.Id).Distinct().Count() != Commands.Count ||
-            Sessions.Any(s => s is null || s.Id.Length is < 1 or > 80 || s.Connection.Length > 500 || s.Notes.Length > 1000 || s.Hdr is not ("unknown" or "on" or "off")) ||
+            Sessions.Any(s => s is null || s.Id.Length is < 1 or > 80 || s.Connection.Length > 500 || s.Notes.Length > 1000 || s.Hdr is not ("unknown" or "on" or "off") ||
+                s.VideoConnection is not ("unknown" or "HDMI" or "DP" or "USB-C" or "DVI" or "VGA")) ||
             Sessions.Select(s => s.Id).Distinct().Count() != Sessions.Count || Trials.Select(t => t?.Id).Distinct().Count() != Trials.Count)
             throw new InvalidDataException("Invalid pairing identity or history.");
         foreach (var c in Commands) c.Validate();
         foreach (var t in Trials)
         {
             if (t is null || t.Id.Length is < 1 or > 80 || t.Command is null || !Contexts.Contains(t.Context) || t.Notes.Length > 1000 || t.Error.Length > 2000 ||
-                t.SentValue > 65535 || t.SourceProfileId.Length > 80 || t.Outcome is not ("unconfirmed" or "success" or "failure" or "other" or "uncertain") ||
+                t.SentValue > 65535 || t.SettleMilliseconds is < 0 or > 2000 || t.Readback is not ("once" or "none") || t.SourceProfileId.Length > 80 || t.Outcome is not ("unconfirmed" or "success" or "failure" or "other" or "uncertain") ||
                 t.Effects is null || t.Effects.Any(a => !Actions.Contains(a)) || !Sessions.Any(s => s.Id == t.SessionId) ||
                 !Commands.Any(c => c.Id == t.Command.Id && c.Code == t.Command.Code && c.Value == t.Command.Value && c.Discovery == t.Command.Discovery && c.DeclaredValues.SequenceEqual(t.Command.DeclaredValues)))
                 throw new InvalidDataException("Invalid pairing trial.");
@@ -260,12 +324,14 @@ public sealed class OsdPairingSession
         catch (Exception ex) { sample.Error = ex.Message; if (ex is Win32Exception native) sample.ErrorCode = native.NativeErrorCode; }
         sample.Milliseconds = timer.ElapsedMilliseconds; return sample;
     }
-    public OsdTrial Send(OsdCommand command, string sessionId, string context, bool allowSessionFields, CancellationToken token)
+    public OsdTrial Send(OsdCommand command, string sessionId, string context, bool allowSessionFields, CancellationToken token, OsdCompatibility? compatibility = null)
     {
+        compatibility ??= new(); compatibility.Validate();
         command.Validate(); token.ThrowIfCancellationRequested();
         if (!CanSend(command)) throw new InvalidDataException(Strings.T("当前显示器未声明此候选代码或参数，请重新采集。", "The current monitor did not advertise this candidate code or value. Capture again."));
         if (!OsdPairingProfile.Contexts.Contains(context)) throw new InvalidDataException("Invalid menu context.");
-        var trial = new OsdTrial { Command = command.Copy(), SessionId = sessionId, Context = context }; var timer = Stopwatch.StartNew();
+        var trial = new OsdTrial { Command = command.Copy(), SessionId = sessionId, Context = context,
+            SettleMilliseconds = compatibility.SettleMilliseconds, Readback = compatibility.Readback }; var timer = Stopwatch.StartNew();
         try
         {
             uint value = command.Value;
@@ -281,7 +347,8 @@ public sealed class OsdPairingSession
             write(command.Code, value); trial.WriteSucceeded = true;
             if (command.Code == 0xCA) lastButtonFields = value;
             // Preserve evidence of an already completed write even if the dialog closes.
-            if (!token.IsCancellationRequested) trial.After = Read(command.Code);
+            var cancelled = token.WaitHandle.WaitOne(trial.SettleMilliseconds);
+            if (!cancelled && trial.Readback == "once") trial.After = Read(command.Code);
         }
         catch (OperationCanceledException) when (!trial.SentValue.HasValue) { throw; }
         catch (Exception ex) { trial.Error = ex.Message; if (ex is Win32Exception native) trial.WriteErrorCode = native.NativeErrorCode; }
@@ -349,7 +416,7 @@ public sealed class OsdPairingStore
     }
     public void Save(OsdPairingProfile profile)
     {
-        profile.Version = 2; profile.UpdatedAt = DateTimeOffset.UtcNow;
+        profile.Version = 3; profile.UpdatedAt = DateTimeOffset.UtcNow;
         var json = Serialize(profile); Directory.CreateDirectory(directory);
         var path = Path.Combine(directory, profile.Identity.StorageKey + instanceKey + ".json");
         var temporary = path + ".tmp";
