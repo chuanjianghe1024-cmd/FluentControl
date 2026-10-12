@@ -237,7 +237,7 @@ public sealed partial class MainWindow
             await gate.WaitAsync();
             try
             {
-                if (closed || monitorAdaptationDialog is not null) return;
+                if (closed || colorExiting || monitorAdaptationDialog is not null) return;
                 var available = AllChannels();
                 var result = await Task.Run(() =>
                 {
