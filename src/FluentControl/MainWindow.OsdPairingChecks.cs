@@ -17,6 +17,14 @@ public sealed partial class MainWindow
         var writes = new List<(byte, uint)>(); bool unreadable = false;
         var fixture = new OsdPairingSession(_ => unreadable ? new(0, 0, 0, unchecked((int)0xC0262589)) : new(1, 0x0201, 2),
             (code, value) => { writes.Add((code, value)); unreadable = true; });
+        device.CapabilitiesPending = true;
+        try
+        {
+            await ShowOsdPairingAsync(device, fixture, directory);
+            if (monitorAdaptationDialog is not null || Directory.Exists(directory) || writes.Count != 0)
+                throw new InvalidOperationException("Pairing opened before model/firmware discovery completed");
+        }
+        finally { device.CapabilitiesPending = false; }
         Task show = ShowOsdPairingAsync(device, fixture, directory);
         ScrollViewer Content() => monitorAdaptationDialog?.Content as ScrollViewer ?? throw new InvalidOperationException("Pairing dialog missing");
         T Find<T>(string id) where T : FrameworkElement => Descendants<T>(Content()).Single(x => AutomationProperties.GetAutomationId(x) == id);

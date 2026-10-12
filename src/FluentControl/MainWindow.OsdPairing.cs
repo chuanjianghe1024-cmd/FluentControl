@@ -38,7 +38,7 @@ public sealed partial class MainWindow
 
     private async Task ShowOsdPairingAsync(MonitorDevice device, OsdPairingSession? fixture = null, string? fixtureDirectory = null)
     {
-        if (closed || refreshing || applyingProfile || monitorAdaptationDialog is not null || !displayDevices.Contains(device)) return;
+        if (closed || refreshing || device.CapabilitiesPending || applyingProfile || monitorAdaptationDialog is not null || !displayDevices.Contains(device)) return;
         var version = generation;
         CloseMonitorOsd(); desktopPanel?.SetUnlocked(false); await WaitForWritesAsync();
         if (closed || refreshing || version != generation || monitorAdaptationDialog is not null) return;

@@ -9,7 +9,7 @@ public sealed partial class MainWindow
 {
     private async Task ShowAdapterManagerAsync(MonitorDevice device)
     {
-        if (closed || refreshing || applyingProfile || monitorAdaptationDialog is not null || !displayDevices.Contains(device)) return;
+        if (closed || refreshing || device.CapabilitiesPending || applyingProfile || monitorAdaptationDialog is not null || !displayDevices.Contains(device)) return;
         var version = generation; var refreshAfter = false; var collectAfter = false; var pairAfter = false;
         CloseMonitorOsd(); desktopPanel?.SetUnlocked(false); await WaitForWritesAsync();
         if (closed || refreshing || generation != version || monitorAdaptationDialog is not null) return;

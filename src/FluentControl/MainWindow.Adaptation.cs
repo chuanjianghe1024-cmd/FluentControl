@@ -18,7 +18,7 @@ public sealed partial class MainWindow
 
     private Button CreateAdaptationButton(MonitorDevice device)
     {
-        var button = new Button { Content = T("型号适配", "Model adapters") };
+        var button = new Button { Content = T("型号适配", "Model adapters"), IsEnabled = !device.CapabilitiesPending };
         AutomationProperties.SetAutomationId(button, "adaptation-" + device.Id);
         button.Click += async (_, _) => await ShowAdapterManagerAsync(device);
         return button;
