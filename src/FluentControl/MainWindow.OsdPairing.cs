@@ -219,7 +219,8 @@ public sealed partial class MainWindow
         void Update()
         {
             var ready = !busy && baselineReady && Active();
-            settle.IsEnabled = readAfter.IsEnabled = customRemote.IsEnabled = customPanel.IsEnabled = ready;
+            settle.IsEnabled = readAfter.IsEnabled = customName.IsEnabled = customKind.IsEnabled = customLabel.IsEnabled = ready;
+            foreach (var control in customRemote.Children.OfType<Control>()) control.IsEnabled = ready && control.Tag is true;
             bindCustom.IsEnabled = ready && selectedTrial is { WriteSucceeded: true, SourceProfileId.Length: 0, Outcome: "success" or "other" };
             foreach (var item in basicButtons) item.Value.IsEnabled = ready && (item.Key != "osd-disable-events" || canDisableEvents);
             discover.IsEnabled = ready;
@@ -265,13 +266,13 @@ public sealed partial class MainWindow
                     .Where(o => engine.CanSend(o.Command) && (!o.Command.DisablesEvents || canDisableEvents)).ToArray();
                 if (control.Kind == "button")
                 {
-                    var button = new Button { Content = control.Name, IsEnabled = options.Length > 0 };
+                    var button = new Button { Content = control.Name, IsEnabled = options.Length > 0, Tag = options.Length > 0 };
                     button.Click += (_, _) => { if (options.Length > 0) RequestSend(options[0].Command); };
                     customRemote.Children.Add(button);
                 }
                 else
                 {
-                    var choice = new ComboBox { Header = control.Name, HorizontalAlignment = HorizontalAlignment.Stretch };
+                    var choice = new ComboBox { Header = control.Name, HorizontalAlignment = HorizontalAlignment.Stretch, IsEnabled = options.Length > 0, Tag = options.Length > 0 };
                     AutomationProperties.SetAutomationId(choice, "pairing-custom-choice-" + control.Name);
                     foreach (var option in options) choice.Items.Add(new ComboBoxItem { Content = option.Option.Label, Tag = option.Command });
                     choice.SelectionChanged += (_, _) =>
