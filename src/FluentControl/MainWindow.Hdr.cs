@@ -53,7 +53,7 @@ public sealed partial class MainWindow
     {
         if (closed || refreshing || hdrChanging || version != generation || !device.Hdr.CanSet) return;
         hdrChanging = true; pendingWrites++;
-        RefreshButton.IsEnabled = false; DisplayPanel.IsEnabled = false;
+        RefreshButton.IsEnabled = false; MainScroll.IsEnabled = false;
         var page = notificationContext;
         var invalidated = false;
         HdrChange? result = null;
@@ -71,7 +71,7 @@ public sealed partial class MainWindow
         finally
         {
             gate.Release(); hdrChanging = false; pendingWrites--;
-            if (!closed) { DisplayPanel.IsEnabled = true; RefreshButton.IsEnabled = !refreshing; }
+            if (!closed) { MainScroll.IsEnabled = true; RefreshButton.IsEnabled = !refreshing; }
         }
         if (closed || !invalidated) return;
         // Refresh destroys old DDC helpers and reads live controls after the bounded
