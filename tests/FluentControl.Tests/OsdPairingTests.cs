@@ -8,6 +8,7 @@ internal static class OsdPairingTests
     { try { action(); } catch (InvalidDataException) { return; } throw new Exception("OSD pairing: accepted " + message); }
     internal static void Run()
     {
+        OsdCandidateTests.Run();
         var device = new MonitorDevice { Id = "PRIVATE_INSTANCE", Model = "Fixture", ModelId = "TST1234", FirmwareVersion = "0.1", Connection = "PRIVATE_PATH", CapabilitiesText = "(serial(PRIVATE_SERIAL) vcp(CA E1) mccs_ver(2.2))" };
         var profile = OsdPairingProfile.Create(device, true);
         var session = new OsdSessionRecord { Baseline = new() { DeviceId = device.Id, ModelId = device.ModelId, RawCapabilities = device.CapabilitiesText } };

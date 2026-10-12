@@ -4,6 +4,11 @@
 
 ## 未发布 / Unreleased
 
+- 修正 OSD 配对只有三项开关和手工候选的局限：自动列出显示器声明的未知代码，直接单次试发并按实际效果绑定。有声明参数时使用声明值；无参数时提供明确标为试验值的按钮和自填值，不必手填代码或来源。已知标准、重置及信息功能另列分类。
+- 配对文件记录候选来源、声明参数和采集时间，保存与重放前校验当前声明；全程可离线完成。
+- Fix OSD pairing being limited to three OSD actions and manual candidates: automatically list advertised unknown codes for explicit single-send tests and observed action binding. Use advertised values where present; otherwise offer labelled experimental values and a custom value without requiring a code or source. Classify known standard, reset and information features separately.
+- Record candidate provenance, advertised values and capture time in local pairing files; validate current declarations before sending or replaying. Everything remains available offline.
+
 - 新增离线 OSD 配对助手：先测试启用/禁用，再由用户确认真实效果并绑定开关、上下、返回、确认等操作；未配齐也可保存和重新配对。禁用 OSD 与按键事件需要二次确认。
 - 配对、诊断基线、发送/读回结果及按键事件记录自动保存在本机；不登录、不上传。支持按型号、固件、能力指纹校验的 JSON 导入导出，导入只提供候选，当前显示器确认后才能遥控。
 - 菜单打开后 `0xCA` 读回失败时，可主动允许沿用本次窗口已读取的按键字段进行恢复测试；不使用磁盘旧状态。支持手工候选与只读事件采集，没有通用方向命令，也不将事件编号当作可写按键。

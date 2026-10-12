@@ -293,7 +293,7 @@ public sealed class MonitorService : IDisposable
 
     internal void WritePairing(MonitorDevice device, byte code, uint value)
     {
-        if (value > 65535 || !(code == 0xCA && (value & 255) is >= 1 and <= 3 || code == 0x03 || code >= 0xE0))
+        if (value > 65535 || !(code == 0xCA && (value & 255) is >= 1 and <= 3 || code == 0x03 || OsdCandidateDiscovery.IsUnknown(code)))
             throw new InvalidDataException("Invalid pairing command.");
         if (!diagnosticHandles.TryGetValue(device, out var handle))
             throw new InvalidOperationException(Strings.T("DDC/CI 不可用", "DDC/CI unavailable"));

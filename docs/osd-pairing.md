@@ -8,9 +8,11 @@
 2. 在「基础测试」点击「启用 OSD」，观察原厂菜单是否打开。展开「绑定观察到的动作」，勾选实际发生的「打开」「启用 OSD」，然后点击「成功」。未发生预期效果则选择「失败」或「其他效果」，不要只根据发送成功判断。
 3. 对 XWU-CBA / HWV62F5，已知用户报告过启用后 `0xCA` 读回失败。可以明确勾选「读回失败时，允许沿用本次会话已读取的按键字段」，再测试禁用/恢复。该选项只使用当前窗口已读到的高字节，不读取磁盘旧状态，也不会把失败结果中的零值当作真实状态。
 4. 「禁用 OSD，保留按键事件」并不表示物理按键仍能操纵原厂菜单。「禁用 OSD 与按键事件」只在 MCCS 2.2 或能力串明确声明该值时开放，每次执行需要第二次点击确认。
-5. 「候选指令」先确认原厂菜单可以打开。候选来自已安装型号适配、本地文件或用户手工填写的明确代码、值与来源；发送后记录所在菜单层级、结果、实际动作和备注。没有来源的私有码仅展示，不自动生成值或扫描。
+5. 点击「测试已声明的未知指令（数量）」进入「候选指令」，确认原厂菜单可以打开。程序会自动列出当前显示器声明支持、但用途未知的代码；无需填写代码和来源。选中代码后，点击具体值的「试发」按钮，每次只发送一次。声明提供了参数列表时只列出这些值；只有代码时提供明确标为试验值的 `0x0000–0x0005`，也可以输入其他十六进制值。试验值不是显示器声明的取值、也不是预设方向键，可能改变未知设置。发送后按实际效果绑定，并记录菜单层级、结果和备注。原有的已安装适配、本地导入和手工候选仍可使用。
 6. 「遥控」提供上、下、返回、确认四个主要按钮和其他已绑定动作。摇杆左/右可以绑定成返回/确认。未验证的按钮不可用，部分配对也可保存。
 7. 记录自动保存在本机。「记录与文件」可补充连接方式、HDR、环境说明，手动保存版本或导出 JSON。重新配对会在同一目录保留 archive 文件，再清除活动绑定与试验历史，保留候选。
+
+「其余已声明功能及分类」会解释已知标准功能为何没有进入未知指令列表。重置、自动调整、频率、版本、按键通知等不会生成未知按键试发按钮；没有未知代码或能力读取失败时明确说明原因，不伪造候选。自动候选来自本次诊断中的声明，不按厂商名称猜代码，也不根据读数或最大值生成参数。
 
 没有已验证的 HWV/HKC 导航写入码随本次功能内置。`0x03` 的方向事件编号不能直接作为发送指令。开关配对成功不代表上下/确认也可用；可以先完成已知开关测试，再研究有依据的导航候选。
 
@@ -18,19 +20,19 @@
 
 本地目录：`%LOCALAPPDATA%\FluentControl\OsdPairings\`。每个连接单独保存；文件名是型号/固件/能力指纹与本机连接身份的哈希，公开内容不含设备实例或自动采集的连接路径。
 
-新格式：`format: fluentcontrol.osd-pairing`、`version: 1`，独立于场景配置和已审核适配包。主要字段：
+新格式：`format: fluentcontrol.osd-pairing`、`version: 2`（可读取旧版 v1；下次保存写为 v2），独立于场景配置和已审核适配包。主要字段：
 
 | 字段 | 含义 |
 | --- | --- |
 | `id / revision / createdAt / updatedAt / simulated` | 配对标识、用户保存版本、时间与模拟标记 |
 | `identity` | 型号 ID、型号名称、制造商、固件、MCCS、规范化能力指纹 |
 | `sessions` | 应用/系统版本、分辨率、用户填写的连接/HDR/环境信息、完整诊断基线 |
-| `commands` | 候选名称、VCP 代码、值、来源、来源型号和导入来源 |
+| `commands` | 候选名称、VCP 代码、值、来源、来源型号和导入来源；`discovery` 区分 `manual` / `capability-option` / `capability-experiment`，`declaredValues` 保留声明值，`advertisementCapturedAt` 记录能力采集时间 |
 | `trials` | 时间、会话、指令快照、菜单上下文、实际发送值、传输结果、原生错误、耗时、前后读回、是否使用当前会话字段、用户结果/动作/备注/确认时间 |
 | `bindings` | 逻辑动作、候选和本机观察记录的引用、适用菜单上下文 |
 | `eventCaptures` | 有标签、有时间戳的 `0x02 / 0x52 / 0x03` 读取记录与取消状态 |
 
-文件限 4 MiB；最多 64 条候选、512 次试验、64 个会话、32 次事件采集，每次至多 96 个读数。会话已满时先本地归档，再开启新的配对历史。试验已满时仍可导出和重新配对。
+文件限 4 MiB；最多 512 条候选、512 次试验、64 个会话、32 次事件采集，每次至多 96 个读数。会话已满时先本地归档，再开启新的配对历史。试验已满时仍可导出和重新配对。
 
 默认导出不包含原始能力串；只有显式勾选才包含当前仍可用的原始串，其中可能有厂商设备标识。用户输入的备注按原文导出。
 
@@ -48,8 +50,10 @@ Use **Model adapters → OSD pairing / remote** or the monitor-menu section. The
 
 There are three initial OSD commands. Disabling both OSD and button events requires a separate confirmation and MCCS 2.2 or explicit advertised support. If OSD readback fails after opening the menu, an opt-in option can reuse button fields successfully read in the current window. Saved historical values are never used for this recovery path.
 
-Navigation candidates come from an installed model adapter, a matching local file or an explicit user-entered code/value/source. No universal HWV/HKC navigation codes are bundled. Read-only button events are evidence, not host-to-monitor navigation commands.
+The **Test advertised unknown commands (count)** entry automatically lists unknown codes from the current monitor’s valid capability declaration, including undefined codes below E0. Select a code and click a value to send once, then bind the observed effect. Advertised value lists are used as given. Codes with no value list offer explicitly labelled experimental values 0–5 and an optional custom hex value, without requiring the code or source to be typed. Experimental values may change unknown settings and are not claimed to be direction keys. Known standard, reset and information features are classified separately; an empty list is explained. Installed model adapters, matching local files and explicit manual candidates remain available. No universal HWV/HKC navigation codes are bundled. Read-only button events are evidence, not host-to-monitor navigation commands.
 
-Pairing files contain model/firmware/capability identity, session metadata, diagnostic baselines, candidates, trials, raw read/write results, observations, bindings and bounded event captures. Files are saved per connected display in `%LOCALAPPDATA%\FluentControl\OsdPairings\`. Re-pairing archives the existing record locally and starts a new active history with the same candidates.
+Version 2 pairing files distinguish advertised options from experimental values and retain the declaration timestamp and value list. Version 1 files remain readable. Automatic candidates are checked against the current session’s capabilities before testing or replay; imports alone never authorize them. Files contain model/firmware/capability identity, session metadata, diagnostic baselines, candidates, trials, raw read/write results, observations, bindings and bounded event captures. Files are saved per connected display in `%LOCALAPPDATA%\FluentControl\OsdPairings\`. Re-pairing archives the existing record locally and starts a new active history with the same candidates.
 
 Import requires exact model, firmware, MCCS and capability matching. Imported records never activate remote bindings without local testing. Export is optional and does not upload anything. Raw capability strings require explicit opt-in; device instance paths are excluded. No account or website is required.
+
+标准功能分类参考：[ddcutil VCP feature catalog](https://www.ddcutil.com/vcpinfo_output/)。分类不代表具体型号已实现该功能；未知代码也不代表存在导航用途。

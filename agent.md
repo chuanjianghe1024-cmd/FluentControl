@@ -55,7 +55,7 @@ README 保留产品层面的计划，详细实现步骤、模块路径和验收�
 | 设置、托盘、快捷键、主题 | `MainWindow.Features.cs`、`MainWindow.Theme.cs` |
 | 设置导航、手动更新 | `MainWindow.Settings.cs`、`MainWindow.Updates.cs`、`Services/ReleaseUpdates.cs`；界面回归 `MainWindow.SettingsChecks.cs` |
 | 桌面面板 | `DesktopPanelWindow.cs`、`Services/DesktopLayer.cs`、`TransparentBackdrop.cs` |
-| 本地 OSD 配对 | `MainWindow.OsdPairing.cs`、`Services/OsdPairing.cs`；界面回归 `MainWindow.OsdPairingChecks.cs` |
+| 本地 OSD 配对 | `MainWindow.OsdPairing.cs`、`Services/OsdPairing.cs`、`Services/OsdCandidateDiscovery.cs`；界面回归 `MainWindow.OsdPairingChecks.cs` |
 | 型号适配、只读采集 | `MainWindow.Adapters.cs`、`MainWindow.Adaptation.cs`、`Services/MonitorAdapters.cs`、`Services/MonitorDiagnostics.cs` |
 | DDC/CI 与能力 | `Services/MonitorService.cs`、`Services/MonitorReadBatch.cs`、`Services/MonitorCapabilityCache.cs`、`Services/VcpCatalog.cs`、`Services/VcpDiscovery.cs` |
 | 控制及联动 | `Services/ControlChannel.cs`、`Services/MonitorLinking.cs`、`Services/BrightnessMapping.cs` |
@@ -69,7 +69,7 @@ README 保留产品层面的计划，详细实现步骤、模块路径和验收�
 
 ## 硬件控制约束
 
-1. 功能发现只能读取，不以写入、重置或电源切换探测支持情况。未知私有码只做占位，不能猜测后下发。用户授权的本地 OSD 配对是独立的显式实验入口：用户输入具体 `0x03` 或 `0xE0–0xFF` 候选、值与来源，逐次点击发送并确认效果；禁止自动扫描、穷举或把事件读值转换成写命令。
+1. 常规功能发现只能读取，不以写入、重置或电源切换探测支持情况。按用户 2026-10-12 明确要求，本地 OSD 配对会从本次有效能力声明自动列出未知代码（包括 E0 以下未定义代码）：声明了值则列出这些值；未声明值则提供明确标为试验值的 0–5 及用户自填值。必须逐次由用户点击试发，再按实际效果绑定；生成列表、选择代码、导入和打开窗口都不写入。已知标准功能、重置和信息项单独分类，不能当作未知导航候选。手工具体指令及来源入口保留；禁止自动扫描、穷举或把事件读值转换成写命令。
 2. 同一物理屏幕的读取保持顺序，当前最多两台不同屏幕并行。所有任务结束后才能释放物理句柄；不能用超时返回后任由原生调用继续运行并销毁其句柄。
 3. 能力缓存仅保存经过校验的能力元数据，不保存句柄或当前控制值。键包含设备实例/连接身份，不能仅按型号复用；保留失效回退和强制重新检测。
 4. 保留刷新与写入的生命周期保护，旧队列不能写入已替换或已释放的设备。某台失败不能阻止其他设备；准确报告部分完成、跳过和失败。
@@ -131,10 +131,10 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 用户授权范围：离线测试、确认、映射、遥控与本地文件交换。上传不是前置条件，不自动访问网站。协议见 `docs/osd-pairing.md`。新的 `fluentcontrol.osd-pairing` 格式与场景、型号适配包独立，不修改既有数据兼容约束。
 
 - 默认三条 `0xCA` 候选；第三条按 MCCS 版本或明确能力值开放，每次二次确认。原厂菜单是否弹出由用户观察；传输成功和回读成功分别记录。
-- 候选来自明确安装的型号适配包、精确匹配的本地文件或手工输入。远程操作只使用本机用户确认产生的绑定，不与总配置、聚合或快捷键混用。
+- 候选优先来自本次有效能力声明中的未知代码；代码和值的声明与用户选择的试验值必须区分并随记录保存。每次发送与遥控重放校验当前会话声明，不能用旧文件代替。也支持明确安装的型号适配包、精确匹配的本地文件或手工输入。远程操作只使用本机用户确认产生的绑定，不与总配置、聚合或快捷键混用。
 - 导入不下发指令、不导入可执行绑定，保留来源试验记录并要求当前屏幕重新验证；相同型号的两台连接不自动共享本机绑定。
-- `0x02 / 0x52 / 0x03` 采集仅在用户点击后短时运行，不写应答；`0x03` 是事件报告，不能当作通用按键注入。私有码没有值和来源时仅展示占位。
-- 操作共用生命周期 gate；关闭/刷新取消排队操作并等待在途原生调用完成；保存已完成写入的证据。单个文件限 4 MiB；64 条候选、512 次试验、64 个会话、32 次事件采集，重新配对前本地归档。
+- `0x02 / 0x52 / 0x03` 采集仅在用户点击后短时运行，不写应答；`0x03` 是事件报告，不能当作通用按键注入。没有取值列表的已声明未知代码提供单次试验入口，来源自动记为当前能力声明，参数标为用户选择的试验值；不宣称是已支持的方向键。
+- 操作共用生命周期 gate；关闭/刷新取消排队操作并等待在途原生调用完成；保存已完成写入的证据。单个文件限 4 MiB；512 条候选、512 次试验、64 个会话、32 次事件采集，重新配对前本地归档。
 - 本机记录默认不含原始能力串与设备实例；导出原始串需要显式勾选。连接/HDR/环境说明为用户填写；不能宣称已在实体 HKC 或 HWV 显示器上验证。
 
 ## 当前交互与持久化约定
@@ -217,7 +217,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 | [ddccontrol-db](https://github.com/ddccontrol/ddccontrol-db) | 独立型号描述库、贡献与校验流程 | 跨型号和跨固件不能直接继承写入权限 |
 | [msigd](https://github.com/couriersud/msigd) | MSI USB/HID 协议、设备识别和型号差异 | MSI 协议不视为 HKC 协议，也不等同于通用原厂菜单导航 |
 | [ddc-mode-switcher](https://github.com/Gunther-Schulz/ddc-mode-switcher) | ASUS XG27JCG 的 OSD 动作序列和执行后状态检查 | 项目记录的 `0x03` 行为属于该型号证据，不能把它推广成所有显示器的模拟按键接口 |
-| [ddc-toolkit](https://github.com/andres-valencia/ddc-toolkit) | Lenovo R45w-30 的映射记录、单项实体调整前后对比方法 | 仅借鉴有证据的研究流程；保留 FC 不探测未知私有码、不自动生成写权限的限制 |
+| [ddc-toolkit](https://github.com/andres-valencia/ddc-toolkit) | Lenovo R45w-30 的映射记录、单项实体调整前后对比方法 | 仅借鉴有证据的研究流程；常规发现保持只读；未知代码只能在用户明确点击的本地实验入口试发，不能自动生成已验证绑定 |
 
 引用外部实现时记录来源、适用型号、固件和验证状态；引入代码或数据前核对对应版本的许可证。工程文档中的参考列表不代表运行时依赖或已经集成的功能。
 

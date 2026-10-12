@@ -91,10 +91,26 @@ public sealed partial class MainWindow
             AutomationProperties.SetAutomationId(button, "pairing-" + entry.Item1); pages[0].Children.Add(button); basicButtons[entry.Item1] = button;
         }
         pages[0].Children.Add(Empty(T("保留按键事件不等于保留实体菜单操作。第三项仅对 MCCS 2.2 或明确声明该值的设备开放。", "Keeping button events does not keep physical menu operation enabled. The third action requires MCCS 2.2 or explicit support for that value.")));
+        var discover = new Button { Content = T("测试已声明的未知指令", "Test advertised unknown commands"), HorizontalAlignment = HorizontalAlignment.Stretch };
+        AutomationProperties.SetAutomationId(discover, "pairing-discover"); pages[0].Children.Add(discover);
+        discover.Click += (_, _) => navigation.SelectedIndex = 1;
         var accessible = new CheckBox { Content = Empty(T("我已确认原厂菜单可以打开（软件或实体按键）", "I confirmed that the native menu opens (software or physical button)")) };
         AutomationProperties.SetAutomationId(accessible, "pairing-accessible"); pages[1].Children.Add(accessible);
         pages[1].Children.Add(Empty(T("没有通用的方向键写入码。0x03 是按键事件读取，不能把读到的事件编号直接当成遥控指令。", "There are no universal direction-key write codes. 0x03 reports button events; event numbers are not remote commands.")));
-        var candidates = new ComboBox { Header = T("候选指令", "Candidate command"), DisplayMemberPath = "Display", HorizontalAlignment = HorizontalAlignment.Stretch };
+        var advertised = new ComboBox { Header = T("显示器声明的未知指令", "Unknown commands advertised by this monitor"), DisplayMemberPath = "Display", HorizontalAlignment = HorizontalAlignment.Stretch };
+        AutomationProperties.SetAutomationId(advertised, "pairing-advertised"); pages[1].Children.Add(advertised);
+        var advertisedInfo = new TextBlock { TextWrapping = TextWrapping.Wrap }; pages[1].Children.Add(advertisedInfo);
+        var valueButtons = new Grid { ColumnSpacing = 8, RowSpacing = 8 }; pages[1].Children.Add(valueButtons);
+        for (var i = 0; i < 3; i++) valueButtons.ColumnDefinitions.Add(new());
+        var advertisedTests = new List<Button>();
+        var extraValue = new TextBox { Header = T("其他试验值（十六进制）", "Other experimental value (hex)"), PlaceholderText = "0000–FFFF", MaxLength = 6 };
+        AutomationProperties.SetAutomationId(extraValue, "pairing-extra-value"); pages[1].Children.Add(extraValue);
+        var sendExtra = new Button { Content = T("单次试发此值", "Test this value once") };
+        AutomationProperties.SetAutomationId(sendExtra, "pairing-send-extra"); pages[1].Children.Add(sendExtra);
+        var knownText = new TextBlock { TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true };
+        AutomationProperties.SetAutomationId(knownText, "pairing-known-features");
+        pages[1].Children.Add(new Expander { Header = T("其余已声明功能及分类", "Other advertised features and their purpose"), Content = knownText, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
+        var candidates = new ComboBox { Header = T("已保存或导入的候选", "Saved or imported candidates"), DisplayMemberPath = "Display", HorizontalAlignment = HorizontalAlignment.Stretch };
         AutomationProperties.SetAutomationId(candidates, "pairing-candidates"); pages[1].Children.Add(candidates);
         var source = new TextBlock { TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true }; pages[1].Children.Add(source);
         var experimental = new CheckBox { Content = Empty(T("确认按所列来源试发此候选；效果尚未验证", "Test this candidate using the listed source; its effect is unverified")) };
@@ -108,8 +124,6 @@ public sealed partial class MainWindow
         var add = new Button { Content = T("添加候选（不发送）", "Add candidate (does not send)") };
         foreach (var control in new FrameworkElement[] { nameBox, codeBox, valueBox, sourceBox, add }) manual.Children.Add(control);
         pages[1].Children.Add(new Expander { Header = T("手工添加实验指令", "Add an experimental command"), Content = manual, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
-        var unknownCodes = caps.Features.Keys.Where(c => c >= 0xE0).Select(c => $"0x{c:X2}");
-        pages[1].Children.Add(Empty(T("已声明的私有码（仅供记录，不自动生成指令）：", "Advertised private codes (recorded only, no automatic commands): ") + string.Join(", ", unknownCodes)));
         pages[2].Children.Add(Empty(T("只有本机观察并绑定的操作可以使用。未配齐也可以保存；返回和确认可分别对应摇杆左、右。", "Only locally observed bindings can be used. Partial pairings can be saved; back and confirm may correspond to joystick left and right.")));
         var remoteButtons = new Dictionary<string, Button>();
         var remoteGrid = new Grid { ColumnSpacing = 8, RowSpacing = 8 };
@@ -174,9 +188,14 @@ public sealed partial class MainWindow
         {
             var ready = !busy && baselineReady && Active();
             foreach (var item in basicButtons) item.Value.IsEnabled = ready && (item.Key != "osd-disable-events" || canDisableEvents);
-            sendCandidate.IsEnabled = ready && accessible.IsChecked == true && experimental.IsChecked == true && candidates.SelectedItem is OsdCommand candidate && (!candidate.DisablesEvents || canDisableEvents);
-            add.IsEnabled = ready && profile.Commands.Count < 64;
-            foreach (var item in remoteButtons) { var command = profile.BoundCommand(item.Key); item.Value.IsEnabled = ready && command is not null && (!command.DisablesEvents || canDisableEvents); }
+            discover.IsEnabled = ready;
+            advertised.IsEnabled = ready && advertised.Items.Count > 0;
+            foreach (var button in advertisedTests) button.IsEnabled = ready && accessible.IsChecked == true;
+            sendExtra.IsEnabled = ready && accessible.IsChecked == true && advertised.SelectedItem is OsdAdvertisedFeature { Values.Count: 0 } && OsdPairingStore.TryHex(extraValue.Text, 65535, out _);
+            extraValue.IsEnabled = ready;
+            sendCandidate.IsEnabled = ready && accessible.IsChecked == true && experimental.IsChecked == true && candidates.SelectedItem is OsdCommand candidate && engine.CanSend(candidate) && (!candidate.DisablesEvents || canDisableEvents);
+            add.IsEnabled = ready && profile.Commands.Count < OsdPairingProfile.MaxCommands;
+            foreach (var item in remoteButtons) { var command = profile.BoundCommand(item.Key); item.Value.IsEnabled = ready && command is not null && engine.CanSend(command) && (!command.DisablesEvents || canDisableEvents); }
             foreach (var b in outcomeButtons) b.IsEnabled = ready && selectedTrial is not null && selectedTrial.SourceProfileId.Length == 0;
             foreach (var check in effectBoxes.Values) check.IsEnabled = ready && selectedTrial?.WriteSucceeded == true;
             notes.IsEnabled = ready;
@@ -239,6 +258,47 @@ public sealed partial class MainWindow
             { pendingConfirmation = command; confirmation.Visibility = Visibility.Visible; confirmation.StartBringIntoView(); Update(); return; }
             pendingConfirmation = null; confirmation.Visibility = Visibility.Collapsed; Start(t => Send(command, t));
         }
+        void TestAdvertised(OsdAdvertisedFeature feature, uint value)
+        {
+            if (!Active() || busy || !baselineReady || accessible.IsChecked != true) return;
+            try { RequestSend(OsdCandidateDiscovery.GetOrAdd(profile, feature, value)); }
+            catch (Exception ex) { status.Text = ex.Message; }
+        }
+        void RenderAdvertisedValues()
+        {
+            advertisedTests.Clear(); valueButtons.Children.Clear(); valueButtons.RowDefinitions.Clear(); extraValue.Text = "";
+            var feature = advertised.SelectedItem as OsdAdvertisedFeature;
+            extraValue.Visibility = sendExtra.Visibility = feature is { Values.Count: 0 } ? Visibility.Visible : Visibility.Collapsed;
+            if (feature is null) { Update(); return; }
+            advertisedInfo.Text = feature.Values.Count > 0
+                ? T("以下值由显示器声明支持，用途未知。每次点击只发送一次，观察效果后在下方绑定动作。", "These values are advertised by the monitor; their effects are unknown. Each click sends once. Observe the effect and bind an action below.")
+                : T("显示器只声明了代码，未提供参数。以下 0–5 是试验值，不是显示器声明的取值或方向键；可能改变未知设置。每次点击只发送一次。", "The monitor advertises only the code, without values. The values 0–5 below are experimental, not advertised values or direction keys; they may change unknown settings. Each click sends once.");
+            var values = feature.Values.Count > 0 ? feature.Values.Select(v => (uint)v) : Enumerable.Range(0, 6).Select(v => (uint)v);
+            foreach (var value in values)
+            {
+                var index = advertisedTests.Count;
+                if (index % 3 == 0) valueButtons.RowDefinitions.Add(new() { Height = GridLength.Auto });
+                var button = new Button { Content = F("试发 0x{0}", "Test 0x{0}", value.ToString("X4")), HorizontalAlignment = HorizontalAlignment.Stretch };
+                AutomationProperties.SetAutomationId(button, $"pairing-test-{feature.Code:X2}-{value:X4}");
+                Grid.SetRow(button, index / 3); Grid.SetColumn(button, index % 3); valueButtons.Children.Add(button); advertisedTests.Add(button);
+                button.Click += (_, _) => TestAdvertised(feature, value);
+            }
+            Update();
+        }
+        void LoadAdvertised()
+        {
+            var features = OsdCandidateDiscovery.Discover(session.Baseline);
+            advertised.ItemsSource = features; advertised.SelectedIndex = features.Count > 0 ? 0 : -1;
+            discover.Content = F("测试已声明的未知指令（{0}）", "Test advertised unknown commands ({0})", features.Count);
+            if (features.Count == 0) advertisedInfo.Text = session.Baseline is { CapabilitiesParsed: true, CapabilitiesErrorCode: null }
+                ? T("本次能力声明中没有未知代码。下方可查看已声明功能的分类；不能据此生成上下或确认指令。", "No unknown codes were advertised in this capture. See the classified features below; no up, down or confirm commands can be generated from them.")
+                : T("本次未能取得有效能力声明，暂不生成候选。请重新打开配对窗口重试。", "No valid capabilities were obtained. No candidates were generated. Reopen pairing to try again.");
+            knownText.Text = string.Join("\n", (session.Baseline?.Readings ?? new()).Where(r => r.Advertised && !OsdCandidateDiscovery.IsUnknown(r.Code)).Select(r => $"0x{r.Code:X2} · " + OsdCandidateDiscovery.KnownReason(r.Code)));
+            RenderAdvertisedValues();
+        }
+        advertised.SelectionChanged += (_, _) => RenderAdvertisedValues();
+        extraValue.TextChanged += (_, _) => Update();
+        sendExtra.Click += (_, _) => { if (advertised.SelectedItem is OsdAdvertisedFeature feature && feature.Values.Count == 0 && OsdPairingStore.TryHex(extraValue.Text, 65535, out var value)) TestAdvertised(feature, value); };
         foreach (var entry in basicButtons) { var id = entry.Key; entry.Value.Click += (_, _) => RequestSend(profile.Commands.Single(c => c.Id == id)); }
         foreach (var entry in remoteButtons) { var action = entry.Key; entry.Value.Click += (_, _) => { if (profile.BoundCommand(action) is { } c) RequestSend(c); }; }
         confirmSend.Click += (_, _) => { if (pendingConfirmation is not { } command || busy) return; pendingConfirmation = null; confirmation.Visibility = Visibility.Collapsed; Start(t => Send(command, t)); };
@@ -264,6 +324,7 @@ public sealed partial class MainWindow
             {
                 var outcome = (string)b.Tag;
                 profile.Confirm(selectedTrial, outcome, outcome is "success" or "other" ? effectBoxes.Where(x => x.Value.IsChecked == true).Select(x => x.Key) : Array.Empty<string>(), notes.Text.Trim());
+                if (selectedTrial.Effects.Contains("open")) accessible.IsChecked = true;
                 SaveLocal(); ShowTrial(selectedTrial); status.Text = T("观察与绑定已保存到本机。", "Observation and bindings saved locally.");
             }
             catch (Exception ex) { status.Text = ex.Message; }
@@ -313,10 +374,11 @@ public sealed partial class MainWindow
         {
             status.Text = T("正在读取原始参数…", "Reading raw parameters…");
             session.Baseline = await Task.Run(() => uiTest ? UiTestData.CaptureDiagnostics(device, null, token, null) : monitors!.CaptureDiagnostics(device, null, token));
+            engine.SetCapabilities(session.Baseline);
             // Prime live button fields, never from saved diagnostics.
             token.ThrowIfCancellationRequested();
             await Task.Run(() => { token.ThrowIfCancellationRequested(); return engine.Read(0xCA); });
-            baselineReady = true; SaveLocal(); if (Active()) { ReloadLists(); status.Text = T("基线已保存在本机，可以开始测试。", "Baseline saved locally. Ready to test."); }
+            baselineReady = true; SaveLocal(); if (Active()) { LoadAdvertised(); ReloadLists(); status.Text = T("基线已保存在本机，可以开始测试。", "Baseline saved locally. Ready to test."); }
         });
         dialog.Closing += (_, _) => { open = false; lifetime.Cancel(); };
         Update();

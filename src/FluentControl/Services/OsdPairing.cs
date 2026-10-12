@@ -41,15 +41,23 @@ public sealed class OsdCommand
     public string Source { get; set; } = "";
     public string SourceModel { get; set; } = "";
     public string SourceProfileId { get; set; } = "";
+    public string Discovery { get; set; } = "manual";
+    public List<byte> DeclaredValues { get; set; } = new();
+    public DateTimeOffset? AdvertisementCapturedAt { get; set; }
+    [JsonIgnore] public bool FromCapabilities => Discovery is "capability-option" or "capability-experiment";
     [JsonIgnore] public bool DisablesEvents => Code == 0xCA && Value == 3;
     [JsonIgnore] public string Display => Name + $" · VCP 0x{Code:X2} = 0x{Value:X4}";
     public void Validate()
     {
         if (Id.Length is < 1 or > 80 || Name.Length is < 1 or > 120 || Source.Length is < 1 or > 3000 || SourceModel.Length > 120 || SourceProfileId.Length > 80 ||
-            Value > 65535 || !(Code == 0xCA && Value is >= 1 and <= 3 || Code == 0x03 || Code >= 0xE0))
+            Value > 65535 || DeclaredValues is null || DeclaredValues.Count > 256 || DeclaredValues.Distinct().Count() != DeclaredValues.Count ||
+            Discovery is not ("manual" or "capability-option" or "capability-experiment") ||
+            (FromCapabilities ? !OsdCandidateDiscovery.IsUnknown(Code) || AdvertisementCapturedAt is null ||
+                (Discovery == "capability-option" ? !DeclaredValues.Any(v => v == Value) : DeclaredValues.Count != 0) :
+                !(Code == 0xCA && Value is >= 1 and <= 3 || Code == 0x03 || Code >= 0xE0)))
             throw new InvalidDataException("Invalid OSD command.");
     }
-    public OsdCommand Copy() => new() { Id = Id, Name = Name, Code = Code, Value = Value, Source = Source, SourceModel = SourceModel, SourceProfileId = SourceProfileId };
+    public OsdCommand Copy() => new() { Id = Id, Name = Name, Code = Code, Value = Value, Source = Source, SourceModel = SourceModel, SourceProfileId = SourceProfileId, Discovery = Discovery, DeclaredValues = DeclaredValues.ToList(), AdvertisementCapturedAt = AdvertisementCapturedAt };
 }
 
 public sealed class OsdSample
@@ -122,8 +130,9 @@ public sealed class OsdEventCapture
 
 public sealed class OsdPairingProfile
 {
+    public const int MaxCommands = 512;
     [JsonRequired] public string Format { get; set; } = "fluentcontrol.osd-pairing";
-    [JsonRequired] public int Version { get; set; } = 1;
+    [JsonRequired] public int Version { get; set; } = 2;
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public int Revision { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -169,7 +178,7 @@ public sealed class OsdPairingProfile
         source.Validate();
         if (source.Id == Id || source.Simulated != Simulated || !Identity.Matches(source.Identity))
             throw new InvalidDataException(Strings.T("型号、固件或能力信息不匹配。", "Model, firmware or capabilities do not match."));
-        if (Commands.Count + source.Commands.Count > 64 || Trials.Count + source.Trials.Count > 512 || Sessions.Count + source.Sessions.Count > 64 || EventCaptures.Count + source.EventCaptures.Count > 32)
+        if (Commands.Count + source.Commands.Count > MaxCommands || Trials.Count + source.Trials.Count > 512 || Sessions.Count + source.Sessions.Count > 64 || EventCaptures.Count + source.EventCaptures.Count > 32)
             throw new InvalidDataException("Pairing history is full.");
         var commandIds = new Dictionary<string, string>();
         foreach (var command in source.Commands)
@@ -197,10 +206,10 @@ public sealed class OsdPairingProfile
     }
     public void Validate()
     {
-        if (Format != "fluentcontrol.osd-pairing" || Version != 1 || Id.Length is < 1 or > 80 || Revision < 0 ||
+        if (Format != "fluentcontrol.osd-pairing" || Version is not (1 or 2) || Id.Length is < 1 or > 80 || Revision < 0 ||
             Identity is null || Identity.ModelId.Length > 80 || Identity.Model.Length > 200 || Identity.Manufacturer.Length > 80 ||
             Identity.Firmware.Length > 80 || Identity.MccsVersion.Length > 80 || Identity.CapabilitiesFingerprint.Length > 64 ||
-            Commands is null || Commands.Count > 64 || Trials is null || Trials.Count > 512 || Bindings is null || Bindings.Count > Actions.Length ||
+            Commands is null || Commands.Count > MaxCommands || Trials is null || Trials.Count > 512 || Bindings is null || Bindings.Count > Actions.Length ||
             Sessions is null || Sessions.Count > 64 || EventCaptures is null || EventCaptures.Count > 32)
             throw new InvalidDataException("Invalid OSD pairing profile.");
         if (Commands.Any(c => c is null) || Commands.Select(c => c.Id).Distinct().Count() != Commands.Count ||
@@ -213,7 +222,7 @@ public sealed class OsdPairingProfile
             if (t is null || t.Id.Length is < 1 or > 80 || t.Command is null || !Contexts.Contains(t.Context) || t.Notes.Length > 1000 || t.Error.Length > 2000 ||
                 t.SentValue > 65535 || t.SourceProfileId.Length > 80 || t.Outcome is not ("unconfirmed" or "success" or "failure" or "other" or "uncertain") ||
                 t.Effects is null || t.Effects.Any(a => !Actions.Contains(a)) || !Sessions.Any(s => s.Id == t.SessionId) ||
-                !Commands.Any(c => c.Id == t.Command.Id && c.Code == t.Command.Code && c.Value == t.Command.Value))
+                !Commands.Any(c => c.Id == t.Command.Id && c.Code == t.Command.Code && c.Value == t.Command.Value && c.Discovery == t.Command.Discovery && c.DeclaredValues.SequenceEqual(t.Command.DeclaredValues)))
                 throw new InvalidDataException("Invalid pairing trial.");
             t.Command.Validate();
         }
@@ -234,6 +243,10 @@ public sealed class OsdPairingSession
     private readonly Func<byte, DiagnosticReply> read;
     private readonly Action<byte, uint> write;
     private uint? lastButtonFields;
+    private Dictionary<byte, OsdAdvertisedFeature> advertised = new();
+    public void SetCapabilities(MonitorDiagnosticSnapshot snapshot) => advertised = OsdCandidateDiscovery.Discover(snapshot).ToDictionary(f => f.Code);
+    public bool CanSend(OsdCommand command) => !command.FromCapabilities || advertised.TryGetValue(command.Code, out var feature) &&
+        command.DeclaredValues.SequenceEqual(feature.Values) && (command.Discovery == "capability-option" ? feature.Values.Any(v => v == command.Value) : feature.Values.Count == 0);
     public OsdPairingSession(Func<byte, DiagnosticReply> read, Action<byte, uint> write) { this.read = read; this.write = write; }
     public OsdSample Read(byte code)
     {
@@ -250,6 +263,7 @@ public sealed class OsdPairingSession
     public OsdTrial Send(OsdCommand command, string sessionId, string context, bool allowSessionFields, CancellationToken token)
     {
         command.Validate(); token.ThrowIfCancellationRequested();
+        if (!CanSend(command)) throw new InvalidDataException(Strings.T("当前显示器未声明此候选代码或参数，请重新采集。", "The current monitor did not advertise this candidate code or value. Capture again."));
         if (!OsdPairingProfile.Contexts.Contains(context)) throw new InvalidDataException("Invalid menu context.");
         var trial = new OsdTrial { Command = command.Copy(), SessionId = sessionId, Context = context }; var timer = Stopwatch.StartNew();
         try
@@ -335,7 +349,7 @@ public sealed class OsdPairingStore
     }
     public void Save(OsdPairingProfile profile)
     {
-        profile.UpdatedAt = DateTimeOffset.UtcNow;
+        profile.Version = 2; profile.UpdatedAt = DateTimeOffset.UtcNow;
         var json = Serialize(profile); Directory.CreateDirectory(directory);
         var path = Path.Combine(directory, profile.Identity.StorageKey + instanceKey + ".json");
         var temporary = path + ".tmp";

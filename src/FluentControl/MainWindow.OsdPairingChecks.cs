@@ -12,6 +12,8 @@ public sealed partial class MainWindow
     private async Task CheckOsdPairingAsync()
     {
         var device = displayDevices[0]; var directory = Path.Combine(Path.GetTempPath(), "FC-pairing-ui-" + Guid.NewGuid());
+        var originalCapabilities = device.CapabilitiesText;
+        device.CapabilitiesText = "(vcp(02 04 52 C6 CA 4D(01 02) FD FF) mccs_ver(2.2))";
         var writes = new List<(byte, uint)>(); bool unreadable = false;
         var fixture = new OsdPairingSession(_ => unreadable ? new(0, 0, 0, unchecked((int)0xC0262589)) : new(1, 0x0201, 2),
             (code, value) => { writes.Add((code, value)); unreadable = true; });
@@ -67,11 +69,33 @@ public sealed partial class MainWindow
             Find<ComboBox>("pairing-navigation").SelectedIndex = 2; await Task.Delay(80);
             await Invoke("pairing-remote-open");
             if (writes.Count != 6) throw new InvalidOperationException("Local pairing did not survive reopening");
+            Find<ComboBox>("pairing-navigation").SelectedIndex = 0; await Task.Delay(50);
+            await Invoke("pairing-discover");
+            var advertised = Find<ComboBox>("pairing-advertised");
+            if (!advertised.Items.Cast<OsdAdvertisedFeature>().Select(f => f.Code).SequenceEqual(new byte[] { 0x4D, 0xFD, 0xFF })) throw new InvalidOperationException("Advertised unknown codes were not discovered");
+            Find<CheckBox>("pairing-accessible").IsChecked = true;
+            if (writes.Count != 6) throw new InvalidOperationException("Opening candidate page wrote to the monitor");
+            await Invoke("pairing-test-4D-0002");
+            if (writes.Count != 7 || writes[^1] != ((byte)0x4D, 2u)) throw new InvalidOperationException("Advertised candidate did not send its exact value once");
+            foreach (var expander in Descendants<Expander>(Content())) expander.IsExpanded = true;
+            await Task.Delay(50); Find<CheckBox>("pairing-bind-up").IsChecked = true;
+            await Invoke("pairing-result-success");
+            Find<ComboBox>("pairing-navigation").SelectedIndex = 2; await Task.Delay(50);
+            await Invoke("pairing-remote-up");
+            if (writes.Count != 8 || writes[^1] != ((byte)0x4D, 2u)) throw new InvalidOperationException("Observed unknown command did not bind to the remote");
+            Find<ComboBox>("pairing-navigation").SelectedIndex = 1; advertised.SelectedIndex = 1; await Task.Delay(50);
+            if (writes.Count != 8) throw new InvalidOperationException("Selecting another unknown code wrote to the monitor");
+            await Invoke("pairing-test-FD-0001");
+            saved = store.Load(OsdIdentity.Capture(device), true)!;
+            if (writes.Count != 9 || writes[^1] != ((byte)0xFD, 1u) || saved.Trials[^1].Command.Discovery != "capability-experiment" || saved.BoundCommand("up")?.Code != 0x4D)
+                throw new InvalidOperationException("Experimental values or local unknown-code bindings were not persisted");
+            StartupLog.Write("PASS: automatic advertised unknown candidates, below-E0 values, single sends, observed navigation binding, no-option experiments and local persistence.");
             StartupLog.Write("PASS: local OSD pairing UI, explicit success binding, failed readback, repeated recovery, second confirmation, remote, offline reload and close cancellation.");
         }
         finally
         {
             CloseMonitorAdaptation(); await show;
+            device.CapabilitiesText = originalCapabilities;
             if (Directory.Exists(directory)) Directory.Delete(directory, true);
         }
     }
