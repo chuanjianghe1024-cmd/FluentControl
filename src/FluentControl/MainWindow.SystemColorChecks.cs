@@ -11,6 +11,7 @@ public sealed partial class MainWindow
     {
         if (!uiTest || systemColor is null) throw new InvalidOperationException("Expected simulated color backend.");
         MonitorRows.Visibility = Visibility.Visible; CombinedRows.Visibility = Visibility.Visible;
+        Root.UpdateLayout();
         foreach (var e in Descendants<Expander>(MonitorRows).Concat(Descendants<Expander>(CombinedRows)).ToArray()) e.IsExpanded = true;
         Root.UpdateLayout();
         var sliders = Descendants<Slider>(MonitorRows).Where(s => AutomationProperties.GetAutomationId(s).StartsWith("system-temperature-")).ToArray();

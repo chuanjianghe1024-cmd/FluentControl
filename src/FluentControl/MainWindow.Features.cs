@@ -39,7 +39,7 @@ public sealed partial class MainWindow
             hotkeyProblems = shell.ConfigureHotkeys(state.Settings.HotkeysEnabled && !uiTest);
         }
         catch (Exception ex) { StartupLog.Write("Tray unavailable: " + ex); }
-        AppWindow.Closing += (_, e) =>
+        AppWindow.Closing += (sender, e) =>
         {
             if (!exitRequested && state.Settings.CloseToTray && shell?.TrayAvailable == true)
             {
