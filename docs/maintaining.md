@@ -8,6 +8,12 @@
 
 维护者负责确认 Issue 范围、评审与合并、型号证据核验及正式发布。以小 PR 为主；建议 squash 合并，但当前保留既有合并方式。依赖更新由 Dependabot 每周开 PR，不自动合并，也不自动修改发布清单。未承诺处理 SLA，不自动关闭长期未回复的问题。
 
+## 接收首个社区 PR
+
+先用一个小文档 PR 走通贡献流程：贡献者 fork 并向 main 提交，维护者审阅变更后再批准必要的首次 Actions 运行。确认 PR 页面同时显示 `Repository checks` 与 `Windows validation`，纯文档修改的 Windows 构建应明确跳过，最终检查仍给出结果。通过评审后合并即可，不必为了接收贡献先授予写权限。
+
+如果贡献者更新了工作流或脚本，批准运行前检查它们的实际行为。不要要求贡献者提供令牌，也不要把 PR 产物直接推广为正式安装包。
+
 ## Actions 分层
 
 | 稳定检查名称 / 流程 | 触发与职责 |
@@ -65,6 +71,8 @@ act workflow_dispatch -W .github/workflows/ci.yml -j repository-checks --contain
 参考：[GitHub Rulesets 导入](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository)、[必需检查与跳过行为](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks)、[act 运行器范围](https://nektosact.com/usage/runners.html)。
 
 ## English
+
+Start onboarding with a small documentation PR from a fork: review the diff before approving any first-time workflow run, verify both named checks appear, then review and merge without granting write access. Inspect workflow/script changes before approving execution; do not request contributor tokens or promote PR installers.
 
 Community contributions use branches/forks and PRs into `main`; the owner currently retains direct push access. CODEOWNERS routes reviews without granting permissions. The strict ruleset is a disabled JSON template, **not an active GitHub rule**. Add maintainers with appropriate access and consent before delegating ownership. Dependabot proposes updates; it does not merge or publish them.
 
