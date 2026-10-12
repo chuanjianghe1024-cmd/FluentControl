@@ -13,6 +13,7 @@ public sealed class MonitorDevice
     public int Width { get; init; }
     public int Height { get; init; }
     public bool IsPrimary { get; init; }
+    public DisplayHdrState Hdr { get; set; } = DisplayHdrState.Unknown();
     public string ModelId { get; init; } = "";
     public string CapabilitiesText { get; set; } = "";
     public string FirmwareVersion { get; set; } = "";

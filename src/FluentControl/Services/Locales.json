@@ -548,7 +548,17 @@
     "Enter a valid wait time.": "請輸入有效的等待時間。",
     "Custom control saved. Use it on the Remote page.": "自訂控制項已儲存，可在遙控頁使用。",
     "Video connection (manual record)": "視訊介面（手動記錄）",
-    "Send outcome unconfirmed": "傳送結果未確認"
+    "Send outcome unconfirmed": "傳送結果未確認",
+    "Windows does not report HDR support for this display.": "Windows 未回報此螢幕支援 HDR。",
+    "HDR is limited by system or power policy. Check Windows display settings.": "HDR 受到系統或電源原則限制，請檢查 Windows 顯示設定。",
+    "Cannot confirm HDR status for this display. Refresh devices.": "無法確認此螢幕的 HDR 狀態，請重新讀取裝置。",
+    "The HDR setting differs from the active signal. Check Windows display settings.": "HDR 設定與目前訊號不一致，請檢查 Windows 顯示設定。",
+    "HDR is on. Some displays limit brightness, contrast or color temperature; available controls remain usable.": "HDR 已開啟；部分螢幕會限制亮度、對比度或色溫，仍可嘗試可用控制。",
+    "Toggle Windows HDR for this display. The screen may briefly go black; controls will then refresh.": "切換此螢幕的 Windows HDR；畫面可能短暫黑屏，隨後重新讀取控制項。",
+    "Changing HDR, then refreshing devices…": "正在切換 HDR，隨後重新讀取裝置…",
+    "HDR state confirmed; display controls refreshed.": "HDR 狀態已確認，螢幕控制項已重新讀取。",
+    "HDR command sent, but the state is unconfirmed. Check the screen or Windows display settings, then refresh devices.": "HDR 指令已傳送，但狀態尚未確認。請檢查畫面或 Windows 顯示設定後重新讀取裝置。",
+    "Could not change HDR.": "無法切換 HDR。"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -1099,7 +1109,17 @@
     "Enter a valid wait time.": "有効な待機時間を入力してください。",
     "Custom control saved. Use it on the Remote page.": "カスタム操作を保存しました。リモコンページで使用できます。",
     "Video connection (manual record)": "映像接続（手動記録）",
-    "Send outcome unconfirmed": "送信結果は未確認です"
+    "Send outcome unconfirmed": "送信結果は未確認です",
+    "Windows does not report HDR support for this display.": "Windows はこのディスプレイの HDR 対応を報告していません。",
+    "HDR is limited by system or power policy. Check Windows display settings.": "HDR はシステムまたは電源ポリシーで制限されています。Windows のディスプレイ設定を確認してください。",
+    "Cannot confirm HDR status for this display. Refresh devices.": "このディスプレイの HDR 状態を確認できません。デバイスを再読み込みしてください。",
+    "The HDR setting differs from the active signal. Check Windows display settings.": "HDR 設定と現在の信号が一致しません。Windows のディスプレイ設定を確認してください。",
+    "HDR is on. Some displays limit brightness, contrast or color temperature; available controls remain usable.": "HDR はオンです。一部のディスプレイでは明るさ、コントラスト、色温度が制限されます。利用可能な調整項目は引き続き使用できます。",
+    "Toggle Windows HDR for this display. The screen may briefly go black; controls will then refresh.": "このディスプレイの Windows HDR を切り替えます。一時的に画面が暗くなり、その後調整項目が更新されることがあります。",
+    "Changing HDR, then refreshing devices…": "HDR を切り替え、デバイスを再読み込みしています…",
+    "HDR state confirmed; display controls refreshed.": "HDR の状態を確認し、ディスプレイの調整項目を更新しました。",
+    "HDR command sent, but the state is unconfirmed. Check the screen or Windows display settings, then refresh devices.": "HDR コマンドを送信しましたが、状態を確認できません。画面または Windows のディスプレイ設定を確認し、デバイスを再読み込みしてください。",
+    "Could not change HDR.": "HDR を切り替えられませんでした。"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -1650,7 +1670,17 @@
     "Enter a valid wait time.": "유효한 대기 시간을 입력하세요.",
     "Custom control saved. Use it on the Remote page.": "사용자 지정 제어가 저장되었습니다. 리모컨 페이지에서 사용할 수 있습니다.",
     "Video connection (manual record)": "영상 연결(수동 기록)",
-    "Send outcome unconfirmed": "전송 결과가 확인되지 않았습니다"
+    "Send outcome unconfirmed": "전송 결과가 확인되지 않았습니다",
+    "Windows does not report HDR support for this display.": "Windows에서 이 디스플레이의 HDR 지원을 보고하지 않습니다.",
+    "HDR is limited by system or power policy. Check Windows display settings.": "시스템 또는 전원 정책으로 HDR이 제한됩니다. Windows 디스플레이 설정을 확인하세요.",
+    "Cannot confirm HDR status for this display. Refresh devices.": "이 디스플레이의 HDR 상태를 확인할 수 없습니다. 장치를 새로 고치세요.",
+    "The HDR setting differs from the active signal. Check Windows display settings.": "HDR 설정이 현재 신호와 다릅니다. Windows 디스플레이 설정을 확인하세요.",
+    "HDR is on. Some displays limit brightness, contrast or color temperature; available controls remain usable.": "HDR이 켜져 있습니다. 일부 디스플레이는 밝기, 대비 또는 색온도를 제한하지만 사용 가능한 조절 항목은 계속 사용할 수 있습니다.",
+    "Toggle Windows HDR for this display. The screen may briefly go black; controls will then refresh.": "이 디스플레이의 Windows HDR을 전환합니다. 화면이 잠시 검게 변한 후 조절 항목이 새로 고쳐집니다.",
+    "Changing HDR, then refreshing devices…": "HDR 전환 후 장치를 새로 고치는 중…",
+    "HDR state confirmed; display controls refreshed.": "HDR 상태를 확인하고 디스플레이 조절 항목을 새로 고쳤습니다.",
+    "HDR command sent, but the state is unconfirmed. Check the screen or Windows display settings, then refresh devices.": "HDR 명령을 보냈지만 상태가 확인되지 않았습니다. 화면 또는 Windows 디스플레이 설정을 확인한 후 장치를 새로 고치세요.",
+    "Could not change HDR.": "HDR을 변경하지 못했습니다."
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -2201,7 +2231,17 @@
     "Enter a valid wait time.": "Eine gültige Wartezeit eingeben.",
     "Custom control saved. Use it on the Remote page.": "Eigenes Steuerelement gespeichert. Auf der Fernbedienungsseite verfügbar.",
     "Video connection (manual record)": "Videoanschluss (manueller Eintrag)",
-    "Send outcome unconfirmed": "Sendeergebnis unbestätigt"
+    "Send outcome unconfirmed": "Sendeergebnis unbestätigt",
+    "Windows does not report HDR support for this display.": "Windows meldet für diesen Bildschirm keine HDR-Unterstützung.",
+    "HDR is limited by system or power policy. Check Windows display settings.": "HDR ist durch System- oder Energierichtlinien eingeschränkt. Prüfen Sie die Windows-Anzeigeeinstellungen.",
+    "Cannot confirm HDR status for this display. Refresh devices.": "Der HDR-Status dieses Bildschirms ist unbekannt. Lesen Sie die Geräte neu ein.",
+    "The HDR setting differs from the active signal. Check Windows display settings.": "Die HDR-Einstellung weicht vom aktiven Signal ab. Prüfen Sie die Windows-Anzeigeeinstellungen.",
+    "HDR is on. Some displays limit brightness, contrast or color temperature; available controls remain usable.": "HDR ist eingeschaltet. Manche Bildschirme begrenzen Helligkeit, Kontrast oder Farbtemperatur; verfügbare Regler bleiben nutzbar.",
+    "Toggle Windows HDR for this display. The screen may briefly go black; controls will then refresh.": "Windows HDR für diesen Bildschirm umschalten. Das Bild kann kurz schwarz werden; danach werden die Regler aktualisiert.",
+    "Changing HDR, then refreshing devices…": "HDR wird umgeschaltet, danach werden Geräte neu eingelesen…",
+    "HDR state confirmed; display controls refreshed.": "HDR-Status bestätigt; Bildschirmregler aktualisiert.",
+    "HDR command sent, but the state is unconfirmed. Check the screen or Windows display settings, then refresh devices.": "HDR-Befehl gesendet, Status jedoch unbestätigt. Prüfen Sie das Bild oder die Windows-Anzeigeeinstellungen und lesen Sie die Geräte neu ein.",
+    "Could not change HDR.": "HDR konnte nicht geändert werden."
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -2752,7 +2792,17 @@
     "Enter a valid wait time.": "Saisissez un délai d’attente valide.",
     "Custom control saved. Use it on the Remote page.": "Commande personnalisée enregistrée. Disponible sur la page Télécommande.",
     "Video connection (manual record)": "Connexion vidéo (saisie manuelle)",
-    "Send outcome unconfirmed": "Résultat de l’envoi non confirmé"
+    "Send outcome unconfirmed": "Résultat de l’envoi non confirmé",
+    "Windows does not report HDR support for this display.": "Windows ne signale pas de prise en charge HDR pour cet écran.",
+    "HDR is limited by system or power policy. Check Windows display settings.": "Le HDR est limité par une stratégie système ou d’alimentation. Vérifiez les paramètres d’affichage Windows.",
+    "Cannot confirm HDR status for this display. Refresh devices.": "Impossible de confirmer l’état HDR de cet écran. Actualisez les appareils.",
+    "The HDR setting differs from the active signal. Check Windows display settings.": "Le réglage HDR diffère du signal actif. Vérifiez les paramètres d’affichage Windows.",
+    "HDR is on. Some displays limit brightness, contrast or color temperature; available controls remain usable.": "Le HDR est activé. Certains écrans limitent la luminosité, le contraste ou la température de couleur ; les commandes disponibles restent utilisables.",
+    "Toggle Windows HDR for this display. The screen may briefly go black; controls will then refresh.": "Activez ou désactivez Windows HDR pour cet écran. Il peut devenir brièvement noir ; les commandes seront ensuite actualisées.",
+    "Changing HDR, then refreshing devices…": "Modification du HDR, puis actualisation des appareils…",
+    "HDR state confirmed; display controls refreshed.": "État HDR confirmé ; commandes de l’écran actualisées.",
+    "HDR command sent, but the state is unconfirmed. Check the screen or Windows display settings, then refresh devices.": "Commande HDR envoyée, mais état non confirmé. Vérifiez l’écran ou les paramètres d’affichage Windows, puis actualisez les appareils.",
+    "Could not change HDR.": "Impossible de modifier le HDR."
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -3303,6 +3353,16 @@
     "Enter a valid wait time.": "Introduce un tiempo de espera válido.",
     "Custom control saved. Use it on the Remote page.": "Control personalizado guardado. Disponible en la página de control remoto.",
     "Video connection (manual record)": "Conexión de vídeo (registro manual)",
-    "Send outcome unconfirmed": "Resultado del envío sin confirmar"
+    "Send outcome unconfirmed": "Resultado del envío sin confirmar",
+    "Windows does not report HDR support for this display.": "Windows no indica compatibilidad con HDR para esta pantalla.",
+    "HDR is limited by system or power policy. Check Windows display settings.": "Una directiva del sistema o de energía limita HDR. Revisa la configuración de pantalla de Windows.",
+    "Cannot confirm HDR status for this display. Refresh devices.": "No se puede confirmar el estado HDR de esta pantalla. Actualiza los dispositivos.",
+    "The HDR setting differs from the active signal. Check Windows display settings.": "El ajuste HDR difiere de la señal activa. Revisa la configuración de pantalla de Windows.",
+    "HDR is on. Some displays limit brightness, contrast or color temperature; available controls remain usable.": "HDR está activado. Algunas pantallas limitan el brillo, el contraste o la temperatura de color; los controles disponibles siguen funcionando.",
+    "Toggle Windows HDR for this display. The screen may briefly go black; controls will then refresh.": "Activa o desactiva Windows HDR para esta pantalla. Puede quedar negra un instante; después se actualizarán los controles.",
+    "Changing HDR, then refreshing devices…": "Cambiando HDR y actualizando los dispositivos…",
+    "HDR state confirmed; display controls refreshed.": "Estado HDR confirmado; controles de pantalla actualizados.",
+    "HDR command sent, but the state is unconfirmed. Check the screen or Windows display settings, then refresh devices.": "Comando HDR enviado, pero el estado no está confirmado. Revisa la pantalla o la configuración de pantalla de Windows y actualiza los dispositivos.",
+    "Could not change HDR.": "No se pudo cambiar HDR."
   }
 }

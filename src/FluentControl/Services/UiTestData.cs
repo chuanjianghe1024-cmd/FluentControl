@@ -3,6 +3,20 @@ namespace FluentControl.Services;
 // Only used by --ui-test. These channels never change real hardware or settings.
 internal static class UiTestData
 {
+    internal sealed class HdrBackend : IDisplayHdrBackend
+    {
+        private bool enabled;
+        public IReadOnlyList<HdrTarget> ReadActive() => new HdrTarget[]
+        {
+            new("ui-test-monitor-0", 0, 0, 1, true, new(HdrAvailability.Available, enabled, enabled)),
+            new("ui-test-monitor-1", 0, 0, 2, true, new(HdrAvailability.Unsupported, false, false))
+        };
+        public int Write(HdrTarget target, bool value)
+        {
+            if (target.DevicePath != "ui-test-monitor-0") throw new InvalidOperationException("Unexpected HDR target.");
+            enabled = value; return 0;
+        }
+    }
     private static readonly Dictionary<MonitorDevice, Func<byte, DiagnosticReply>> DiagnosticReaders = new();
     internal static MonitorDiagnosticSnapshot CaptureDiagnostics(MonitorDevice device, MonitorDiagnosticSnapshot? baseline,
         CancellationToken token, IProgress<DiagnosticProgress>? progress) => MonitorDiagnostics.Capture(device,

@@ -28,6 +28,7 @@ public sealed partial class MainWindow : Window
 
     public MainWindow()
     {
+        hdr = new DisplayHdrController(uiTest ? new UiTestData.HdrBackend() : new WindowsDisplayHdrBackend(), StartupLog.Write);
         InitializeComponent();
         InitializeTitleTheme();
         Title = "FluentControl";
@@ -92,7 +93,7 @@ public sealed partial class MainWindow : Window
 
     private async Task RefreshAsync(bool forceMonitorCapabilities = false)
     {
-        if (refreshing || closed) return;
+        if (refreshing || closed || hdrChanging) return;
         refreshing = true;
         var refreshWatch = System.Diagnostics.Stopwatch.StartNew();
         RefreshButton.IsEnabled = false;
@@ -118,7 +119,11 @@ public sealed partial class MainWindow : Window
                 var a = new List<ControlChannel>();
                 var m = new List<MonitorDevice>();
                 var mouse = new List<ControlChannel>();
-                if (uiTest) return (a: LoadSystemAudio(), m: UiTestData.Monitors(), mouse: UiTestData.Mouse(), errors);
+                if (uiTest)
+                {
+                    m = UiTestData.Monitors(); ReadHdrStates(m);
+                    return (a: LoadSystemAudio(), m, mouse: UiTestData.Mouse(), errors);
+                }
                 void ReadDevices(string label, Action read)
                 {
                     var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -133,6 +138,7 @@ public sealed partial class MainWindow : Window
                     () => ReadDevices(T("显示器：", "Display: "), () =>
                     {
                         monitors = new MonitorService(StartupLog.Write); m = monitors.Enumerate(forceMonitorCapabilities);
+                        ReadHdrStates(m);
                         lock (errors) errors.AddRange(monitors.Errors);
                     }),
                     () => ReadDevices(T("鼠标：", "Mouse: "), () => { mouse = MouseService.Enumerate(); }));
@@ -246,6 +252,7 @@ public sealed partial class MainWindow : Window
         var actions = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
         actions.Children.Add(menu); actions.Children.Add(CreateAdaptationButton(device)); actions.Children.Add(rename);
         Grid.SetColumn(actions, 1); header.Children.Add(actions); body.Children.Add(header);
+        body.Children.Add(CreateHdrRow(device, version));
         body.Children.Add(CreateMonitorPresetRow(device));
         AddFeatureSections(body, new[] { device }, version, false);
         body.Children.Add(CreateMappingRow(device));
@@ -425,6 +432,7 @@ public sealed partial class MainWindow : Window
             if (MousePanel.Visibility != Visibility.Visible || MouseRows.Children.Count != 2) throw new InvalidOperationException("Mouse controls not rendered.");
             Navigation.SelectedItem = Navigation.MenuItems[0];
             await RunFeatureChecksAsync();
+            await RunHdrChecksAsync();
             StartupLog.Write("UI smoke checks passed");
         }
         catch (Exception ex) { StartupLog.Write("UI smoke checks failed: " + ex); }

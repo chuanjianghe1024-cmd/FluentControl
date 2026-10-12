@@ -35,6 +35,7 @@ public sealed partial class MainWindow
                 menu.Click += (_, _) => ShowMonitorOsd(device); body.Children.Add(menu);
                 body.Children.Add(CreateAdaptationButton(device));
                 body.Children.Add(CreateMonitorPresetRow(device));
+                body.Children.Add(CreateHdrRow(device, version, true));
             }
             AddFeatureSections(body, devices, version, true); CombinedRows.Children.Add(Card(body));
         }

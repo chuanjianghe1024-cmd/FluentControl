@@ -4,6 +4,11 @@
 
 ## 未发布 / Unreleased
 
+- 新增每屏 Windows HDR 开关：单屏和整体视图均可独立切换，不依赖 DDC/CI；内屏在 Windows 报告支持时也可用。切换后核对状态并重建显示器控制连接，不自动恢复旧参数。区分 HDR、广色域、策略限制和读取失败；HDR 开启仅提示可能受限，不一律禁用亮度/对比度。
+- Add per-display Windows HDR switches in individual and overall views, independently of DDC/CI, including internal panels when Windows reports support. Verify state and rediscover monitor controls after switching without replaying old values. Distinguish HDR from WCG, policy limits and unknown states; keep available picture controls usable.
+- 本次不包含 WMI 内屏亮度和厂商专有屏幕接口；Windows HDR 与笔记本控制边界见 [说明](docs/windows-hdr.md)。实体屏幕切换仍待本机验证。
+- WMI laptop brightness and proprietary OEM display controls remain unimplemented. See [Windows HDR notes](docs/windows-hdr.md); physical-panel switching still needs local verification.
+
 - 显示器分阶段读取：先显示真实亮度/对比度，再补齐高级能力与型号适配；保留基础通道对象和已有能力缓存边界。
 - DDC/CI 移入每个逻辑显示连接独立的辅助进程，8 秒通信限时；中断后旧连接失效，刷新重建，绝不自动重发写入。高级扫描中断会留下本机恢复标记，下次跳过，用户可主动重新检测。
 - 普通读取仅对指定传输错误有限重试；事件、配对、诊断和所有写入不自动重试，不将历史读数伪装成当前状态。

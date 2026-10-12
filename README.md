@@ -54,6 +54,8 @@ FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控�
 
 ### 兼容性与当前进展
 
+**开发版新增每屏 Windows HDR 开关**：切换后重新检测显示器控制项；与 DDC/CI 独立，Windows 支持 HDR 的内屏也可使用。WMI 笔记本亮度与厂商专有功能尚未接入，实体屏幕切换待本机验证。[控制范围与使用说明](docs/windows-hdr.md)。
+
 显示器可用功能取决于型号、固件、连接方式和当前模式。HDR、节能模式、转接器及扩展坞可能限制调节；带有音频输出也不一定支持显示器硬件音量遥控。FC 软件菜单已提供，**直接打开和导航显示器原厂 OSD 仍需经过验证的型号适配**。v0.3.75 提供实验性的[本地 OSD 配对助手](docs/osd-pairing.md)：自动列出已声明的未知指令，逐次试发并按观察到的效果绑定遥控，支持部分配对和可选文件分享，无需上传。
 
 **本地预设、JSON 导入导出已可用。** 配置分享站与在线型号适配库尚未部署，在线查询及报告提交暂不可用。计划域名为 [fctrl.app](https://fctrl.app)，配套网站独立维护于 [FluentControl-Web](https://github.com/chuanjianghe1024-cmd/FluentControl-Web)。
@@ -126,6 +128,8 @@ Save a setup for work, gaming or late-night use and recall it when needed. Adjus
 Primarily designed for **Windows 11 x64**. Fully exit the previous version from the tray before upgrading. Upgrades and uninstallation retain personal settings. The current stable installer is unsigned, so Windows may show an unknown-publisher prompt. Later development changes are listed in the [changelog](CHANGELOG.md); test installers are available from [Windows build](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/workflows/build.yml).
 
 ### Compatibility and current status
+
+**Development builds add per-display Windows HDR switches** and rediscover monitor controls after switching. HDR works independently of DDC/CI, including internal panels when Windows reports support. WMI laptop brightness and proprietary OEM controls remain unimplemented; physical HDR switching still needs local verification. See [control scope and usage](docs/windows-hdr.md).
 
 Available monitor controls depend on the model, firmware, connection and active mode. HDR, power-saving modes, adapters and docks may restrict adjustments. An audio output does not necessarily provide remote control of the monitor's hardware volume. The FC software menu is available; **opening and navigating a monitor's native OSD requires a verified model-specific adapter**. v0.3.75 includes an experimental [local OSD pairing assistant](docs/osd-pairing.md): automatically discover advertised unknown commands, test them one at a time, bind observed effects and optionally exchange files without uploading or signing in.
 
