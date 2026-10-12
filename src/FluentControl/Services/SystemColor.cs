@@ -160,7 +160,7 @@ internal sealed class WindowsSystemColorBackend : ISystemColorBackend
         if (matches.Length != 1) throw new IOException(T("无法确认显示器连接，请重新读取设备。", "Cannot identify the display connection. Refresh devices."));
         return matches[0];
     }
-    private static bool Allowed(HdrTarget t) => t.State.LegacyGammaAllowed && t.SourceTargetCount == 1 && !string.IsNullOrWhiteSpace(t.SourceName);
+    internal static bool Allowed(HdrTarget t) => t.State.LegacyGammaAllowed && t.SourceTargetCount == 1 && !string.IsNullOrWhiteSpace(t.SourceName);
     private static string Token(HdrTarget t) => $"{t.DevicePath.ToUpperInvariant()}|{t.AdapterHigh}:{t.AdapterLow}:{t.TargetId}|{t.SourceName}";
     public ColorReading Read(string id)
     {

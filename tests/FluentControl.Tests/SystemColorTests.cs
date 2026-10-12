@@ -36,6 +36,16 @@ internal static class SystemColorTests
         Check(WindowsDisplayHdrBackend.Decode(true, 0, 0).LegacyGammaAllowed, "SDR without HDR support is allowed");
         foreach (var state in new[] { WindowsDisplayHdrBackend.Decode(true, 0x33, 2), WindowsDisplayHdrBackend.Decode(true, 0xC3, 1), WindowsDisplayHdrBackend.Decode(false, 7), DisplayHdrState.Unknown() })
             Check(!state.LegacyGammaAllowed, "HDR, ACM/WCG and unknown modes must block legacy gamma");
+        var independent = new HdrTarget("a", 1, 0, 2, true, WindowsDisplayHdrBackend.Decode(true, 0, 0))
+            { SourceName = @"\\.\DISPLAY1", SourceTargetCount = 1 };
+        Check(WindowsSystemColorBackend.Allowed(independent), "native policy permits confirmed independent SDR");
+        foreach (var blockedTarget in new[]
+        {
+            independent with { SourceTargetCount = 2 }, independent with { SourceTargetCount = 0 },
+            independent with { SourceName = "" }, independent with { State = DisplayHdrState.Unknown() },
+            independent with { State = WindowsDisplayHdrBackend.Decode(true, 0x33, 2) },
+            independent with { State = WindowsDisplayHdrBackend.Decode(true, 0xC3, 1) }
+        }) Check(!WindowsSystemColorBackend.Allowed(blockedTarget), "native policy blocks clone/missing source/unknown/HDR/ACM");
         var original = Identity(); var warm = SoftwareWhiteBalance.Transform(original, 4500); var cool = SoftwareWhiteBalance.Transform(original, 7500);
         Check(SoftwareWhiteBalance.Transform(original, 6500).SequenceEqual(original), "neutral preserves exact baseline");
         Check(warm[255] == original[255] && warm[767] < original[767] && cool[767] == original[767] && cool[255] < original[255], "warm/cool directions");
