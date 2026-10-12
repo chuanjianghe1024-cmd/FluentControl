@@ -243,7 +243,7 @@ public sealed partial class MainWindow
         void ShowTrial(OsdTrial? trial)
         {
             selectedTrial = trial; foreach (var item in effectBoxes) item.Value.IsChecked = trial?.Effects.Contains(item.Key) == true; notes.Text = trial?.Notes ?? "";
-            details.Text = trial is null ? "" : trial.Command.Display + "\n" + (trial.WriteSucceeded ? T("已发送；请观察实际效果", "Sent; check the actual effect") : T("发送失败", "Send failed")) +
+            details.Text = trial is null ? "" : trial.Command.Display + "\n" + (trial.WriteUnconfirmed ? T("发送结果未确认", "Send outcome unconfirmed") : trial.WriteSucceeded ? T("已发送；请观察实际效果", "Sent; check the actual effect") : T("发送失败", "Send failed")) +
                 (trial.SentValue is uint sent ? $" · 0x{sent:X4}" : "") + "\n" + trial.Error + "\n" + trial.Before?.Display + " → " + trial.After?.Display + "\n" + PairingOutcome(trial.Outcome);
             Update();
         }

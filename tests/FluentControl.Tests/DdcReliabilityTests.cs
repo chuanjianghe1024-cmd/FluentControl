@@ -18,6 +18,7 @@ internal static class DdcReliabilityTests
                 Thread.Sleep(Timeout.Infinite);
             }
             if (args[1] == "crash") Environment.Exit(7);
+            if (args[1] == "invalid") { Console.WriteLine("{}"); continue; }
             Console.WriteLine(JsonSerializer.Serialize(new DdcResponse(Current: request.Value, Maximum: 100)));
         }
     }
@@ -31,6 +32,10 @@ internal static class DdcReliabilityTests
     }
     public static void Run()
     {
+        var uncertain = new ControlChannel { Name = "Color", Detail = "", Glyph = "", VcpCode = 0x14, Value = 5,
+            Write = _ => throw new DdcCommunicationException("lost acknowledgement", true) };
+        ControlOperations.Apply(new[] { uncertain }, 8);
+        Check(uncertain.ReadbackUnconfirmed && uncertain.Value == 5, "Ambiguous writes invalidate current state without claiming the requested value.");
         var attempts = 0;
         var result = DdcReadPolicy.Read(() => ++attempts < 3 ? new(unchecked((int)0xC026258B)) : new(Current: 73), 0x10, _ => { });
         Check(attempts == 3 && result.Current == 73 && result.Error == 0, "Transient reads recover using a real reply.");
@@ -74,6 +79,8 @@ internal static class DdcReliabilityTests
             try { crashed.Request(new("read")); throw new Exception("Expected EOF."); } catch (IOException) { }
             using var fresh = new DdcProcessClient(Start("healthy", root), TimeSpan.FromSeconds(10));
             Check(fresh.Request(new("read", Value: 61)).Current == 61, "A new discovery can create a fresh host after a crash.");
+            using var invalid = new DdcProcessClient(Start("invalid", root), TimeSpan.FromSeconds(5));
+            try { invalid.Request(new("read")); throw new Exception("Accepted missing reply fields as a successful zero value."); } catch (IOException) { }
         }
         finally { Directory.Delete(root, true); }
         var readCodes = new List<byte>();

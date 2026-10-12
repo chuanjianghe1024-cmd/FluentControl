@@ -3,6 +3,13 @@ using System.Text.Json;
 
 namespace FluentControl.Services;
 
+public sealed class DdcCommunicationException : IOException
+{
+    public bool WriteMayHaveExecuted { get; }
+    public DdcCommunicationException(string message, bool writeMayHaveExecuted, Exception? inner = null) : base(message, inner)
+    { WriteMayHaveExecuted = writeMayHaveExecuted; }
+}
+
 // One small native host per logical display connection. A blocked display cannot
 // stall another host or leave native handles owned by the UI process.
 public sealed class DdcProcessClient : IDisposable
@@ -39,7 +46,8 @@ public sealed class DdcProcessClient : IDisposable
             catch (Exception ex) when (ex is IOException or OperationCanceledException or JsonException or InvalidDataException)
             {
                 Stop(); // Never restart/replay a request, including an ambiguously completed write.
-                throw new IOException(Strings.T("显示器通信超时或中断，请重新检测；刚才的指令不会自动重发。", "Display communication timed out or ended. Detect again; the last command will not be resent."), ex);
+                throw new DdcCommunicationException(Strings.T("显示器通信超时或中断，请重新检测；刚才的指令不会自动重发。", "Display communication timed out or ended. Detect again; the last command will not be resent."),
+                    request.Operation is "write" or "temperature-write", ex);
             }
         }
     }

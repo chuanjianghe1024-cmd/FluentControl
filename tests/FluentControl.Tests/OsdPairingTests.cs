@@ -48,6 +48,10 @@ internal static class OsdPairingTests
         Check(policyReads == 0 && policyWrites == 1 && noReadback.After is null && noReadback.Outcome == "unconfirmed", "no-readback policy sends once without inventing verified state");
         Reject(() => new OsdCompatibility { Transport = "usb-hid" }.Validate(), "unimplemented USB transport");
         Reject(() => new OsdCompatibility { SettleMilliseconds = 2001 }.Validate(), "unbounded delays");
+        var ambiguous = new OsdPairingSession(_ => new(0, 0, 0), (_, _) => throw new DdcCommunicationException("lost acknowledgement", true))
+            .Send(raw, session.Id, "unknown", false, default);
+        Check(ambiguous.WriteUnconfirmed && !ambiguous.WriteSucceeded && ambiguous.SentValue == 1 && ambiguous.After is null,
+            "timed-out writes retain an unconfirmed outcome rather than claiming failure or success");
         using (var cts = new CancellationTokenSource())
         {
             cts.Cancel(); try { engine.Send(enable, session.Id, "closed", true, cts.Token); throw new Exception("Cancellation ignored"); } catch (OperationCanceledException) { }

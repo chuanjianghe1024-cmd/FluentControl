@@ -68,6 +68,7 @@ public static class ControlOperations
             }
             catch (Exception ex)
             {
+                if (ex is DdcCommunicationException { WriteMayHaveExecuted: true }) channel.ReadbackUnconfirmed = true;
                 errors.Add(channel.Name + "：" + (sent && channel.IsRepeatableChoice
                     ? Strings.F("指令已发送，显示器状态未确认：{0}", "Command sent; display state unconfirmed: {0}", ex.Message)
                     : ex.Message));

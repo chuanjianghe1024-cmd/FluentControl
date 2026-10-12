@@ -36,7 +36,7 @@
 | `identity` | 型号 ID、型号名称、制造商、固件、MCCS、规范化能力指纹 |
 | `sessions` | 应用/系统版本、分辨率、用户填写的连接/HDR/环境信息、完整诊断基线 |
 | `commands` | 候选名称、VCP 代码、值、来源、来源型号和导入来源；`discovery` 区分 `manual` / `capability-option` / `capability-experiment`，`declaredValues` 保留声明值，`advertisementCapturedAt` 记录能力采集时间 |
-| `trials` | 时间、会话、指令快照、菜单上下文、实际发送值、传输结果、原生错误、耗时、前后读回、是否使用当前会话字段、用户结果/动作/备注/确认时间 |
+| `trials` | 时间、会话、指令快照、菜单上下文、实际发送值、传输结果、`writeUnconfirmed`（超时丢失应答时不判为成功或确定失败）、原生错误、耗时、前后读回、是否使用当前会话字段、用户结果/动作/备注/确认时间 |
 | `compatibility` | 传输固定 `ddcci`；发送后等待 0–2000ms（默认 100）；`readback` 为 `once` 或 `none`。没有自动重发开关 |
 | `customControls` | 用户命名的按钮或选项组；每个选项引用本机已确认成功/其他效果的试验和指令 |
 | `bindings` | 逻辑动作、候选和本机观察记录的引用、适用菜单上下文 |

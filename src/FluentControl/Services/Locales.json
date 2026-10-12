@@ -547,7 +547,8 @@
     "Save as custom control": "儲存為自訂控制項",
     "Enter a valid wait time.": "請輸入有效的等待時間。",
     "Custom control saved. Use it on the Remote page.": "自訂控制項已儲存，可在遙控頁使用。",
-    "Video connection (manual record)": "視訊介面（手動記錄）"
+    "Video connection (manual record)": "視訊介面（手動記錄）",
+    "Send outcome unconfirmed": "傳送結果未確認"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -1097,7 +1098,8 @@
     "Save as custom control": "カスタム操作として保存",
     "Enter a valid wait time.": "有効な待機時間を入力してください。",
     "Custom control saved. Use it on the Remote page.": "カスタム操作を保存しました。リモコンページで使用できます。",
-    "Video connection (manual record)": "映像接続（手動記録）"
+    "Video connection (manual record)": "映像接続（手動記録）",
+    "Send outcome unconfirmed": "送信結果は未確認です"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -1647,7 +1649,8 @@
     "Save as custom control": "사용자 지정 제어로 저장",
     "Enter a valid wait time.": "유효한 대기 시간을 입력하세요.",
     "Custom control saved. Use it on the Remote page.": "사용자 지정 제어가 저장되었습니다. 리모컨 페이지에서 사용할 수 있습니다.",
-    "Video connection (manual record)": "영상 연결(수동 기록)"
+    "Video connection (manual record)": "영상 연결(수동 기록)",
+    "Send outcome unconfirmed": "전송 결과가 확인되지 않았습니다"
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -2197,7 +2200,8 @@
     "Save as custom control": "Als eigenes Steuerelement speichern",
     "Enter a valid wait time.": "Eine gültige Wartezeit eingeben.",
     "Custom control saved. Use it on the Remote page.": "Eigenes Steuerelement gespeichert. Auf der Fernbedienungsseite verfügbar.",
-    "Video connection (manual record)": "Videoanschluss (manueller Eintrag)"
+    "Video connection (manual record)": "Videoanschluss (manueller Eintrag)",
+    "Send outcome unconfirmed": "Sendeergebnis unbestätigt"
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -2747,7 +2751,8 @@
     "Save as custom control": "Enregistrer comme commande personnalisée",
     "Enter a valid wait time.": "Saisissez un délai d’attente valide.",
     "Custom control saved. Use it on the Remote page.": "Commande personnalisée enregistrée. Disponible sur la page Télécommande.",
-    "Video connection (manual record)": "Connexion vidéo (saisie manuelle)"
+    "Video connection (manual record)": "Connexion vidéo (saisie manuelle)",
+    "Send outcome unconfirmed": "Résultat de l’envoi non confirmé"
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -3297,6 +3302,7 @@
     "Save as custom control": "Guardar como control personalizado",
     "Enter a valid wait time.": "Introduce un tiempo de espera válido.",
     "Custom control saved. Use it on the Remote page.": "Control personalizado guardado. Disponible en la página de control remoto.",
-    "Video connection (manual record)": "Conexión de vídeo (registro manual)"
+    "Video connection (manual record)": "Conexión de vídeo (registro manual)",
+    "Send outcome unconfirmed": "Resultado del envío sin confirmar"
   }
 }

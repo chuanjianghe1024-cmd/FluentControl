@@ -1,10 +1,12 @@
+using System.Text.Json.Serialization;
 namespace FluentControl.Services;
 
 // Pure data on inherited anonymous pipes; no network listener or executable payloads.
 public sealed record DdcRequest(string Operation, int Monitor = 0, byte Code = 0, uint Value = 0,
     string Connection = "", string Identity = "");
-public sealed record DdcResponse(int Error = 0, uint Type = 0, uint Current = 0, uint Maximum = 0,
-    string Text = "", string[]? Descriptions = null);
+public sealed record DdcResponse([property: JsonRequired] int Error = 0, [property: JsonRequired] uint Type = 0,
+    [property: JsonRequired] uint Current = 0, [property: JsonRequired] uint Maximum = 0,
+    [property: JsonRequired] string Text = "", [property: JsonRequired] string[]? Descriptions = null);
 
 public static class DdcReadPolicy
 {

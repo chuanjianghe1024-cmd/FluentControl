@@ -85,6 +85,7 @@ public sealed class OsdTrial
     public string Context { get; set; } = "unknown";
     public uint? SentValue { get; set; }
     public bool WriteSucceeded { get; set; }
+    public bool WriteUnconfirmed { get; set; }
     public int? WriteErrorCode { get; set; }
     public string Error { get; set; } = "";
     public long Milliseconds { get; set; }
@@ -284,7 +285,7 @@ public sealed class OsdPairingProfile
         foreach (var t in Trials)
         {
             if (t is null || t.Id.Length is < 1 or > 80 || t.Command is null || !Contexts.Contains(t.Context) || t.Notes.Length > 1000 || t.Error.Length > 2000 ||
-                t.SentValue > 65535 || t.SettleMilliseconds is < 0 or > 2000 || t.Readback is not ("once" or "none") || t.SourceProfileId.Length > 80 || t.Outcome is not ("unconfirmed" or "success" or "failure" or "other" or "uncertain") ||
+                t.SentValue > 65535 || t.WriteUnconfirmed && t.WriteSucceeded || t.SettleMilliseconds is < 0 or > 2000 || t.Readback is not ("once" or "none") || t.SourceProfileId.Length > 80 || t.Outcome is not ("unconfirmed" or "success" or "failure" or "other" or "uncertain") ||
                 t.Effects is null || t.Effects.Any(a => !Actions.Contains(a)) || !Sessions.Any(s => s.Id == t.SessionId) ||
                 !Commands.Any(c => c.Id == t.Command.Id && c.Code == t.Command.Code && c.Value == t.Command.Value && c.Discovery == t.Command.Discovery && c.DeclaredValues.SequenceEqual(t.Command.DeclaredValues)))
                 throw new InvalidDataException("Invalid pairing trial.");
@@ -351,7 +352,12 @@ public sealed class OsdPairingSession
             if (!cancelled && trial.Readback == "once") trial.After = Read(command.Code);
         }
         catch (OperationCanceledException) when (!trial.SentValue.HasValue) { throw; }
-        catch (Exception ex) { trial.Error = ex.Message; if (ex is Win32Exception native) trial.WriteErrorCode = native.NativeErrorCode; }
+        catch (Exception ex)
+        {
+            trial.Error = ex.Message;
+            trial.WriteUnconfirmed = ex is DdcCommunicationException { WriteMayHaveExecuted: true };
+            if (ex is Win32Exception native) trial.WriteErrorCode = native.NativeErrorCode;
+        }
         trial.Milliseconds = timer.ElapsedMilliseconds; return trial;
     }
     public OsdEventCapture Observe(string sessionId, string label, CancellationToken token)
