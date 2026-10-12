@@ -4,8 +4,12 @@
 
 ## 未发布 / Unreleased
 
+## [0.3.75](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.75) — 2026-10-12
+
+新增本地 OSD 配对与未知指令试发，修复 OSD、色温和场景模式的重复选择。[中英文发布说明](docs/releases/v0.3.75.md)。
+
 - 修正 OSD 配对只有三项开关和手工候选的局限：自动列出显示器声明的未知代码，直接单次试发并按实际效果绑定。有声明参数时使用声明值；无参数时提供明确标为试验值的按钮和自填值，不必手填代码或来源。已知标准、重置及信息功能另列分类。
-- 配对文件记录候选来源、声明参数和采集时间，保存与重放前校验当前声明；全程可离线完成。
+- 配对文件记录候选来源、声明参数和采集时间，发送与重放前校验当前声明；全程可离线完成。
 - Fix OSD pairing being limited to three OSD actions and manual candidates: automatically list advertised unknown codes for explicit single-send tests and observed action binding. Use advertised values where present; otherwise offer labelled experimental values and a custom value without requiring a code or source. Classify known standard, reset and information features separately.
 - Record candidate provenance, advertised values and capture time in local pairing files; validate current declarations before sending or replaying. Everything remains available offline.
 
