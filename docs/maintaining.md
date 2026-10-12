@@ -8,6 +8,22 @@
 
 维护者负责确认 Issue 范围、评审与合并、型号证据核验及正式发布。以小 PR 为主；建议 squash 合并，但当前保留既有合并方式。依赖更新由 Dependabot 每周开 PR，不自动合并，也不自动修改发布清单。未承诺处理 SLA，不自动关闭长期未回复的问题。
 
+## 权限与规则核验记录（2026-10-12）
+
+本次通过 GitHub 连接核验，以下是读取时的快照，不是永久设置保证：
+
+| 项目 | 可见结果与边界 |
+| --- | --- |
+| 当前账户与仓库角色 | `chuanjianghe1024-cmd`；协作者权限接口返回 `admin`，仓库元数据返回 `admin/maintain/push/pull/triage: true` |
+| main 分支摘要 | 返回 `protected: false`、保护摘要 `enabled: false`，未列出必需检查 |
+| GitHub Rulesets | 查询返回空数组；仓库中的禁用 JSON 模板不代表已导入线上规则 |
+| Classic branch protection 详情 | 返回 `403 Resource not accessible by integration`；账户为 admin 不等于连接具有 administration API 权限，无法读取完整配置或例外 |
+| 合并方式 | merge、squash、rebase 均可用；auto-merge 为关闭状态 |
+| Publish Wiki run 38223722839 | 最新第 2 次执行为 `completed / success`；旧失败通知不代表当前失败 |
+| 私密漏洞报告 | 本次未确认是否启用；遵循 SECURITY.md 中有入口/无入口的分别处理方式 |
+
+这些结果支持“当前未见活动 Rulesets，分支摘要未标记保护”，但不能用权限不足的详情查询证明所有保护配置均不存在。本次仅更新文档和模板，不修改任何分支规则、绕过权限或合并设置。未来切换前，负责人仍应在 GitHub Settings 查看完整规则及其叠加效果。
+
 ## 接收首个社区 PR
 
 先用一个小文档 PR 走通贡献流程：贡献者 fork 并向 main 提交，维护者审阅变更后再批准必要的首次 Actions 运行。确认 PR 页面同时显示 `Repository checks` 与 `Windows validation`，纯文档修改的 Windows 构建应明确跳过，最终检查仍给出结果。通过评审后合并即可，不必为了接收贡献先授予写权限。
@@ -81,3 +97,9 @@ Required check candidates have stable names: **Repository checks** and **Windows
 To enable mandatory review later, first have another eligible reviewer and recent passing check runs. Import `.github/rulesets/community-main.json` under Settings → Rules → Rulesets. Review the disabled rule: main only, no bypass actors, one approval, dismissal of stale approvals, independent approval of the latest push, resolved conversations, up-to-date checks from GitHub Actions, no deletions or force pushes. Set **Active** only when the owner chooses to switch, then verify with a real PR. The author cannot approve their own PR. Code-owner approval is intentionally optional until ownership is shared. Administrators can still edit repository rules; they are not listed as bypass actors. Review overlapping classic protection and rulesets before activation.
 
 Use the Python checks above locally. `act workflow_dispatch -W .github/workflows/ci.yml -j repository-checks --container-architecture linux/amd64` targets only the Ubuntu quick-check job; supply a compatible runner image with Python/venv/Git/Node. Linux containers cannot provide WinUI/MSI validation, and host-mode Windows tests can modify the host. GitHub permissions, required approvals and real monitor behavior require separate verification.
+
+### Permission and rule snapshot (2026-10-12)
+
+The connected account is `chuanjianghe1024-cmd`. The collaborator endpoint reports `admin`, and repository metadata reports admin/maintain/push/pull/triage access. The main branch summary reports `protected: false` and protection `enabled: false`; the Rulesets query returns an empty list. However, classic branch-protection details return `403 Resource not accessible by integration`: account ownership does not grant the integration administration API access. This snapshot does not establish that every possible protection configuration is absent.
+
+Merge, squash and rebase are enabled; auto-merge is disabled. Publish Wiki run `38223722839`, attempt 2, completed successfully; its earlier failure is historical. Private vulnerability reporting was not confirmed. This documentation update changes no branch rules, bypass permissions or merge settings. Before any future activation, the owner must inspect complete and overlapping settings in GitHub.
