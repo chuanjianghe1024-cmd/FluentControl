@@ -33,9 +33,22 @@ public sealed partial class MainWindow
         HdrAvailability.Disconnected or HdrAvailability.Ambiguous or HdrAvailability.Unknown =>
             T("无法确认此屏幕的 HDR 状态，请重新读取设备。", "Cannot confirm HDR status for this display. Refresh devices.") + (value.Error.Length > 0 ? " " + value.Error : ""),
         _ when value.Enabled != value.Active => T("HDR 设置与当前信号不一致，请检查 Windows 显示设置。", "The HDR setting differs from the active signal. Check Windows display settings."),
-        _ when value.Active == true => T("HDR 已开启；部分屏幕会限制亮度、对比度或色温，仍可尝试可用控制。", "HDR is on. Some displays limit brightness, contrast or color temperature; available controls remain usable."),
         _ => T("切换此屏幕的 Windows HDR；画面可能短暂黑屏，随后重新读取控制项。", "Toggle Windows HDR for this display. The screen may briefly go black; controls will then refresh.")
     };
+
+    private static InfoBar? CreateHdrControlNotice(MonitorDevice device)
+    {
+        if (device.Hdr.Enabled != true && device.Hdr.Active != true) return null;
+        var notice = new InfoBar
+        {
+            IsOpen = true, IsClosable = false, Severity = InfoBarSeverity.Warning,
+            Title = MonitorTitle(device) + " · " + T("HDR 调节限制", "HDR control limitations"),
+            Message = T("HDR 模式下，显示器可能锁定亮度、对比度、色温等调节。若调节无效，请关闭 HDR 后重新读取设备。",
+                "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.")
+        };
+        AutomationProperties.SetAutomationId(notice, "hdr-control-notice-" + device.Preference.Label);
+        return notice;
+    }
 
     private FrameworkElement CreateHdrRow(MonitorDevice device, int version, bool labelled = false)
     {
@@ -46,7 +59,11 @@ public sealed partial class MainWindow
         AutomationProperties.SetAutomationId(toggle, "hdr-" + device.Preference.Label);
         // Attach after initial state; rebuilding either view never sends a write.
         toggle.Toggled += async (_, _) => await ChangeHdrAsync(device, version, toggle.IsOn);
-        return SettingsRow(label, HdrDescription(device.Hdr), toggle);
+        var row = SettingsRow(label, HdrDescription(device.Hdr), toggle);
+        if (CreateHdrControlNotice(device) is not { } notice) return row;
+        var panel = new StackPanel { Spacing = 8 };
+        panel.Children.Add(row); panel.Children.Add(notice);
+        return panel;
     }
 
     private async Task ChangeHdrAsync(MonitorDevice device, int version, bool enabled)

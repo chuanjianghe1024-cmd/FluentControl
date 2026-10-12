@@ -579,7 +579,9 @@
     "The system did not confirm the color curve. Refresh or restore colors.": "系統未確認色溫曲線已生效，請重新讀取或還原。",
     "Requires a confirmed SDR display with an independent output. Use Windows night light for HDR, auto color management or duplicated displays.": "僅支援可確認的 SDR 獨立螢幕；HDR、自動色彩管理或同步顯示模式下請使用 Windows 夜間光線。",
     "The color curve changed outside FC. Control was released; applying again will use the current colors as the baseline.": "顏色曲線已被其他程式或顯示模式變更，FC 已停止接管；再次套用將以目前顏色為基準。",
-    "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "透過顯示卡調整畫面冷暖，不修改螢幕硬體色溫。數值為近似目標，6500 K 保留原曲線；避免與夜間光線或校色軟體同時使用。"
+    "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "透過顯示卡調整畫面冷暖，不修改螢幕硬體色溫。數值為近似目標，6500 K 保留原曲線；避免與夜間光線或校色軟體同時使用。",
+    "HDR control limitations": "HDR 調整限制",
+    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "HDR 模式下，顯示器可能鎖定亮度、對比度、色溫等調整。若調整無效，請關閉 HDR 後重新讀取裝置。"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -1161,7 +1163,9 @@
     "The system did not confirm the color curve. Refresh or restore colors.": "カラーカーブの適用を確認できません。再読み込みするか、元の色に戻してください。",
     "Requires a confirmed SDR display with an independent output. Use Windows night light for HDR, auto color management or duplicated displays.": "独立出力の SDR ディスプレイを確認できる場合のみ対応します。HDR、自動色管理、複製表示では Windows の夜間モードを使用してください。",
     "The color curve changed outside FC. Control was released; applying again will use the current colors as the baseline.": "FC 以外でカラーカーブが変更されたため、制御を解除しました。再適用すると現在の色が基準になります。",
-    "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "ハードウェアの色温度を変更せず、グラフィックスドライバーで色味を調整します。値は目安で、6500 K では元のカーブを維持します。夜間モードや色校正ツールとの併用は避けてください。"
+    "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "ハードウェアの色温度を変更せず、グラフィックスドライバーで色味を調整します。値は目安で、6500 K では元のカーブを維持します。夜間モードや色校正ツールとの併用は避けてください。",
+    "HDR control limitations": "HDR の調整制限",
+    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "HDR モードでは、ディスプレイによって明るさ、コントラスト、色温度などの調整が制限される場合があります。調整が反映されない場合は、HDR をオフにしてデバイスを再読み込みしてください。"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -1743,7 +1747,9 @@
     "The system did not confirm the color curve. Refresh or restore colors.": "색상 곡선이 적용되었는지 확인되지 않았습니다. 새로 고치거나 색상을 복원하세요.",
     "Requires a confirmed SDR display with an independent output. Use Windows night light for HDR, auto color management or duplicated displays.": "확인된 SDR 디스플레이와 독립 출력이 필요합니다. HDR, 자동 색 관리 또는 복제 모드에서는 Windows 야간 모드를 사용하세요.",
     "The color curve changed outside FC. Control was released; applying again will use the current colors as the baseline.": "FC 외부에서 색상 곡선이 변경되어 제어를 해제했습니다. 다시 적용하면 현재 색상을 기준으로 사용합니다.",
-    "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "하드웨어 색온도를 변경하지 않고 그래픽 드라이버로 화면의 색감을 조절합니다. 수치는 근삿값이며 6500 K는 원래 곡선을 유지합니다. 야간 모드나 색상 보정 도구와 함께 사용하지 마세요."
+    "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "하드웨어 색온도를 변경하지 않고 그래픽 드라이버로 화면의 색감을 조절합니다. 수치는 근삿값이며 6500 K는 원래 곡선을 유지합니다. 야간 모드나 색상 보정 도구와 함께 사용하지 마세요.",
+    "HDR control limitations": "HDR 조절 제한",
+    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "HDR 모드에서는 디스플레이가 밝기, 대비, 색온도 등의 조절을 제한할 수 있습니다. 조절해도 변화가 없다면 HDR을 끄고 장치를 새로 고치세요."
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -2325,7 +2331,9 @@
     "The system did not confirm the color curve. Refresh or restore colors.": "Die Farbkurve wurde nicht bestätigt. Aktualisieren Sie den Status oder stellen Sie die Farben wieder her.",
     "Requires a confirmed SDR display with an independent output. Use Windows night light for HDR, auto color management or duplicated displays.": "Erfordert ein bestätigtes SDR-Display mit eigenem Ausgang. Nutzen Sie bei HDR, automatischer Farbverwaltung oder duplizierten Anzeigen den Windows-Nachtmodus.",
     "The color curve changed outside FC. Control was released; applying again will use the current colors as the baseline.": "Die Farbkurve wurde außerhalb von FC geändert. Die Steuerung wurde freigegeben; erneutes Anwenden verwendet die aktuellen Farben als Grundlage.",
-    "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "Passt die Farbtemperatur über den Grafiktreiber an, ohne die Hardware-Farbtemperatur zu ändern. Die Werte sind Näherungen; 6500 K erhält die ursprüngliche Kurve. Nicht mit Nachtmodus oder Kalibrierungsprogrammen kombinieren."
+    "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "Passt die Farbtemperatur über den Grafiktreiber an, ohne die Hardware-Farbtemperatur zu ändern. Die Werte sind Näherungen; 6500 K erhält die ursprüngliche Kurve. Nicht mit Nachtmodus oder Kalibrierungsprogrammen kombinieren.",
+    "HDR control limitations": "Einschränkungen bei HDR",
+    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "Im HDR-Modus kann das Display Helligkeit, Kontrast, Farbtemperatur und andere Einstellungen sperren. Wenn Änderungen keine Wirkung haben, deaktivieren Sie HDR und lesen Sie die Geräte erneut ein."
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -2907,7 +2915,9 @@
     "The system did not confirm the color curve. Refresh or restore colors.": "Le système n’a pas confirmé la courbe de couleur. Actualisez ou rétablissez les couleurs.",
     "Requires a confirmed SDR display with an independent output. Use Windows night light for HDR, auto color management or duplicated displays.": "Nécessite un écran SDR confirmé avec une sortie indépendante. Utilisez l’éclairage nocturne Windows pour le HDR, la gestion automatique des couleurs ou les écrans dupliqués.",
     "The color curve changed outside FC. Control was released; applying again will use the current colors as the baseline.": "La courbe de couleur a changé hors de FC. Le contrôle a été libéré ; une nouvelle application utilisera les couleurs actuelles comme référence.",
-    "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "Ajuste la chaleur via le pilote graphique sans modifier la température matérielle. Les valeurs sont approximatives ; 6500 K conserve la courbe d’origine. Évitez de combiner avec l’éclairage nocturne ou des outils d’étalonnage."
+    "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "Ajuste la chaleur via le pilote graphique sans modifier la température matérielle. Les valeurs sont approximatives ; 6500 K conserve la courbe d’origine. Évitez de combiner avec l’éclairage nocturne ou des outils d’étalonnage.",
+    "HDR control limitations": "Restrictions des réglages HDR",
+    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "En mode HDR, l’écran peut verrouiller la luminosité, le contraste, la température de couleur et d’autres réglages. Si les modifications restent sans effet, désactivez le HDR et actualisez les appareils."
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -3489,6 +3499,8 @@
     "The system did not confirm the color curve. Refresh or restore colors.": "El sistema no confirmó la curva de color. Actualiza o restaura los colores.",
     "Requires a confirmed SDR display with an independent output. Use Windows night light for HDR, auto color management or duplicated displays.": "Requiere una pantalla SDR confirmada con salida independiente. Usa la luz nocturna de Windows para HDR, gestión automática del color o pantallas duplicadas.",
     "The color curve changed outside FC. Control was released; applying again will use the current colors as the baseline.": "La curva de color cambió fuera de FC. Se liberó el control; al aplicar de nuevo se usarán los colores actuales como base.",
-    "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "Ajusta la calidez mediante el controlador gráfico sin cambiar la temperatura del hardware. Los valores son aproximados; 6500 K conserva la curva original. Evita combinarlo con luz nocturna o herramientas de calibración."
+    "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "Ajusta la calidez mediante el controlador gráfico sin cambiar la temperatura del hardware. Los valores son aproximados; 6500 K conserva la curva original. Evita combinarlo con luz nocturna o herramientas de calibración.",
+    "HDR control limitations": "Limitaciones de los controles HDR",
+    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "En modo HDR, la pantalla puede bloquear el brillo, el contraste, la temperatura de color y otros controles. Si los ajustes no tienen efecto, desactiva HDR y actualiza los dispositivos."
   }
 }

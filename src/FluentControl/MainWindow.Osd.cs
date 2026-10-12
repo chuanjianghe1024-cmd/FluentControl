@@ -41,6 +41,7 @@ public sealed partial class MainWindow
         heading.Children.Add(Empty(T("FC 软件菜单，控制当前屏幕。Esc 关闭。", "FC software menu for this display. Esc to close.")));
         root.Children.Add(heading);
         var body = new StackPanel { Spacing = 8 };
+        if (CreateHdrControlNotice(device) is { } hdrNotice) body.Children.Add(hdrNotice);
         var scroll = new ScrollViewer { Content = body, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         Grid.SetRow(scroll, 1); root.Children.Add(scroll);
         var status = new TextBlock { TextWrapping = TextWrapping.Wrap, MaxLines = 3, IsTextSelectionEnabled = true };

@@ -4,6 +4,9 @@
 
 ## 未发布 / Unreleased
 
+- HDR 开启时，在单屏、整体控制和 FC 屏幕菜单中显示常驻限制提示，说明亮度、对比度、色温可能被显示器锁定，并提示调节无效时关闭 HDR 后重新读取设备；按屏幕显示，关闭并刷新后移除，不统一禁用仍可用的控制。
+- Show a persistent per-display HDR notice in individual, overall and FC on-screen controls. Explain possible brightness, contrast and color-temperature restrictions and suggest disabling HDR and refreshing if adjustments have no effect. Remove it after HDR is off and devices refresh; keep supported controls usable.
+
 - 新增独立的「系统色温（软件）」：每屏 2500–10000 K 近似冷暖调整，显式应用、原曲线恢复、读回确认、本机总配置保存和异常恢复记录；与 DDC 硬件色温分离。仅支持已确认的 SDR 独立输出，HDR/ACM/复制模式禁用并提供 Windows 夜间模式入口。正常退出尝试恢复自己的曲线，外部颜色变更不会被持续覆盖。
 - Add independent per-display software temperature controls (approximate 2500–10000 K), explicit Apply, original-curve restoration, verified readback, local global-profile values and crash recovery records. Keep them separate from DDC presets. Restrict legacy gamma to confirmed independent SDR outputs; block HDR/ACM/duplicated modes and offer Windows night light. Normal exit attempts to restore FC-owned curves without overwriting newer external color settings. [Scope and usage](docs/system-color-temperature.md).
 
