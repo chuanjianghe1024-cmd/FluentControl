@@ -16,6 +16,7 @@ updates:
       - /src/FluentControl
       - /src/FluentControl.DdcHost
       - /tests/FluentControl.Tests
+      - /installer/FluentControl.Setup
     schedule:
       interval: weekly
       day: monday
