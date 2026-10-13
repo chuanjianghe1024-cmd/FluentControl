@@ -19,8 +19,10 @@ public sealed partial class MainWindow
         {
             Navigation.SelectedItem = Navigation.SettingsItem;
             SelectSettingsSection("general");
+            await Task.Delay(80);
             SettingsPanel.UpdateLayout();
-            var picker = Descendants<ComboBox>(SettingsPanel).Single(x => AutomationProperties.GetAutomationId(x) == "setting-app-theme");
+            var picker = Descendants<ComboBox>(SettingsPanel).SingleOrDefault(x => AutomationProperties.GetAutomationId(x) == "setting-app-theme")
+                ?? throw new InvalidOperationException("Theme picker was not realized after opening General settings.");
             var cards = settingsSections["general"].Children.OfType<Border>().ToArray();
             // Keep the same controls alive: recreating them would hide stale brushes.
             ShowMonitorOsd(displayDevices[0]);
@@ -44,12 +46,17 @@ public sealed partial class MainWindow
                 var persisted = new UserStateStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentControl", "test-user-state.json"));
                 if (persisted.State.Settings.Theme != setting || state.Settings.DesktopLightText != desktopText)
                     throw new InvalidOperationException("Theme preference was not saved, or changed the independent desktop text preference.");
+                StartupLog.Write("PASS: theme " + setting + " applied to live controls and saved; settings/FC card contrast >= 4.5:1.");
             }
             picker.SelectedIndex = 0;
             if (ShellRoot.RequestedTheme != ElementTheme.Default || state.Settings.Theme != "system")
                 throw new InvalidOperationException("System theme did not clear the explicit override.");
             BuildSettings(); SelectSettingsSection("general");
-            if (Descendants<ComboBox>(SettingsPanel).Single(x => AutomationProperties.GetAutomationId(x) == "setting-app-theme").SelectedIndex != 0)
+            await Task.Delay(80);
+            SettingsPanel.UpdateLayout();
+            var rebuiltPicker = Descendants<ComboBox>(SettingsPanel).SingleOrDefault(x => AutomationProperties.GetAutomationId(x) == "setting-app-theme")
+                ?? throw new InvalidOperationException("Theme picker was not realized after rebuilding General settings.");
+            if (rebuiltPicker.SelectedIndex != 0)
                 throw new InvalidOperationException("Rebuilding settings lost the theme selection.");
             StartupLog.Write("PASS: live light/dark settings-card contrast, whole-window and open FC menu theme, saved preference and system-default reset.");
         }
