@@ -43,11 +43,11 @@
     "This operation is not supported. Use install, repair or uninstall.": "This operation is not supported. Use install, repair or uninstall.",
     "A newer version is already installed.": "A newer version is already installed.",
     "Files in use": "Files in use",
-    "Close the listed applications yourself, then choose OK to retry. Cancel rolls back installation.": "Close the listed applications yourself, then choose OK to retry. Cancel rolls back installation.",
     "Restart Windows to finish. The app will not be started now.": "Restart Windows to finish. The app will not be started now.",
     "Your settings and monitor profiles are preserved.": "Your settings and monitor profiles are preserved.",
     "Installation was cancelled. No application was started.": "Installation was cancelled. No application was started.",
-    "Error {0}. Open the installation log for details.": "Error {0}. Open the installation log for details."
+    "Error {0}. Open the installation log for details.": "Error {0}. Open the installation log for details.",
+    "Close applications using files in the installation folder, then choose OK to retry. Cancel rolls back installation.": "Close applications using files in the installation folder, then choose OK to retry. Cancel rolls back installation."
   },
   "zh-CN": {
     "FluentControl Setup": "FluentControl 安装",
@@ -93,11 +93,11 @@
     "This operation is not supported. Use install, repair or uninstall.": "不支持此操作，请使用安装、修复或卸载。",
     "A newer version is already installed.": "已安装更新版本。",
     "Files in use": "文件正在使用",
-    "Close the listed applications yourself, then choose OK to retry. Cancel rolls back installation.": "请自行关闭下列程序，再点确定重试。取消将回滚安装。",
     "Restart Windows to finish. The app will not be started now.": "请重启 Windows 完成安装，本次不会启动应用。",
     "Your settings and monitor profiles are preserved.": "个人设置和显示器配置已保留。",
     "Installation was cancelled. No application was started.": "安装已取消，未启动应用。",
-    "Error {0}. Open the installation log for details.": "错误 {0}。请查看安装日志了解详情。"
+    "Error {0}. Open the installation log for details.": "错误 {0}。请查看安装日志了解详情。",
+    "Close applications using files in the installation folder, then choose OK to retry. Cancel rolls back installation.": "请关闭正在使用安装目录中文件的应用，然后点击“确定”重试。取消将回滚安装。"
   },
   "zh-TW": {
     "FluentControl Setup": "FluentControl 安裝",
@@ -143,11 +143,11 @@
     "This operation is not supported. Use install, repair or uninstall.": "不支援此操作，請使用安裝、修復或解除安裝。",
     "A newer version is already installed.": "已安裝更新版本。",
     "Files in use": "檔案正在使用",
-    "Close the listed applications yourself, then choose OK to retry. Cancel rolls back installation.": "請自行關閉下列程式，再按確定重試。取消將復原安裝。",
     "Restart Windows to finish. The app will not be started now.": "請重新啟動 Windows 完成安裝，本次不會啟動應用程式。",
     "Your settings and monitor profiles are preserved.": "個人設定與顯示器設定檔已保留。",
     "Installation was cancelled. No application was started.": "安裝已取消，未啟動應用程式。",
-    "Error {0}. Open the installation log for details.": "錯誤 {0}。請檢視安裝記錄了解詳情。"
+    "Error {0}. Open the installation log for details.": "錯誤 {0}。請檢視安裝記錄了解詳情。",
+    "Close applications using files in the installation folder, then choose OK to retry. Cancel rolls back installation.": "請關閉正在使用安裝目錄中文件的應用程式，然後按「確定」重試。取消將復原安裝。"
   },
   "ja-JP": {
     "FluentControl Setup": "FluentControl セットアップ",
@@ -193,11 +193,11 @@
     "This operation is not supported. Use install, repair or uninstall.": "この操作には対応していません。インストール、修復、削除を使用してください。",
     "A newer version is already installed.": "新しいバージョンがインストール済みです。",
     "Files in use": "使用中のファイル",
-    "Close the listed applications yourself, then choose OK to retry. Cancel rolls back installation.": "一覧のアプリを閉じて OK で再試行してください。キャンセルすると元に戻します。",
     "Restart Windows to finish. The app will not be started now.": "Windows を再起動して完了してください。アプリは起動しません。",
     "Your settings and monitor profiles are preserved.": "設定とモニタープロファイルは保持されています。",
     "Installation was cancelled. No application was started.": "インストールをキャンセルしました。アプリは起動していません。",
-    "Error {0}. Open the installation log for details.": "エラー {0}。詳細はインストールログを確認してください。"
+    "Error {0}. Open the installation log for details.": "エラー {0}。詳細はインストールログを確認してください。",
+    "Close applications using files in the installation folder, then choose OK to retry. Cancel rolls back installation.": "インストール先のファイルを使用しているアプリを閉じてから、OK を選択して再試行してください。キャンセルするとインストールを元に戻します。"
   },
   "ko-KR": {
     "FluentControl Setup": "FluentControl 설치",
@@ -243,11 +243,11 @@
     "This operation is not supported. Use install, repair or uninstall.": "지원하지 않는 작업입니다. 설치, 복구 또는 제거를 사용하세요.",
     "A newer version is already installed.": "더 최신 버전이 설치되어 있습니다.",
     "Files in use": "사용 중인 파일",
-    "Close the listed applications yourself, then choose OK to retry. Cancel rolls back installation.": "아래 앱을 직접 닫고 확인을 눌러 다시 시도하세요. 취소하면 롤백합니다.",
     "Restart Windows to finish. The app will not be started now.": "Windows를 다시 시작하여 완료하세요. 지금은 앱을 실행하지 않습니다.",
     "Your settings and monitor profiles are preserved.": "설정과 모니터 프로필이 유지됩니다.",
     "Installation was cancelled. No application was started.": "설치가 취소되었습니다. 앱은 실행되지 않았습니다.",
-    "Error {0}. Open the installation log for details.": "오류 {0}. 자세한 내용은 설치 로그를 확인하세요."
+    "Error {0}. Open the installation log for details.": "오류 {0}. 자세한 내용은 설치 로그를 확인하세요.",
+    "Close applications using files in the installation folder, then choose OK to retry. Cancel rolls back installation.": "설치 폴더의 파일을 사용하는 앱을 닫고 확인을 눌러 다시 시도하세요. 취소하면 설치가 롤백됩니다."
   },
   "de-DE": {
     "FluentControl Setup": "FluentControl-Installation",
@@ -293,11 +293,11 @@
     "This operation is not supported. Use install, repair or uninstall.": "Vorgang nicht unterstützt. Verwenden Sie Installation, Reparatur oder Deinstallation.",
     "A newer version is already installed.": "Eine neuere Version ist bereits installiert.",
     "Files in use": "Dateien werden verwendet",
-    "Close the listed applications yourself, then choose OK to retry. Cancel rolls back installation.": "Schließen Sie die aufgeführten Apps selbst und wählen Sie OK. Abbrechen stellt den vorherigen Zustand wieder her.",
     "Restart Windows to finish. The app will not be started now.": "Starten Sie Windows zum Abschluss neu. Die App wird jetzt nicht gestartet.",
     "Your settings and monitor profiles are preserved.": "Einstellungen und Monitorprofile bleiben erhalten.",
     "Installation was cancelled. No application was started.": "Installation abgebrochen. Es wurde keine App gestartet.",
-    "Error {0}. Open the installation log for details.": "Fehler {0}. Details finden Sie im Installationsprotokoll."
+    "Error {0}. Open the installation log for details.": "Fehler {0}. Details finden Sie im Installationsprotokoll.",
+    "Close applications using files in the installation folder, then choose OK to retry. Cancel rolls back installation.": "Schließen Sie Anwendungen, die Dateien im Installationsordner verwenden, und wählen Sie OK, um es erneut zu versuchen. Abbrechen setzt die Installation zurück."
   },
   "fr-FR": {
     "FluentControl Setup": "Installation de FluentControl",
@@ -343,11 +343,11 @@
     "This operation is not supported. Use install, repair or uninstall.": "Opération non prise en charge. Utilisez l’installation, la réparation ou la désinstallation.",
     "A newer version is already installed.": "Une version plus récente est déjà installée.",
     "Files in use": "Fichiers en cours d’utilisation",
-    "Close the listed applications yourself, then choose OK to retry. Cancel rolls back installation.": "Fermez vous-même les applications indiquées, puis cliquez sur OK. Annuler restaure l’installation précédente.",
     "Restart Windows to finish. The app will not be started now.": "Redémarrez Windows pour terminer. L’application ne sera pas lancée maintenant.",
     "Your settings and monitor profiles are preserved.": "Vos paramètres et profils d’écran sont conservés.",
     "Installation was cancelled. No application was started.": "Installation annulée. Aucune application n’a été lancée.",
-    "Error {0}. Open the installation log for details.": "Erreur {0}. Consultez le journal d’installation pour plus de détails."
+    "Error {0}. Open the installation log for details.": "Erreur {0}. Consultez le journal d’installation pour plus de détails.",
+    "Close applications using files in the installation folder, then choose OK to retry. Cancel rolls back installation.": "Fermez les applications qui utilisent des fichiers du dossier d’installation, puis cliquez sur OK pour réessayer. Annuler rétablit l’installation précédente."
   },
   "es-ES": {
     "FluentControl Setup": "Instalación de FluentControl",
@@ -393,10 +393,10 @@
     "This operation is not supported. Use install, repair or uninstall.": "Operación no compatible. Usa instalar, reparar o desinstalar.",
     "A newer version is already installed.": "Ya hay una versión más reciente instalada.",
     "Files in use": "Archivos en uso",
-    "Close the listed applications yourself, then choose OK to retry. Cancel rolls back installation.": "Cierra las aplicaciones indicadas y pulsa Aceptar para reintentar. Cancelar revierte la instalación.",
     "Restart Windows to finish. The app will not be started now.": "Reinicia Windows para terminar. La app no se iniciará ahora.",
     "Your settings and monitor profiles are preserved.": "Se conservan tus ajustes y perfiles de monitor.",
     "Installation was cancelled. No application was started.": "Instalación cancelada. No se inició ninguna aplicación.",
-    "Error {0}. Open the installation log for details.": "Error {0}. Consulta el registro de instalación para más detalles."
+    "Error {0}. Open the installation log for details.": "Error {0}. Consulta el registro de instalación para más detalles.",
+    "Close applications using files in the installation folder, then choose OK to retry. Cancel rolls back installation.": "Cierre las aplicaciones que usan archivos de la carpeta de instalación y seleccione Aceptar para reintentar. Cancelar revierte la instalación."
   }
 }

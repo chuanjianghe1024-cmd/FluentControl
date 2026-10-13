@@ -122,10 +122,14 @@ internal sealed class SetupBootstrapper : BootstrapperApplication
         {
             e.Result = Result.Cancel;
             if (!Interactive) return;
+            // Classic MSI file-use records can match common runtime filenames
+            // in unrelated processes, including this self-contained frontend.
+            // Keep raw evidence in the log; never ask users to close that list.
+            engine.Log(LogLevel.Standard, "MSI files-in-use records: " + string.Join(" | ", e.Files));
             dispatcher.Invoke(() =>
             {
-                var message = Strings.T("Close the listed applications yourself, then choose OK to retry. Cancel rolls back installation.") +
-                    Environment.NewLine + string.Join(Environment.NewLine, e.Files);
+                var message = Strings.T("Close applications using files in the installation folder, then choose OK to retry. Cancel rolls back installation.") +
+                    Environment.NewLine + InstallationSettings.Read().Directory;
                 if (System.Windows.MessageBox.Show(window, message, Strings.T("Files in use"), MessageBoxButton.OKCancel, MessageBoxImage.Information) == MessageBoxResult.OK)
                     e.Result = Result.Retry;
             });

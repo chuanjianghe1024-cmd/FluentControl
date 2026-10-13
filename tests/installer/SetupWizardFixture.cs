@@ -57,8 +57,14 @@ internal static class SetupWizardFixture
                 {
                     foreach (AutomationElement w in AutomationElement.RootElement.FindAll(TreeScope.Children, Condition.TrueCondition))
                     {
-                        if (w.Current.Name != "Files in use") continue;
-                        var button = w.FindFirst(TreeScope.Descendants, new AndCondition(
+                        // An owned native dialog can be a child of the WPF
+                        // window in the UIA tree instead of a desktop child.
+                        var prompt = w.Current.Name == "Files in use" ? w : w.Current.AutomationId == "SetupWindow"
+                            ? w.FindFirst(TreeScope.Descendants, new AndCondition(
+                                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window),
+                                new PropertyCondition(AutomationElement.NameProperty, "Files in use"))) : null;
+                        if (prompt == null) continue;
+                        var button = prompt.FindFirst(TreeScope.Descendants, new AndCondition(
                             new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
                             new PropertyCondition(AutomationElement.AutomationIdProperty, "2")));
                         if (button != null) { Invoke(button); cancelledLock = true; break; }
