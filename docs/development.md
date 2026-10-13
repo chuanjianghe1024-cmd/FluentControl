@@ -14,7 +14,9 @@ dotnet run --project tests/FluentControl.Tests -c Release
 
 桌面应用和 MSI 不使用 Node.js。Actions 官方组件自身使用的 Node 运行时不属于应用依赖。网站在独立的 FluentControl-Web 仓库构建。
 
-## 本地生成 MSI
+## 本地生成 MSI 与现代 Setup
+
+现代 Win11 风格入口、运行时边界与双包发布规则见[现代安装器](modern-installer.md)。以下 MSI 向导描述仍适用于单独运行 MSI；Setup 使用显式“启动”按钮、独立主题和八语言界面。
 
 选择未发布的新版本号；下面以首发版本展示命令，不能用重新编译的文件覆盖已发布附件。更换依赖后先清理专用 `publish` 输出目录，避免旧依赖残留。
 
@@ -22,6 +24,7 @@ dotnet run --project tests/FluentControl.Tests -c Release
 $releaseVersion = '0.3.33'
 dotnet publish src/FluentControl/FluentControl.csproj -c Release -p:PublishProfile=Installer -p:Platform=x64 -p:Version=$releaseVersion -o publish
 ./scripts/Build-Msi.ps1 -Version $releaseVersion
+./scripts/Build-Setup.ps1 -Version $releaseVersion
 ```
 
 输出为 `artifacts/installer/FluentControl-<版本>-x64.msi`，内部包含压缩 CAB 和离线运行库。保留 PRI/XAML，不做未经验证的 DLL 删除或反射裁剪。真实签名流程见 [code-signing.md](code-signing.md)。
@@ -58,7 +61,7 @@ dotnet run --project tests/FluentControl.Tests -c Release -- --native
 
 ## 发布已通过的构建
 
-正式 Release 复用已通过验收的 MSI，不为发布再编译一次。发布工作流为 `Publish release`，仅在主分支发布清单或发布脚本发生变化、或手动运行时执行。
+正式 Release 复用已通过验收的 MSI 和可选 Setup EXE，不为发布再编译一次。两者必须来自同一个成功构建，详见[双包清单](modern-installer.md#正式发布)。发布工作流为 `Publish release`，仅在主分支发布清单或发布脚本发生变化、或手动运行时执行。
 
 1. 在 `Windows build` 选择已成功完成的主分支构建，读取版本、提交 SHA、run ID、artifact ID、ZIP 摘要和 MSI 摘要/大小。
 2. 写好 `docs/releases/v<版本>.md`，更新 CHANGELOG 与 README 下载入口。

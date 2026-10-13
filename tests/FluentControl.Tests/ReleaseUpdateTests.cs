@@ -37,6 +37,18 @@ internal static class ReleaseUpdateTests
         Check(release.Installer is not null && release.Version == new Version(0, 3, 100), "Stable x64 asset selected.");
         Check(ReleaseUpdates.Parse(Payload("v0.3.100", bytes, url: "https://example.com/update.msi")).Installer is null, "Do not download from a different source.");
         Check(ReleaseUpdates.Parse(Payload("v0.3.100", bytes, digest: "sha256:invalid")).Installer is null, "Unverifiable installers cannot be used.");
+        var setupPayload = Encoding.UTF8.GetString(payload).Replace("-x64.msi", "-x64-Setup.exe");
+        var setupRelease = ReleaseUpdates.Parse(Encoding.UTF8.GetBytes(setupPayload));
+        Check(setupRelease.Installer?.FileName == "FluentControl-0.3.100-x64-Setup.exe", "Select the exact official offline setup name.");
+        using (var msiDoc = JsonDocument.Parse(payload))
+        using (var setupDoc = JsonDocument.Parse(setupPayload))
+        {
+            var both = JsonSerializer.SerializeToUtf8Bytes(new { tag_name = release.Tag, html_url = release.Page.AbsoluteUri, draft = false, prerelease = false,
+                assets = new[] { msiDoc.RootElement.GetProperty("assets")[0], setupDoc.RootElement.GetProperty("assets")[0] } });
+            Check(ReleaseUpdates.Parse(both).Installer == setupRelease.Installer, "Prefer setup independently of asset order.");
+            var badSetup = Encoding.UTF8.GetString(both).Replace("/FluentControl-0.3.100-x64-Setup.exe", "/untrusted.exe");
+            Check(ReleaseUpdates.Parse(Encoding.UTF8.GetBytes(badSetup)).Installer is null, "An invalid bundle cannot fall back silently to MSI.");
+        }
         await Fails(() => Task.Run(() => ReleaseUpdates.Parse(Payload("v0.3.100", bytes, preview: true))), UpdateFailure.InvalidRelease);
         await Fails(() => Task.Run(() => ReleaseUpdates.Parse(Encoding.UTF8.GetBytes("{}"))), UpdateFailure.InvalidRelease);
         var requests = 0;
@@ -56,6 +68,9 @@ internal static class ReleaseUpdateTests
             var path = await updates.DownloadAsync(release, directory, null, default);
             Check(File.ReadAllBytes(path).SequenceEqual(bytes), "Download the selected installer exactly.");
             await ReleaseUpdates.VerifyAsync(path, release.Installer!, default);
+            var setupPath = await updates.DownloadAsync(setupRelease, directory, null, default);
+            await ReleaseUpdates.VerifyAsync(setupPath, setupRelease.Installer!, default);
+            File.Delete(setupPath);
             await File.WriteAllBytesAsync(path, bytes.Select(b => (byte)(b ^ 1)).ToArray());
             await Fails(() => ReleaseUpdates.VerifyAsync(path, release.Installer!, default), UpdateFailure.Integrity);
             File.Delete(path);

@@ -4,6 +4,11 @@
 
 ## 未发布 / Unreleased
 
+- 新增 Win11 风格离线 Setup：明暗主题、八种语言、目录与自启动选择、显式完成后启动、修复和卸载；内部继续使用原 MSI，升级卸载保留配置。单独 MSI 继续提供，v0.3.92 附件不变。
+- Add a Fluent offline Setup with themes, eight languages, folder/startup choices, explicit launch, repair and uninstall. Retain the existing MSI backend and personal settings; standalone MSI and published v0.3.92 assets remain available.
+- 手动更新优先使用经过校验的官方 Setup，兼容旧 MSI；发布流程支持从同一成功构建发布双安装包与 SHA-256。新增真实向导、正式 MSI 迁移和 Bundle 升级回归。详见[现代安装器](docs/modern-installer.md)。
+- Manual updates prefer the verified official Setup with legacy MSI compatibility. Release automation supports matching EXE/MSI artifacts and checksums from one successful build, with real setup UI and migration/upgrade regressions.
+
 - 显示安全修复：保留未确认 Gamma 写入在恢复失败后的归属，写入前复核外部曲线，取消跨刷新/HDR 切换的旧总配置请求；新增模拟回归、[v0.3.92 审查](docs/reviews/v0.3.92-display-safety.md)与[实机验收表](docs/display-hardware-acceptance.md)。不更改已发布 MSI，真实硬件待验收。
 - Display safety: preserve ownership across interrupted gamma recovery, recheck external curves immediately before writes, and cancel stale global profiles across refresh/HDR changes. Add simulated regressions and a hardware acceptance checklist; the released MSI is unchanged and physical validation remains pending.
 

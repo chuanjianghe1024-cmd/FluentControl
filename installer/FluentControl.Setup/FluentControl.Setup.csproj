@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PlatformTarget>x64</PlatformTarget>
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>false</PublishTrimmed>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <StartupObject>FluentControl.Setup.Program</StartupObject>
+    <ApplicationIcon>../../src/FluentControl/Assets/FluentControl.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- WiX 7 EULA accepted by the repository owner; no future-major acceptance. -->
+    <AcceptEula>wix7</AcceptEula>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.BootstrapperApplicationApi" Version="7.0.0" />
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+    <Resource Include="../../docs/assets/app-icon.png" Link="Assets/FluentControl.png" />
+    <EmbeddedResource Include="Locales.json" />
+    <Content Include="../licenses/*" Link="licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

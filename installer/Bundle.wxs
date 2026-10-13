@@ -1,0 +1,19 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <!-- Bundle scope is inferred from its sole per-user MSI. Keep this identity
+       separate from the MSI UpgradeCode; Burn manages its own cache/ARP entry. -->
+  <Bundle Name="FluentControl" Manufacturer="FluentControl" Version="$(var.ProductVersion)"
+          UpgradeCode="FECCF0F0-0D94-4C6A-8D7B-78D861E03CC4" Compressed="yes"
+          IconSourceFile="src/FluentControl/Assets/FluentControl.ico" AboutUrl="https://fctrl.app">
+    <BootstrapperApplication SourceFile="$(var.SetupDir)/FluentControl.Setup.exe">
+      <PayloadGroupRef Id="SetupPayload" />
+    </BootstrapperApplication>
+    <Variable Name="InstallFolder" Type="string" Value="[LocalAppDataFolder]Programs\FluentControl" />
+    <Variable Name="StartWithWindows" Type="string" Value="0" />
+    <Chain>
+      <MsiPackage Id="FluentControlMsi" SourceFile="$(var.MsiPath)" Vital="yes" Visible="no" Compressed="yes">
+        <MsiProperty Name="INSTALLFOLDER" Value="[InstallFolder]" />
+        <MsiProperty Name="START_WITH_WINDOWS" Value="[StartWithWindows]" />
+      </MsiPackage>
+    </Chain>
+  </Bundle>
+</Wix>

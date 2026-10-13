@@ -30,7 +30,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.windows == 'true'
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     env:
       PACKAGE_VERSION: 0.3.${{ github.run_number }}
     steps:
@@ -53,6 +53,8 @@ jobs:
         run: ./tests/installer/Test-WixPolicy.ps1
       - name: Test device control logic and native mouse settings
         run: dotnet run --project tests/FluentControl.Tests -c Release -- --native
+      - name: Compile Fluent setup frontend
+        run: dotnet build installer/FluentControl.Setup/FluentControl.Setup.csproj -c Release
       - name: Build WinUI application
         run: dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
       - name: Publish application folder
@@ -71,14 +73,30 @@ jobs:
       - name: Build single compressed offline MSI
         shell: pwsh
         run: ./scripts/Build-Msi.ps1 -Version $env:PACKAGE_VERSION
+      - name: Build offline Fluent setup EXE
+        shell: pwsh
+        run: ./scripts/Build-Setup.ps1 -Version $env:PACKAGE_VERSION
+      - name: Verify Fluent setup opens and cancels
+        shell: pwsh
+        run: ./scripts/Test-Setup.ps1 -Version $env:PACKAGE_VERSION -SmokeOnly
       - name: Verify MSI install, upgrade, installed UI, tray and uninstall
         timeout-minutes: 8
         shell: pwsh
         run: ./scripts/Test-Msi.ps1 -Version $env:PACKAGE_VERSION
+      - name: Verify Fluent setup UI, migration, repair and uninstall
+        timeout-minutes: 12
+        shell: pwsh
+        run: ./scripts/Test-Setup.ps1 -Version $env:PACKAGE_VERSION
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: FluentControl-MSI-x64
           path: artifacts/installer/*.msi
+          compression-level: 0
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: FluentControl-Setup-x64
+          path: artifacts/installer/*-Setup.exe
           compression-level: 0
           if-no-files-found: error
       - name: Upload installer diagnostics
@@ -88,6 +106,7 @@ jobs:
           name: FluentControl-installer-logs
           path: |
             artifacts/msi-logs/
+            artifacts/setup-logs/
             artifacts/obj/**/size-report.json
             artifacts/obj/**/payload.json
             artifacts/obj/**/signatures.json

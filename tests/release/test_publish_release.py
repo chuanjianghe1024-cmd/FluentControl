@@ -40,6 +40,56 @@ class ReleaseTests(unittest.TestCase):
     def test_checked_in_manifest(self):
         release.validate_manifest(self.m)
 
+    def add_setup(self):
+        self.m["setup"] = {"artifactId": 98765, "artifactName": "FluentControl-Setup-x64",
+                           "archiveSha256": "a" * 64, "sha256": "b" * 64, "bytes": 123,
+                           "fileName": f'FluentControl-{self.m["version"]}-x64-Setup.exe'}
+
+    def test_dual_installers_require_matching_source_and_complete_assets(self):
+        self.add_setup()
+        release.validate_manifest(self.m)
+        entries = release.installer_manifests(self.m)
+        self.assertEqual(len(entries), 2)
+        run, artifact = self.source()
+        setup_artifact = {**artifact, "id": self.m["setup"]["artifactId"],
+                          "name": self.m["setup"]["artifactName"], "digest": "sha256:" + "a" * 64}
+        release.validate_source(entries[1], run, setup_artifact, self.repo)
+        setup_artifact["workflow_run"]["head_sha"] = "0" * 40
+        with self.assertRaisesRegex(ValueError, "source mismatch"):
+            release.validate_source(entries[1], run, setup_artifact, self.repo)
+        expected, checksum = release.expected_assets(self.m)
+        self.assertEqual(len(expected), 3)
+        self.assertEqual(len(checksum.splitlines()), 2)
+        release.validate_assets(self.assets(), expected, complete=True)
+        with self.assertRaisesRegex(ValueError, "Missing"):
+            release.validate_assets(self.assets()[:1], expected, complete=True)
+
+    def test_setup_manifest_rejects_other_names_sources_and_versions(self):
+        self.add_setup()
+        for field, value in (("fileName", "other.exe"), ("artifactName", "untrusted"),
+                             ("archiveSha256", "bad"), ("bytes", -1), ("sourceCommit", "a" * 40)):
+            bad = copy.deepcopy(self.m)
+            bad["setup"][field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                release.validate_manifest(bad)
+
+    def test_bundle_archive_uses_the_same_integrity_gate(self):
+        self.add_setup()
+        with tempfile.TemporaryDirectory() as directory:
+            work = Path(directory)
+            archive = work / "setup.zip"
+            entry = release.installer_manifests(self.m)[1]
+            body = b"non-executable setup fixture"
+            entry["bytes"] = len(body)
+            entry["sha256"] = hashlib.sha256(body).hexdigest()
+            with zipfile.ZipFile(archive, "w") as package:
+                package.writestr(entry["fileName"], body)
+            entry["archiveSha256"] = release.sha256(archive)
+            self.assertEqual(release.unpack_msi(entry, archive, work).read_bytes(), body)
+            entry["sha256"] = "0" * 64
+            with self.assertRaises(ValueError):
+                release.unpack_msi(entry, archive, work)
+
     def test_build_provenance(self):
         run, artifact = self.source()
         release.validate_source(self.m, run, artifact, self.repo)
