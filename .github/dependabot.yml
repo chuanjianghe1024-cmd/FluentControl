@@ -22,6 +22,16 @@ updates:
       time: '02:30'
       timezone: Asia/Shanghai
     open-pull-requests-limit: 3
+  # Keep tool updates visible, but require manual license/compatibility review
+  # for future WiX majors. WiX 7 OSMF is approved; patch updates use normal CI.
+  - package-ecosystem: nuget
+    directory: /.config
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: wix
+        update-types: ['version-update:semver-major']
   - package-ecosystem: pip
     directory: /.github
     schedule:

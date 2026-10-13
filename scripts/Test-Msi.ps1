@@ -284,6 +284,48 @@ public static class InstallerFixtureWindow {
         throw 'Wizard-installed application did not uninstall cleanly.'
     }
     Write-Host 'PASS: install options, custom/default paths, upgrade opt-out, launch opt-in/out and quiet-install behavior.'
+
+    # Cross-toolchain upgrade from the immutable official release, not a rebuilt fixture.
+    $release = Get-Content (Join-Path $root '.github/release.json') -Raw | ConvertFrom-Json
+    if ([version]$Version -le [version]$release.version) { throw 'Upgrade test requires a version newer than the released baseline.' }
+    $baseline = Join-Path $logs $release.fileName
+    $baselineUrl = "https://github.com/chuanjianghe1024-cmd/FluentControl/releases/download/v$($release.version)/$($release.fileName)"
+    Invoke-WebRequest $baselineUrl -OutFile $baseline
+    if ((Get-Item $baseline).Length -ne $release.bytes -or
+        (Get-FileHash $baseline -Algorithm SHA256).Hash -ne $release.sha256) {
+        throw 'Official release baseline size or SHA-256 mismatch.'
+    }
+    $baselineCode = [Guid]::Parse((MsiProperty $baseline 'ProductCode')).ToString('B').ToUpperInvariant()
+    $target = [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'FC installer checks/正式版 升级/FluentControl'))
+    RunMsi "/i `"$baseline`" INSTALLFOLDER=`"$target`" START_WITH_WINDOWS=1" 'released-baseline-install'
+    $installed = $baselineCode
+    AssertProduct $baselineCode $true $release.version
+    AssertStartup $true
+    AssertNoApp
+    AssertRetained
+    RunMsi "/i `"$current`" INSTALLFOLDER=`"$defaultTarget`"" 'released-baseline-upgrade'
+    $installed = $currentCode
+    AssertProduct $baselineCode $false
+    AssertProduct $currentCode $true $Version
+    AssertStartup $true
+    AssertNoApp
+    AssertRetained
+    if (Test-Path "$defaultTarget/FluentControl.exe") { throw 'Released baseline upgrade relocated the installation.' }
+    foreach ($file in $manifest) {
+        $path = Join-Path $target $file.path
+        if (-not (Test-Path $path) -or (Get-FileHash $path -Algorithm SHA256).Hash -ne $file.sha256) {
+            throw "Released baseline upgrade payload mismatch: $($file.path)"
+        }
+    }
+    RunMsi "/x $currentCode" 'released-baseline-uninstall'
+    $installed = $null
+    AssertProduct $currentCode $false
+    AssertStartup $false
+    AssertRetained
+    if ((Test-Path "$target/FluentControl.exe") -or (Test-Path $shortcut)) { throw 'Released baseline uninstall left application files or shortcut.' }
+    if ((Get-FileHash $baseline -Algorithm SHA256).Hash -ne $release.sha256) { throw 'Released baseline was modified.' }
+    Write-Host "PASS: official v$($release.version) MSI -> $Version upgrade preserves directory, startup and data; payload hashes and uninstall verified."
+
 }
 finally {
     StopLockFixture $locked

@@ -44,6 +44,10 @@
           <Publish Event="SpawnDialog" Value="CancelDlg" />
         </Control>
       </Dialog>
+      <!-- WiX 7 moves BrowseDlg OK events into the hosting UI set. -->
+      <Publish Dialog="BrowseDlg" Control="OK" Event="CheckTargetPath" Value="[_BrowseProperty]" Order="1" />
+      <Publish Dialog="BrowseDlg" Control="OK" Event="SetTargetPath" Value="[_BrowseProperty]" Order="3" />
+      <Publish Dialog="BrowseDlg" Control="OK" Event="EndDialog" Value="Return" Order="4" />
       <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallOptionsDlg" Condition="NOT Installed" />
       <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Condition="Installed AND PATCH" />
       <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="InstallOptionsDlg" Condition="NOT Installed" />
