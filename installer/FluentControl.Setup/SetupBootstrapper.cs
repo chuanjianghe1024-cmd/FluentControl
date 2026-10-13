@@ -98,7 +98,9 @@ internal sealed class SetupBootstrapper : BootstrapperApplication
         PlanComplete += (_, e) => Ui(() =>
         {
             if (e.Status < 0 || cancelled) { Complete(e.Status < 0 ? e.Status : unchecked((int)0x80070642)); return; }
-            engine.Apply(new WindowInteropHelper(window).Handle);
+            // Burn requires a real owner HWND even for /quiet. EnsureHandle
+            // creates the hidden native window without showing the WPF UI.
+            engine.Apply(new WindowInteropHelper(window).EnsureHandle());
         });
         Progress += (_, e) =>
         {
