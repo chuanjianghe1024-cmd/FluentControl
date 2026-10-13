@@ -123,6 +123,8 @@ internal static class SetupWizardFixture
                 }
                 catch (ElementNotAvailableException) { }
             }
+            if (process != null && process.HasExited)
+                throw new InvalidOperationException("Setup exited before control " + id + ": " + process.ExitCode + ". See Burn log.");
             Thread.Sleep(150);
         }
         throw new TimeoutException("Setup control: " + id);
