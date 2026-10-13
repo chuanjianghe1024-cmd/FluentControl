@@ -4,7 +4,10 @@
 
 ## 未发布 / Unreleased
 
-暂无后续变更 / No subsequent changes yet.
+- 修复深色模式下设置开关、选择器所在卡片背景与文字不匹配的问题；卡片、型号标记和识别提示改为随主题更新的资源。
+- 设置 → 常规新增应用主题：跟随系统、浅色、深色，立即生效并保存；主窗口、导航、标题栏、对话框及 FC 屏幕菜单保持一致，桌面面板文字颜色仍独立设置。
+- Fix mismatched card backgrounds and text around switches and selectors in dark mode. Cards, model badges and identification labels now use live theme resources.
+- Add Settings → General → App theme with system, light and dark choices, applied immediately and saved. Keep navigation, title bars, dialogs and the FC on-screen menu consistent; desktop panel text remains independently configured.
 
 ## [0.3.118](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.118) — 2026-10-13
 

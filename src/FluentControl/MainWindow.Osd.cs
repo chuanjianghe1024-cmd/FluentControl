@@ -31,11 +31,10 @@ public sealed partial class MainWindow
         monitorOsd = window;
         var lifetime = new CancellationTokenSource();
         var syncs = new List<Action>();
-        var root = new Grid { RequestedTheme = Root.ActualTheme, Padding = new Thickness(16), RowSpacing = 10 };
+        var root = new Grid { RequestedTheme = Root.ActualTheme, Style = (Style)Application.Current.Resources["WindowSurfaceStyle"], Padding = new Thickness(16), RowSpacing = 10 };
         root.RowDefinitions.Add(new() { Height = GridLength.Auto });
         root.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
         root.RowDefinitions.Add(new() { Height = GridLength.Auto });
-        root.Background = new SolidColorBrush(Root.ActualTheme == ElementTheme.Dark ? Windows.UI.Color.FromArgb(255, 32, 32, 32) : Windows.UI.Color.FromArgb(255, 243, 243, 243));
         var heading = new StackPanel { Spacing = 4 };
         heading.Children.Add(new TextBlock { Text = MonitorTitle(device) + " · " + device.Model, FontSize = 20, TextWrapping = TextWrapping.Wrap });
         heading.Children.Add(Empty(T("FC 软件菜单，控制当前屏幕。Esc 关闭。", "FC software menu for this display. Esc to close.")));
@@ -153,9 +152,7 @@ public sealed partial class MainWindow
             if (ReferenceEquals(monitorOsd, window)) monitorOsd = null;
         };
         if (window.AppWindow.Presenter is OverlappedPresenter presenter) { presenter.IsAlwaysOnTop = true; presenter.IsMaximizable = false; presenter.IsMinimizable = false; }
-        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
-        int dark = Root.ActualTheme == ElementTheme.Dark ? 1 : 0;
-        DwmSetWindowAttribute(hwnd, 20, ref dark, sizeof(int));
+        ApplyWindowTitleTheme(window, Root.ActualTheme);
         try { window.AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "FluentControl.ico")); } catch { }
         WindowPlacement.Place(window, 580, 660, device);
         window.Activate();

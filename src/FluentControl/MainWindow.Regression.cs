@@ -104,17 +104,7 @@ public sealed partial class MainWindow
     {
         if (!initialLoadCompleted || InitializationPanel.Visibility != Visibility.Collapsed || InitializationRing.IsActive || Navigation.Visibility != Visibility.Visible)
             throw new InvalidOperationException("Initialization screen did not transition to device controls.");
-        var theme = Root.RequestedTheme;
-        try
-        {
-            foreach (var value in new[] { ElementTheme.Dark, ElementTheme.Light })
-            {
-                Root.RequestedTheme = value; await Task.Delay(100); ApplyTitleTheme();
-                if (Microsoft.UI.Windowing.AppWindowTitleBar.IsCustomizationSupported() && AppWindow.TitleBar.BackgroundColor?.R != (value == ElementTheme.Dark ? 32 : 243))
-                    throw new InvalidOperationException("Title bar theme did not follow content.");
-            }
-        }
-        finally { Root.RequestedTheme = theme; ApplyTitleTheme(); }
+        await CheckAppThemeAsync();
         var secondPreset = displayDevices[1].Channels.First(c => c.PropertyKey == "color-preset");
         var key = ProfileGroups.MonitorKey(displayDevices[1].Id, secondPreset.PropertyKey);
         if (CaptureProfile().ContainsKey(key)) throw new InvalidOperationException("Unadvertised current preset must not be captured.");

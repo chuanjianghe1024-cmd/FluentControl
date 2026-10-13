@@ -238,7 +238,7 @@ public sealed partial class MainWindow : Window
         rename.Click += async (_, _) =>
         {
             var input = new TextBox { Text = device.DisplayName, MaxLength = 40, PlaceholderText = T("例如：左屏、右屏、竖屏", "Left, right, portrait…") };
-            var dialog = new ContentDialog { Title = T("重命名 ", "Rename ") + device.Preference.Label, Content = input, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), DefaultButton = ContentDialogButton.Primary, XamlRoot = Root.XamlRoot };
+            var dialog = new ContentDialog { Title = T("重命名 ", "Rename ") + device.Preference.Label, Content = input, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), DefaultButton = ContentDialogButton.Primary, RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot };
             input.TextChanged += (_, _) => dialog.IsPrimaryButtonEnabled = !string.IsNullOrWhiteSpace(input.Text);
             try
             {
@@ -376,8 +376,7 @@ public sealed partial class MainWindow : Window
     private static Border Card(UIElement content) => new()
     {
         CornerRadius = new CornerRadius(10), BorderThickness = new Thickness(1),
-        Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
-        BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"], Child = content,
+        Style = (Style)Application.Current.Resources["CardBorderStyle"], Child = content,
         Transitions = new TransitionCollection { new EntranceThemeTransition() }
     };
     private static TextBlock Empty(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(4, 8, 4, 8), Opacity = .8 };

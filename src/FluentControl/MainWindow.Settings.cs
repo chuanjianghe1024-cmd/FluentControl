@@ -56,6 +56,20 @@ public sealed partial class MainWindow
             SetLanguage(state.Settings.Language); SaveState(); LocalizeUi(); BuildSettings(); await RefreshAsync();
         };
         section.Children.Add(SettingsRow(T("语言", "Language"), T("标题、导航、托盘和提示统一切换", "Updates titles, navigation, tray menus and messages"), languages));
+        var theme = new ComboBox
+        {
+            ItemsSource = new[] { T("跟随系统", "System default"), T("浅色", "Light"), T("深色", "Dark") },
+            SelectedIndex = state.Settings.Theme switch { "light" => 1, "dark" => 2, _ => 0 }, MinWidth = 170
+        };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(theme, "setting-app-theme");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(theme, T("应用主题", "App theme"));
+        theme.SelectionChanged += (_, _) =>
+        {
+            if (theme.SelectedIndex < 0) return;
+            state.Settings.Theme = theme.SelectedIndex switch { 1 => "light", 2 => "dark", _ => "system" };
+            ApplyAppTheme(); SaveState();
+        };
+        section.Children.Add(SettingsRow(T("应用主题", "App theme"), T("立即切换并记住选择；桌面面板文字颜色单独设置", "Applies immediately and remembers your choice; desktop panel text is configured separately"), theme));
         Toggle(T("关闭窗口后留在托盘", "Keep running in the tray"), T("从托盘菜单可彻底退出", "Use the tray menu to exit completely"), state.Settings.CloseToTray, value => { state.Settings.CloseToTray = value; SaveState(); });
         bool startup;
         try { startup = !uiTest && StartupService.IsEnabled(); } catch { startup = false; }

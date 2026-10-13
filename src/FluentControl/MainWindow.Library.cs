@@ -80,7 +80,7 @@ public sealed partial class MainWindow
                         try
                         {
                             var picker = new ComboBox { ItemsSource = displayDevices, DisplayMemberPath = "DisplayName", SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
-                            if (await new ContentDialog { Title = T("选择目标显示器", "Choose target display"), Content = picker, PrimaryButtonText = T("继续", "Continue"), CloseButtonText = T("取消", "Cancel"), XamlRoot = Root.XamlRoot }.ShowAsync() == ContentDialogResult.Primary && picker.SelectedItem is MonitorDevice target)
+                            if (await new ContentDialog { Title = T("选择目标显示器", "Choose target display"), Content = picker, PrimaryButtonText = T("继续", "Continue"), CloseButtonText = T("取消", "Cancel"), RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot }.ShowAsync() == ContentDialogResult.Primary && picker.SelectedItem is MonitorDevice target)
                                 await ApplyMonitorPresetAsync(target, preset);
                         }
                         catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error); }
@@ -108,7 +108,7 @@ public sealed partial class MainWindow
             var list = new ListView { DisplayMemberPath = "Name", SelectionMode = ListViewSelectionMode.Single, MaxHeight = 220 };
             var preview = new TextBlock { TextWrapping = TextWrapping.Wrap };
             var body = new StackPanel { Spacing = 10, MinWidth = 340 }; body.Children.Add(model); body.Children.Add(search); body.Children.Add(list); body.Children.Add(preview);
-            var dialog = new ContentDialog { Title = MonitorTitle(device) + " · " + T("选用配置", "Choose preset"), Content = body, PrimaryButtonText = T("应用", "Apply"), CloseButtonText = T("取消", "Cancel"), XamlRoot = Root.XamlRoot };
+            var dialog = new ContentDialog { Title = MonitorTitle(device) + " · " + T("选用配置", "Choose preset"), Content = body, PrimaryButtonText = T("应用", "Apply"), CloseButtonText = T("取消", "Cancel"), RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot };
             void Preview()
             {
                 dialog.IsPrimaryButtonEnabled = list.SelectedItem is MonitorPreset;
@@ -172,7 +172,7 @@ public sealed partial class MainWindow
         {
             try
             {
-                if (await new ContentDialog { Title = T("另存为当前型号配置", "Save as this model's preset"), Content = message, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("稍后", "Later"), XamlRoot = Root.XamlRoot }.ShowAsync() == ContentDialogResult.Primary)
+                if (await new ContentDialog { Title = T("另存为当前型号配置", "Save as this model's preset"), Content = message, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("稍后", "Later"), RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot }.ShowAsync() == ContentDialogResult.Primary)
                     await SaveMonitorPresetAsync(device, preset);
             }
             catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error); }
@@ -196,7 +196,7 @@ public sealed partial class MainWindow
             }
             scenario.TextChanged += (_, _) => Suggest(); summary.TextChanged += (_, _) => Suggest(); apps.TextChanged += (_, _) => Suggest();
             var body = new StackPanel { Spacing = 10 }; body.Children.Add(Empty(MonitorPresetLibrary.GroupName(descriptor))); body.Children.Add(scenario); body.Children.Add(summary); body.Children.Add(apps); body.Children.Add(name);
-            var dialog = new ContentDialog { Title = T("保存显示器配置", "Save monitor preset"), Content = body, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), XamlRoot = Root.XamlRoot };
+            var dialog = new ContentDialog { Title = T("保存显示器配置", "Save monitor preset"), Content = body, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot };
             if (await dialog.ShowAsync() != ContentDialogResult.Primary || closed || refreshing || !displayDevices.Contains(device)) return;
             if (string.IsNullOrWhiteSpace(name.Text)) throw new ArgumentException(T("名称为空或在当前分组中重复。", "The name is empty or already exists in this group."));
             await WaitForWritesAsync(); await gate.WaitAsync();
@@ -224,7 +224,7 @@ public sealed partial class MainWindow
             var summary = new TextBox { Header = T("短简介", "Short description"), Text = preset.Summary, MaxLength = 160 };
             var apps = new TextBox { Header = T("适用应用 / 游戏（逗号分隔）", "Apps / games (comma separated)"), Text = string.Join(", ", preset.Applications), MaxLength = 1500 };
             var body = new StackPanel { Spacing = 10 }; body.Children.Add(name); body.Children.Add(scene); body.Children.Add(summary); body.Children.Add(apps);
-            if (await new ContentDialog { Title = T("配置信息", "Profile information"), Content = body, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), XamlRoot = Root.XamlRoot }.ShowAsync() != ContentDialogResult.Primary) return;
+            if (await new ContentDialog { Title = T("配置信息", "Profile information"), Content = body, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot }.ShowAsync() != ContentDialogResult.Primary) return;
             if (string.IsNullOrWhiteSpace(name.Text)) return;
             var applications = ParseApplications(apps.Text);
             var old = (preset.Name, preset.Scenario, preset.Summary, preset.Applications);
@@ -253,7 +253,7 @@ public sealed partial class MainWindow
     {
         try
         {
-            if (await new ContentDialog { Title = T("删除配置", "Delete profile"), Content = string.Join("\n", presets.Take(8).Select(p => p.Name)) + "\n\n" + T("总配置中的快照会保留。", "Snapshots in global profiles will be retained."), PrimaryButtonText = T("删除", "Delete"), CloseButtonText = T("取消", "Cancel"), DefaultButton = ContentDialogButton.Close, XamlRoot = Root.XamlRoot }.ShowAsync() != ContentDialogResult.Primary) return;
+            if (await new ContentDialog { Title = T("删除配置", "Delete profile"), Content = string.Join("\n", presets.Take(8).Select(p => p.Name)) + "\n\n" + T("总配置中的快照会保留。", "Snapshots in global profiles will be retained."), PrimaryButtonText = T("删除", "Delete"), CloseButtonText = T("取消", "Cancel"), DefaultButton = ContentDialogButton.Close, RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot }.ShowAsync() != ContentDialogResult.Primary) return;
             var old = state.MonitorPresets; state.MonitorPresets = old.Where(p => !presets.Contains(p)).ToList();
             if (!SaveState()) state.MonitorPresets = old;
             BuildPresetLibrary(); RenderMonitorControls(generation);

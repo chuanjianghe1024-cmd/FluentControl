@@ -29,6 +29,7 @@ public sealed partial class MainWindow
         }
         catch (Exception ex) { StartupLog.Write("User state cannot be read: " + ex); }
         SetLanguage(state.Settings.Language);
+        ApplyAppTheme();
         statusTimer.Tick += (_, _) => ClearStatus();
         pendingStateTimer.Tick += (_, _) => { pendingStateTimer.Stop(); SaveState(); };
         try
@@ -291,7 +292,7 @@ public sealed partial class MainWindow
         var input = new TextBox { Header = T("配置名称", "Profile name"), PlaceholderText = T("例如：阅读、游戏、夜间", "Reading, gaming, evening…"), MaxLength = 80 };
         var apps = new TextBox { Header = T("适用应用 / 游戏（逗号分隔）", "Apps / games (comma separated)"), MaxLength = 1500 };
         var contents = new StackPanel { Spacing = 12 }; contents.Children.Add(input); contents.Children.Add(apps);
-        var dialog = new ContentDialog { Title = T("保存总配置", "Save global profile"), Content = contents, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), IsPrimaryButtonEnabled = false, XamlRoot = Root.XamlRoot };
+        var dialog = new ContentDialog { Title = T("保存总配置", "Save global profile"), Content = contents, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), IsPrimaryButtonEnabled = false, RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot };
         input.TextChanged += (_, _) => dialog.IsPrimaryButtonEnabled = !string.IsNullOrWhiteSpace(input.Text);
         try
         {
@@ -337,7 +338,7 @@ public sealed partial class MainWindow
     private async void DeleteProfile_Click(object sender, RoutedEventArgs e)
     {
         if (ProfilePicker.SelectedItem is not ControlProfile profile) return;
-        var dialog = new ContentDialog { Title = T("删除配置", "Delete profile"), Content = profile.Name, PrimaryButtonText = T("删除", "Delete"), CloseButtonText = T("取消", "Cancel"), XamlRoot = Root.XamlRoot };
+        var dialog = new ContentDialog { Title = T("删除配置", "Delete profile"), Content = profile.Name, PrimaryButtonText = T("删除", "Delete"), CloseButtonText = T("取消", "Cancel"), RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot };
         try
         {
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;

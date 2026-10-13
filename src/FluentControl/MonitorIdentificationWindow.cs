@@ -25,8 +25,7 @@ internal sealed class MonitorIdentificationWindow : Window
         root = new Border
         {
             RequestedTheme = theme, Padding = new Thickness(24), BorderThickness = new Thickness(3),
-            Background = (Brush)Application.Current.Resources["SolidBackgroundFillColorBaseBrush"],
-            BorderBrush = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"],
+            Style = (Style)Application.Current.Resources["IdentificationBorderStyle"],
             Child = new ScrollViewer { Content = labels, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalContentAlignment = VerticalAlignment.Center }
         };

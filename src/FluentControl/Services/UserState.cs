@@ -4,6 +4,7 @@ namespace FluentControl.Services;
 public sealed class AppSettings
 {
     public string Language { get; set; } = "auto";
+    public string Theme { get; set; } = "system";
     public bool CloseToTray { get; set; } = true;
     public bool HotkeysEnabled { get; set; } = true;
     public bool DesktopPanelEnabled { get; set; }
@@ -61,6 +62,7 @@ public sealed class UserStateStore
         this.path = path;
         State = File.Exists(path) ? JsonSerializer.Deserialize<UserState>(File.ReadAllText(path)) ?? new() : new();
         State.Settings ??= new(); State.Profiles ??= new();
+        if (State.Settings.Theme is not ("system" or "light" or "dark")) State.Settings.Theme = "system";
         ProfileGroups.Normalize(State);
         if (State.ProfileOrganizationVersion < 1)
         {

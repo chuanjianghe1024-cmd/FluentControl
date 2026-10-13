@@ -23,7 +23,7 @@ public sealed partial class MainWindow
         content.Children.Add(Empty(T("网站上传：接口已预留，等待分享网站接入。", "Website upload: interface reserved until the sharing site is connected.")));
         try
         {
-            var result = await new ContentDialog { Title = T("分享 / 导入", "Share / import"), Content = new ScrollViewer { Content = content, MaxHeight = 480 }, PrimaryButtonText = T("继续", "Continue"), CloseButtonText = T("取消", "Cancel"), XamlRoot = Root.XamlRoot }.ShowAsync();
+            var result = await new ContentDialog { Title = T("分享 / 导入", "Share / import"), Content = new ScrollViewer { Content = content, MaxHeight = 480 }, PrimaryButtonText = T("继续", "Continue"), CloseButtonText = T("取消", "Cancel"), RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot }.ShowAsync();
             if (result != ContentDialogResult.Primary || closed) return;
             if (actions.SelectedIndex == 0)
             {
@@ -72,7 +72,7 @@ public sealed partial class MainWindow
         var body = new StackPanel { Spacing = 10 };
         body.Children.Add(Empty(T("按显示器型号合并到配置库；无需连接设备，导入不会改变硬件。相同配置去重，重名内容另存。", "Merge into the library by monitor model. No device connection is needed and importing does not change hardware. Identical presets are deduplicated; differing namesakes are kept.")));
         body.Children.Add(Empty(string.Join("\n", modelNames)));
-        var dialog = new ContentDialog { Title = T("导入预览", "Import preview"), Content = new ScrollViewer { Content = body, MaxHeight = 400 }, PrimaryButtonText = T("导入全部配置", "Import all profiles"), CloseButtonText = T("取消", "Cancel"), XamlRoot = Root.XamlRoot };
+        var dialog = new ContentDialog { Title = T("导入预览", "Import preview"), Content = new ScrollViewer { Content = body, MaxHeight = 400 }, PrimaryButtonText = T("导入全部配置", "Import all profiles"), CloseButtonText = T("取消", "Cancel"), RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary || closed) return;
         state.MonitorPresets.AddRange(imported);
         if (!SaveState()) { state.MonitorPresets.RemoveAll(imported.Contains); return; }

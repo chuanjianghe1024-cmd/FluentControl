@@ -30,7 +30,7 @@ public sealed partial class MainWindow
         var pair = new Button { Content = T("OSD 配对 / 遥控", "OSD pairing / remote") };
         var status = new TextBlock { TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true, Text = store.LoadError ?? "" };
         foreach (var item in new FrameworkElement[] { pair, query, choices, description, install, remove, collect, status }) body.Children.Add(item);
-        var dialog = new ContentDialog { Title = T("型号适配", "Model adapters"), Content = new ScrollViewer { Content = body, MaxHeight = 460 }, XamlRoot = Root.XamlRoot, CloseButtonText = T("关闭", "Close") };
+        var dialog = new ContentDialog { Title = T("型号适配", "Model adapters"), Content = new ScrollViewer { Content = body, MaxHeight = 460 }, RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot, CloseButtonText = T("关闭", "Close") };
         monitorAdaptationDialog = dialog;
         bool Active() => open && !closed && version == generation && ReferenceEquals(monitorAdaptationDialog, dialog);
         choices.SelectionChanged += (_, _) =>

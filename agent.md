@@ -183,6 +183,11 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 状态基线：**2026-10-13**。这里只列工程进度与后续验收；不因条目写入计划就宣称已完成或已发布。
 
+### 当前未发布变更
+
+- 应用主题保存于 `AppSettings.Theme`（`system/light/dark`，旧设置和未知值回退到 `system`）；设置 → 常规可立即切换。将 `RequestedTheme` 设置在 `ShellRoot`，覆盖导航及启动界面，窗口标题和已打开的 FC 菜单同步；桌面面板保留独立文字偏好。
+- 动态卡片、型号标记和识别背景经 `App.xaml` 的样式使用 `ThemeResource`；不要通过 `Application.Current.Resources` 一次性取出主题画刷并赋给动态控件。对话框显式继承宿主主题。原生主题回归在 `MainWindow.ThemeChecks.cs`，包含同一组设置卡片连续切换、文字对比度、已打开的 FC 菜单、持久化及恢复跟随系统。
+
 ### 已完成的基础
 
 - `v0.3.118` 发布来源为主干构建 #118 / `1688c9aaeec388c363548316c5276aa1ce5c043e`；同一构建的 Setup（53,475,263 字节）与 MSI（50,696,405 字节）通过来源及摘要校验后发布。包含现代安装向导、前端运行时缩包、优先 Setup 的手动更新、v0.3.92 之后的显示控制修复与社区文档。完整 Windows/MSI/Setup 回归通过，实体显示器和混合 DPI 验收边界不变。详见 `docs/releases/v0.3.118.md`。

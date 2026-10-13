@@ -183,6 +183,16 @@ try
     Check(restored.State.Settings.DesktopOpacity == 25 && restored.State.Settings.DesktopWidth == 480 && restored.State.Settings.DesktopHeight == 250, "Panel appearance and geometry round trip.");
     Check(restored.State.Profiles[0].Values["monitor/A/brightness"].Value == 42, "Profile values round trip.");
     Check(restored.State.Settings.HideUnavailableMonitorControls && restored.State.Profiles[0].BrightnessMappings["monitor-A"].Curve == 2, "Filter and scene calibration persistence.");
+    foreach (var theme in new[] { "system", "light", "dark" })
+    {
+        store.State.Settings.Theme = theme; store.Save();
+        Check(new UserStateStore(statePath).State.Settings.Theme == theme, "App theme survives restart: " + theme);
+    }
+    store.State.Settings.Theme = "unknown"; store.Save();
+    Check(new UserStateStore(statePath).State.Settings.Theme == "system", "Unknown themes fall back to system.");
+    File.WriteAllText(Path.Combine(directory, "legacy-theme.json"), "{\"Settings\":{\"Language\":\"ja-JP\"}}");
+    var legacyTheme = new UserStateStore(Path.Combine(directory, "legacy-theme.json"));
+    Check(legacyTheme.State.Settings.Theme == "system" && legacyTheme.State.Settings.Language == "ja-JP", "Old settings acquire the system theme without losing language.");
     Check(UserStateStore.NextIndex(restored.State.Profiles, "one", -1) == 1, "Previous profile wraps.");
     Check(UserStateStore.NextIndex(restored.State.Profiles, "two", 1) == 0, "Next profile wraps.");
     Check(UserStateStore.NextIndex(Array.Empty<ControlProfile>(), null, 1) == -1, "Empty profiles handled.");

@@ -581,7 +581,11 @@
     "The color curve changed outside FC. Control was released; applying again will use the current colors as the baseline.": "顏色曲線已被其他程式或顯示模式變更，FC 已停止接管；再次套用將以目前顏色為基準。",
     "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "透過顯示卡調整畫面冷暖，不修改螢幕硬體色溫。數值為近似目標，6500 K 保留原曲線；避免與夜間光線或校色軟體同時使用。",
     "HDR control limitations": "HDR 調整限制",
-    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "HDR 模式下，顯示器可能鎖定亮度、對比度、色溫等調整。若調整無效，請關閉 HDR 後重新讀取裝置。"
+    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "HDR 模式下，顯示器可能鎖定亮度、對比度、色溫等調整。若調整無效，請關閉 HDR 後重新讀取裝置。",
+    "Light": "淺色",
+    "Dark": "深色",
+    "App theme": "應用程式主題",
+    "Applies immediately and remembers your choice; desktop panel text is configured separately": "立即切換並記住選擇；桌面面板文字顏色另行設定"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -1165,7 +1169,11 @@
     "The color curve changed outside FC. Control was released; applying again will use the current colors as the baseline.": "FC 以外でカラーカーブが変更されたため、制御を解除しました。再適用すると現在の色が基準になります。",
     "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "ハードウェアの色温度を変更せず、グラフィックスドライバーで色味を調整します。値は目安で、6500 K では元のカーブを維持します。夜間モードや色校正ツールとの併用は避けてください。",
     "HDR control limitations": "HDR の調整制限",
-    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "HDR モードでは、ディスプレイによって明るさ、コントラスト、色温度などの調整が制限される場合があります。調整が反映されない場合は、HDR をオフにしてデバイスを再読み込みしてください。"
+    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "HDR モードでは、ディスプレイによって明るさ、コントラスト、色温度などの調整が制限される場合があります。調整が反映されない場合は、HDR をオフにしてデバイスを再読み込みしてください。",
+    "Light": "ライト",
+    "Dark": "ダーク",
+    "App theme": "アプリのテーマ",
+    "Applies immediately and remembers your choice; desktop panel text is configured separately": "すぐに適用し、選択を保存します。デスクトップパネルの文字色は別途設定します"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -1749,7 +1757,11 @@
     "The color curve changed outside FC. Control was released; applying again will use the current colors as the baseline.": "FC 외부에서 색상 곡선이 변경되어 제어를 해제했습니다. 다시 적용하면 현재 색상을 기준으로 사용합니다.",
     "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "하드웨어 색온도를 변경하지 않고 그래픽 드라이버로 화면의 색감을 조절합니다. 수치는 근삿값이며 6500 K는 원래 곡선을 유지합니다. 야간 모드나 색상 보정 도구와 함께 사용하지 마세요.",
     "HDR control limitations": "HDR 조절 제한",
-    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "HDR 모드에서는 디스플레이가 밝기, 대비, 색온도 등의 조절을 제한할 수 있습니다. 조절해도 변화가 없다면 HDR을 끄고 장치를 새로 고치세요."
+    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "HDR 모드에서는 디스플레이가 밝기, 대비, 색온도 등의 조절을 제한할 수 있습니다. 조절해도 변화가 없다면 HDR을 끄고 장치를 새로 고치세요.",
+    "Light": "밝게",
+    "Dark": "어둡게",
+    "App theme": "앱 테마",
+    "Applies immediately and remembers your choice; desktop panel text is configured separately": "즉시 적용하고 선택을 저장합니다. 데스크톱 패널의 글자색은 별도로 설정합니다"
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -2333,7 +2345,11 @@
     "The color curve changed outside FC. Control was released; applying again will use the current colors as the baseline.": "Die Farbkurve wurde außerhalb von FC geändert. Die Steuerung wurde freigegeben; erneutes Anwenden verwendet die aktuellen Farben als Grundlage.",
     "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "Passt die Farbtemperatur über den Grafiktreiber an, ohne die Hardware-Farbtemperatur zu ändern. Die Werte sind Näherungen; 6500 K erhält die ursprüngliche Kurve. Nicht mit Nachtmodus oder Kalibrierungsprogrammen kombinieren.",
     "HDR control limitations": "Einschränkungen bei HDR",
-    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "Im HDR-Modus kann das Display Helligkeit, Kontrast, Farbtemperatur und andere Einstellungen sperren. Wenn Änderungen keine Wirkung haben, deaktivieren Sie HDR und lesen Sie die Geräte erneut ein."
+    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "Im HDR-Modus kann das Display Helligkeit, Kontrast, Farbtemperatur und andere Einstellungen sperren. Wenn Änderungen keine Wirkung haben, deaktivieren Sie HDR und lesen Sie die Geräte erneut ein.",
+    "Light": "Hell",
+    "Dark": "Dunkel",
+    "App theme": "App-Design",
+    "Applies immediately and remembers your choice; desktop panel text is configured separately": "Wird sofort angewendet und gespeichert; die Textfarbe des Desktop-Panels wird separat eingestellt"
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -2917,7 +2933,11 @@
     "The color curve changed outside FC. Control was released; applying again will use the current colors as the baseline.": "La courbe de couleur a changé hors de FC. Le contrôle a été libéré ; une nouvelle application utilisera les couleurs actuelles comme référence.",
     "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "Ajuste la chaleur via le pilote graphique sans modifier la température matérielle. Les valeurs sont approximatives ; 6500 K conserve la courbe d’origine. Évitez de combiner avec l’éclairage nocturne ou des outils d’étalonnage.",
     "HDR control limitations": "Restrictions des réglages HDR",
-    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "En mode HDR, l’écran peut verrouiller la luminosité, le contraste, la température de couleur et d’autres réglages. Si les modifications restent sans effet, désactivez le HDR et actualisez les appareils."
+    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "En mode HDR, l’écran peut verrouiller la luminosité, le contraste, la température de couleur et d’autres réglages. Si les modifications restent sans effet, désactivez le HDR et actualisez les appareils.",
+    "Light": "Clair",
+    "Dark": "Sombre",
+    "App theme": "Thème de l’application",
+    "Applies immediately and remembers your choice; desktop panel text is configured separately": "Appliqué immédiatement et mémorisé ; la couleur du texte du panneau de bureau se règle séparément"
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -3501,6 +3521,10 @@
     "The color curve changed outside FC. Control was released; applying again will use the current colors as the baseline.": "La curva de color cambió fuera de FC. Se liberó el control; al aplicar de nuevo se usarán los colores actuales como base.",
     "Adjusts warmth through the graphics driver without changing hardware color temperature. Values are approximate; 6500 K preserves the original curve. Avoid combining with night light or calibration tools.": "Ajusta la calidez mediante el controlador gráfico sin cambiar la temperatura del hardware. Los valores son aproximados; 6500 K conserva la curva original. Evita combinarlo con luz nocturna o herramientas de calibración.",
     "HDR control limitations": "Limitaciones de los controles HDR",
-    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "En modo HDR, la pantalla puede bloquear el brillo, el contraste, la temperatura de color y otros controles. Si los ajustes no tienen efecto, desactiva HDR y actualiza los dispositivos."
+    "In HDR mode, the display may lock brightness, contrast, color temperature and other controls. If adjustments have no effect, turn off HDR and refresh devices.": "En modo HDR, la pantalla puede bloquear el brillo, el contraste, la temperatura de color y otros controles. Si los ajustes no tienen efecto, desactiva HDR y actualiza los dispositivos.",
+    "Light": "Claro",
+    "Dark": "Oscuro",
+    "App theme": "Tema de la aplicación",
+    "Applies immediately and remembers your choice; desktop panel text is configured separately": "Se aplica al instante y se guarda; el color del texto del panel de escritorio se configura por separado"
   }
 }

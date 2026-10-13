@@ -23,6 +23,10 @@
 4. 先单独调整一块屏幕，确认效果，再使用整体控制。读回失败或项目缺失时见[故障排查](Troubleshooting.md)。
 5. 调整好后保存[总配置或型号预设](Profiles-and-Presets.md)。保存和启动本身不会自动应用其他配置。
 
+### 界面主题（开发版，尚未正式发布）
+
+在 **设置 → 常规 → 应用主题** 选择“跟随系统 / 浅色 / 深色”。选择立即生效并保存，重新打开后继续使用；跟随系统时随 Windows 应用主题变化。桌面面板的“使用浅色文字”仍独立设置，方便匹配壁纸。
+
 ### 更新与退出
 
 - **设置 → 关于与更新**：手动检查 GitHub 正式 Release，下载并校验后，由你选择退出并安装。启动时不自动检查或安装。
@@ -44,6 +48,10 @@ Stable v0.3.118 recommends `FluentControl-<version>-x64-Setup.exe`: a Fluent off
 5. Save the result as a [global profile or monitor preset](Profiles-and-Presets.md). Startup does not automatically apply the last profile.
 
 The installer is currently unsigned. Use the official Release and optionally verify `SHA256SUMS.txt`; checksums do not constitute a publisher signature.
+
+### App theme (development build, not yet released)
+
+Use **Settings → General → App theme** to choose System default, Light or Dark. Changes apply immediately and persist across restarts; System default follows the Windows app theme. The desktop panel’s Light text option remains separate for wallpaper contrast.
 
 ### Update and exit
 

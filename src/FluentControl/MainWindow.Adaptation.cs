@@ -71,7 +71,7 @@ public sealed partial class MainWindow
         body.Children.Add(Empty(T("未知私有码和动作指令只列出，不探测。差异仅是观测结果，不会自动生成可执行指令或解锁原厂菜单导航。", "Unknown private codes and action commands are listed without probing. Differences are observations, not executable commands or native menu navigation support.")));
         var dialog = new ContentDialog
         {
-            Title = device.Model + " · " + T("适配助手", "Adaptation assistant"), XamlRoot = Root.XamlRoot,
+            Title = device.Model + " · " + T("适配助手", "Adaptation assistant"), RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot,
             CloseButtonText = T("关闭", "Close"), Content = new ScrollViewer { Content = body, MaxHeight = 480, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }
         };
         monitorAdaptationDialog = dialog;

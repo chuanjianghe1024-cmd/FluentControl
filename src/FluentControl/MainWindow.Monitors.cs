@@ -100,7 +100,7 @@ public sealed partial class MainWindow
     private static Border ModelBadge(string text) => new()
     {
         HorizontalAlignment = HorizontalAlignment.Left, CornerRadius = new CornerRadius(5), Padding = new Thickness(8, 4, 8, 4),
-        Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
+        Style = (Style)Application.Current.Resources["CardBorderStyle"],
         Child = new TextBlock { Text = text, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap }
     };
     private string SingleModelLabel(MonitorDevice device) => !ModelIdentity.IsValid(device.ModelId) ? T("型号未识别 · 独立调节", "Unknown model · independent controls") :
@@ -170,7 +170,7 @@ public sealed partial class MainWindow
             _ => T("切换输入源或电源状态可能断开当前画面与 DDC/CI 连接；之后可能需要用显示器按键切回。", "Changing input or power may disconnect the picture and DDC/CI. You may need the monitor's buttons to switch back.")
         };
         var names = string.Join(", ", displayDevices.Where(d => targets.Any(c => d.Channels.Contains(c))).Select(d => d.DisplayName));
-        try { return await new ContentDialog { Title = Channel(channel), Content = names + "\n\n" + message, PrimaryButtonText = T("继续", "Continue"), CloseButtonText = T("取消", "Cancel"), DefaultButton = ContentDialogButton.Close, XamlRoot = dialogRoot ?? Root.XamlRoot }.ShowAsync() == ContentDialogResult.Primary; }
+        try { return await new ContentDialog { Title = Channel(channel), Content = names + "\n\n" + message, PrimaryButtonText = T("继续", "Continue"), CloseButtonText = T("取消", "Cancel"), DefaultButton = ContentDialogButton.Close, RequestedTheme = (dialogRoot?.Content as FrameworkElement)?.ActualTheme ?? Root.ActualTheme, XamlRoot = dialogRoot ?? Root.XamlRoot }.ShowAsync() == ContentDialogResult.Primary; }
         catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error); return false; }
     }
     private Task<bool> ConfirmProfileInputAsync(ControlProfile profile)
@@ -201,7 +201,7 @@ public sealed partial class MainWindow
             var max = Number(T("最高亮度", "Maximum brightness"), source.Maximum, 1, 100);
             var offset = Number(T("亮度偏移", "Brightness offset"), source.Offset, -50, 50);
             var curve = Number(T("映射曲线（1 为线性）", "Mapping curve (1 is linear)"), source.Curve, .2, 5, .1);
-            var dialog = new ContentDialog { Title = device.DisplayName + " · " + T("亮度映射", "Brightness mapping"), Content = controls, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), XamlRoot = Root.XamlRoot };
+            var dialog = new ContentDialog { Title = device.DisplayName + " · " + T("亮度映射", "Brightness mapping"), Content = controls, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot };
             try
             {
                 if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;

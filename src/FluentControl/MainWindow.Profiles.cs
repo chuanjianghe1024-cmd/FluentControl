@@ -56,7 +56,7 @@ public sealed partial class MainWindow
     private async void NewGroup_Click(object sender, RoutedEventArgs e)
     {
         var input = new TextBox { Header = T("分组名称", "Group name"), MaxLength = 80 };
-        var dialog = new ContentDialog { Title = T("新建分组", "New group"), Content = input, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), IsPrimaryButtonEnabled = false, XamlRoot = Root.XamlRoot };
+        var dialog = new ContentDialog { Title = T("新建分组", "New group"), Content = input, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), IsPrimaryButtonEnabled = false, RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot };
         input.TextChanged += (_, _) => dialog.IsPrimaryButtonEnabled = !string.IsNullOrWhiteSpace(input.Text);
         try
         {
@@ -78,7 +78,7 @@ public sealed partial class MainWindow
             {
                 Title = T("删除分组", "Delete group"),
                 Content = F("删除分组「{0}」及其中的 {1} 个配置？此操作无法撤销。", "Delete group '{0}' and its {1} profiles? This cannot be undone.", group.DisplayName, count),
-                PrimaryButtonText = T("删除", "Delete"), CloseButtonText = T("取消", "Cancel"), DefaultButton = ContentDialogButton.Close, XamlRoot = Root.XamlRoot
+                PrimaryButtonText = T("删除", "Delete"), CloseButtonText = T("取消", "Cancel"), DefaultButton = ContentDialogButton.Close, RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot
             }.ShowAsync();
             if (result != ContentDialogResult.Primary || closed) return;
             var groups = state.Groups.ToList(); var profiles = state.Profiles.ToList();
@@ -109,7 +109,7 @@ public sealed partial class MainWindow
         all.Checked += (_, _) => Count(); all.Unchecked += (_, _) => Count(); Count();
         try
         {
-            var result = await new ContentDialog { Title = T("筛选配置", "Filter profiles"), Content = panel, PrimaryButtonText = T("应用筛选", "Apply filters"), SecondaryButtonText = T("清除筛选", "Clear filters"), CloseButtonText = T("取消", "Cancel"), XamlRoot = Root.XamlRoot }.ShowAsync();
+            var result = await new ContentDialog { Title = T("筛选配置", "Filter profiles"), Content = panel, PrimaryButtonText = T("应用筛选", "Apply filters"), SecondaryButtonText = T("清除筛选", "Clear filters"), CloseButtonText = T("取消", "Cancel"), RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot }.ShowAsync();
             if (result == ContentDialogResult.None) return;
             applicationFilter = result == ContentDialogResult.Primary ? apps.Text.Trim() : "";
             modelFilter = result == ContentDialogResult.Primary ? model.Text.Trim() : "";
@@ -136,7 +136,7 @@ public sealed partial class MainWindow
         }
         try
         {
-            if (await new ContentDialog { Title = T("配置信息", "Profile information"), Content = new ScrollViewer { Content = panel, MaxHeight = 420 }, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), XamlRoot = Root.XamlRoot }.ShowAsync() != ContentDialogResult.Primary) return;
+            if (await new ContentDialog { Title = T("配置信息", "Profile information"), Content = new ScrollViewer { Content = panel, MaxHeight = 420 }, PrimaryButtonText = T("保存", "Save"), CloseButtonText = T("取消", "Cancel"), RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot }.ShowAsync() != ContentDialogResult.Primary) return;
             var updatedName = name.Text.Trim();
             if (updatedName.Length == 0 || state.Profiles.Any(p => p.Id != profile.Id && p.Name.Equals(updatedName, StringComparison.CurrentCultureIgnoreCase))) throw new ArgumentException(T("名称为空或在当前分组中重复。", "The name is empty or already exists in this group."));
             var applications = ParseApplications(apps.Text);

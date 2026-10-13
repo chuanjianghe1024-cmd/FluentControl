@@ -205,7 +205,7 @@ public sealed partial class MainWindow
         foreach (var control in new FrameworkElement[] { customName, customKind, customLabel, bindCustom }) customPanel.Children.Add(control);
         root.Children.Add(new Expander { Header = T("保存为自定义控件", "Save as custom control"), Content = customPanel });
         var status = new TextBlock { TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true }; AutomationProperties.SetAutomationId(status, "pairing-status"); root.Children.Add(status);
-        var dialog = new ContentDialog { Title = T("本地 OSD 配对", "Local OSD pairing"), XamlRoot = Root.XamlRoot, CloseButtonText = T("关闭", "Close"), Content = new ScrollViewer { Content = root, MaxHeight = 490, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } };
+        var dialog = new ContentDialog { Title = T("本地 OSD 配对", "Local OSD pairing"), RequestedTheme = ShellRoot.RequestedTheme, XamlRoot = Root.XamlRoot, CloseButtonText = T("关闭", "Close"), Content = new ScrollViewer { Content = root, MaxHeight = 490, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } };
         monitorAdaptationDialog = dialog;
         bool Active() => open && !closed && generation == version && displayDevices.Contains(device) && ReferenceEquals(monitorAdaptationDialog, dialog);
         void SaveLocal()
