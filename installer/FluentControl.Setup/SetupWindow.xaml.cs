@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.Win32;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 using WixToolset.BootstrapperApplicationApi;
@@ -138,8 +137,12 @@ public partial class SetupWindow : FluentWindow
     }
     private void Browse_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFolderDialog { Title = T("Installation folder"), InitialDirectory = Folder.Text };
-        if (dialog.ShowDialog(this) == true) Folder.Text = dialog.FolderName;
+        try
+        {
+            var folder = FolderPicker.Show(this, T("Installation folder"), Folder.Text);
+            if (folder is not null) Folder.Text = folder;
+        }
+        catch (Exception ex) { ShowInputError(ex.Message); }
     }
     private void Primary_Click(object sender, RoutedEventArgs e)
     {

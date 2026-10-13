@@ -4,6 +4,9 @@
 
 ## 未发布 / Unreleased
 
+- 缩小现代安装包：前端改用 Windows 自带 .NET Framework 4.8，保留 Fluent 界面和完整离线 MSI；启用更高压缩，增加体积预算与逐文件报告。目录选择仍使用现代系统界面，新增目录选择/取消及旧 .NET 8 安装器升级验收。
+- Reduce Setup size by using Windows-provided .NET Framework 4.8 for the frontend, retaining the Fluent UI and complete offline MSI. Enable high compression, size budgets and file-level reports, with native folder-picker and previous .NET 8 installer upgrade checks.
+
 - 新增 Win11 风格离线 Setup：明暗主题、八种语言、目录与自启动选择、显式完成后启动、修复和卸载；内部继续使用原 MSI，升级卸载保留配置。单独 MSI 继续提供，v0.3.92 附件不变。
 - Add a Fluent offline Setup with themes, eight languages, folder/startup choices, explicit launch, repair and uninstall. Retain the existing MSI backend and personal settings; standalone MSI and published v0.3.92 assets remain available.
 - 手动更新优先使用经过校验的官方 Setup，兼容旧 MSI；发布流程支持从同一成功构建发布双安装包与 SHA-256。新增真实向导、正式 MSI 迁移和 Bundle 升级回归。详见[现代安装器](docs/modern-installer.md)。

@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Reflection;
-using System.Text.Json;
+using System.Runtime.Serialization.Json;
 namespace FluentControl.Setup;
 
 internal static class Strings
@@ -13,7 +13,7 @@ internal static class Strings
     {
         if (language == "auto") language = CultureInfo.CurrentUICulture.Name;
         Language = language.StartsWith("zh", StringComparison.OrdinalIgnoreCase)
-            ? (language.Contains("TW", StringComparison.OrdinalIgnoreCase) || language.Contains("HK", StringComparison.OrdinalIgnoreCase) || language.Contains("Hant", StringComparison.OrdinalIgnoreCase) ? "zh-TW" : "zh-CN")
+            ? (language.IndexOf("TW", StringComparison.OrdinalIgnoreCase) >= 0 || language.IndexOf("HK", StringComparison.OrdinalIgnoreCase) >= 0 || language.IndexOf("Hant", StringComparison.OrdinalIgnoreCase) >= 0 ? "zh-TW" : "zh-CN")
             : Languages.FirstOrDefault(x => x.StartsWith(language.Split('-')[0] + "-", StringComparison.OrdinalIgnoreCase)) ?? "en-US";
     }
     internal static string T(string key) => Catalog[Language][key];
@@ -21,6 +21,8 @@ internal static class Strings
     private static Dictionary<string, Dictionary<string, string>> Load()
     {
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("FluentControl.Setup.Locales.json")!;
-        return JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(stream)!;
+        var serializer = new DataContractJsonSerializer(typeof(Dictionary<string, Dictionary<string, string>>),
+            new DataContractJsonSerializerSettings { UseSimpleDictionaryFormat = true });
+        return (Dictionary<string, Dictionary<string, string>>)serializer.ReadObject(stream)!;
     }
 }

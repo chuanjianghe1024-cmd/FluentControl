@@ -11,6 +11,7 @@ internal static class SetupWizardFixture
 {
     private static string output;
     private static Process process;
+    private static int setupProcessId;
     [STAThread]
     private static int Main(string[] args)
     {
@@ -21,6 +22,7 @@ internal static class SetupWizardFixture
         {
             process = Process.Start(new ProcessStartInfo(args[0], "/norestart /log \"" + output + ".log\"") { UseShellExecute = false });
             var primary = Wait("Primary", true, 60);
+            AssertFrameworkRuntime();
             Select("Language", 2); // assertions use English; controls use stable automation IDs
             var folder = Wait("InstallFolder", false, 10);
             var path = (ValuePattern)folder.GetCurrentPattern(ValuePattern.Pattern);
@@ -28,6 +30,7 @@ internal static class SetupWizardFixture
             Assert(path.Current.IsReadOnly == locked, "Existing directory must be locked; fresh directory must be editable.");
             if (locked) Assert(SamePath(path.Current.Value, args[1]), "Previous installation path not preserved.");
             else path.SetValue(args[1]);
+            if (mode == "cancel") VerifyFolderPicker(args[1]);
             var startup = (TogglePattern)Wait("StartWithWindows", true, 10).GetCurrentPattern(TogglePattern.Pattern);
             Assert((startup.Current.ToggleState == ToggleState.On) == (args[4] == "1"), "Startup must reflect current link, not stale registry flags.");
             if ((startup.Current.ToggleState == ToggleState.On) != (args[5] == "1")) startup.Toggle();
@@ -124,6 +127,7 @@ internal static class SetupWizardFixture
                 try
                 {
                     if (window.Current.AutomationId != "SetupWindow") continue;
+                    setupProcessId = window.Current.ProcessId;
                     var item = window.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, id));
                     if (item != null && !item.Current.IsOffscreen && (!enabled || item.Current.IsEnabled)) return item;
                 }
@@ -134,6 +138,58 @@ internal static class SetupWizardFixture
             Thread.Sleep(150);
         }
         throw new TimeoutException("Setup control: " + id);
+    }
+    private static void AssertFrameworkRuntime()
+    {
+        bool framework = false;
+        using (var frontend = Process.GetProcessById(setupProcessId))
+        {
+            foreach (ProcessModule module in frontend.Modules)
+            {
+                Assert(!string.Equals(module.ModuleName, "coreclr.dll", StringComparison.OrdinalIgnoreCase), "Setup must not start a private .NET runtime.");
+                if (string.Equals(module.ModuleName, "clr.dll", StringComparison.OrdinalIgnoreCase))
+                    framework = module.FileName.StartsWith(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Microsoft.NET", "Framework64"), StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        Assert(framework, "Setup must use the Windows .NET Framework CLR.");
+    }
+    private static AutomationElement WaitOwnedDialog(string title)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(15);
+        while (DateTime.UtcNow < deadline)
+        {
+            foreach (AutomationElement w in AutomationElement.RootElement.FindAll(TreeScope.Children, Condition.TrueCondition))
+            {
+                if (w.Current.ProcessId != setupProcessId) continue;
+                if (w.Current.Name == title) return w;
+                var dialog = w.FindFirst(TreeScope.Descendants, new AndCondition(
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window),
+                    new PropertyCondition(AutomationElement.NameProperty, title)));
+                if (dialog != null) return dialog;
+            }
+            Thread.Sleep(150);
+        }
+        throw new TimeoutException("Setup dialog: " + title);
+    }
+    private static void VerifyFolderPicker(string folder)
+    {
+        // A real OS picker on an existing Unicode path, including both result
+        // and cancellation. The fixture creates this empty directory, not setup.
+        Directory.CreateDirectory(folder);
+        var edit = (ValuePattern)Wait("InstallFolder", false, 10).GetCurrentPattern(ValuePattern.Pattern);
+        edit.SetValue(Path.Combine(folder, "."));
+        Invoke(Wait("Browse", true, 10));
+        var picker = WaitOwnedDialog("Installation folder");
+        Capture("folder-picker");
+        Invoke(picker.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, "1")));
+        edit = (ValuePattern)Wait("InstallFolder", false, 10).GetCurrentPattern(ValuePattern.Pattern);
+        Assert(string.Equals(edit.Current.Value.TrimEnd('\\'), Path.GetFullPath(folder).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase), "Picker must return the selected canonical filesystem path.");
+        var before = edit.Current.Value;
+        Invoke(Wait("Browse", true, 10));
+        picker = WaitOwnedDialog("Installation folder");
+        Invoke(picker.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, "2")));
+        Assert(((ValuePattern)Wait("InstallFolder", false, 10).GetCurrentPattern(ValuePattern.Pattern)).Current.Value == before, "Cancelling the picker changed the selected folder.");
+        Console.WriteLine("PASS: modern OS folder picker selection and cancellation on .NET Framework.");
     }
     private static void Invoke(AutomationElement item) { ((InvokePattern)item.GetCurrentPattern(InvokePattern.Pattern)).Invoke(); Thread.Sleep(120); }
     private static void Select(string id, int index)

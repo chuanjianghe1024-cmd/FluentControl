@@ -1,13 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
     <UseWPF>true</UseWPF>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PlatformTarget>x64</PlatformTarget>
-    <SelfContained>true</SelfContained>
-    <PublishTrimmed>false</PublishTrimmed>
+    <!-- Select WiX's x64 native bridge without bundling a managed runtime. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <StartupObject>FluentControl.Setup.Program</StartupObject>
@@ -17,6 +21,7 @@
     <AcceptEula>wix7</AcceptEula>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="System.Runtime.Serialization" />
     <PackageReference Include="WixToolset.BootstrapperApplicationApi" Version="7.0.0" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
     <Resource Include="../../docs/assets/app-icon.png" Link="Assets/FluentControl.png" />

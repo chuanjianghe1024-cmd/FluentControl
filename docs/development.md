@@ -16,7 +16,7 @@ dotnet run --project tests/FluentControl.Tests -c Release
 
 ## 本地生成 MSI 与现代 Setup
 
-现代 Win11 风格入口、运行时边界与双包发布规则见[现代安装器](modern-installer.md)。以下 MSI 向导描述仍适用于单独运行 MSI；Setup 使用显式“启动”按钮、独立主题和八语言界面。
+现代 Win11 风格入口、运行时边界与双包发布规则见[现代安装器](modern-installer.md)。独立 Setup 前端目标为 .NET Framework 4.8，构建机器需具备 4.8 targeting pack（Visual Studio 安装器可添加；Windows CI 已提供）。最终用户使用 Windows 自带 Framework，主应用仍自包含 .NET 8。以下 MSI 向导描述仍适用于单独运行 MSI；Setup 使用显式“启动”按钮、独立主题和八语言界面。
 
 选择未发布的新版本号；下面以首发版本展示命令，不能用重新编译的文件覆盖已发布附件。更换依赖后先清理专用 `publish` 输出目录，避免旧依赖残留。
 

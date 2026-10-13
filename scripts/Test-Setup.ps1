@@ -76,8 +76,23 @@ try {
     RunQuiet $setup '/uninstall' 'uninstall-migrated-msi'
     VerifyRemoved
 
-    # Burn's own related-bundle removal must not remove the upgraded MSI.
-    ./scripts/Build-Setup.ps1 -Version '0.0.1' -MsiPath 'artifacts/upgrade-fixture/FluentControl-0.0.1-x64.msi' -OutputDirectory 'artifacts/setup-fixture'
+    # Rebuild the previously verified self-contained .NET 8 frontend at its
+    # immutable source commit. This tests migration across the runtime change,
+    # including removal of the old cached BA, not just new -> new packaging.
+    $legacyCommit = '3c4fd557c308e1a2c4394090ba09a51c77e76077'
+    $legacySource = Join-Path $root 'artifacts/setup-legacy-source'
+    git fetch --no-tags --depth=1 https://github.com/chuanjianghe1024-cmd/FluentControl.git $legacyCommit
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot fetch the immutable legacy setup fixture.' }
+    git worktree add --detach $legacySource $legacyCommit
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot create the legacy setup fixture checkout.' }
+    try {
+        $fixtureMsi = (Resolve-Path 'artifacts/upgrade-fixture/FluentControl-0.0.1-x64.msi').Path
+        & "$legacySource/scripts/Build-Setup.ps1" -Version '0.0.1' -MsiPath $fixtureMsi -OutputDirectory "$root/artifacts/setup-fixture"
+    }
+    finally {
+        git worktree remove --force $legacySource
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot clean the legacy setup fixture checkout.' }
+    }
     $old = (Resolve-Path 'artifacts/setup-fixture/FluentControl-0.0.1-x64-Setup.exe').Path
     RunQuiet $old '' 'old-bundle-install'
     $target = Join-Path $env:LOCALAPPDATA 'Programs/FluentControl'
@@ -91,7 +106,7 @@ try {
     $registeredBundles = Get-ChildItem 'HKCU:/Software/Microsoft/Windows/CurrentVersion/Uninstall' -ErrorAction SilentlyContinue |
         Get-ItemProperty | Where-Object { $_.BundleUpgradeCode -contains '{FECCF0F0-0D94-4C6A-8D7B-78D861E03CC4}' }
     if ($registeredBundles) { throw 'A removed setup bundle remains registered.' }
-    Write-Host 'PASS: Fluent UI, themes, language persistence, cancellation, launch, repair, MSI migration, bundle upgrade, startup choice, payload hashes and uninstall.'
+    Write-Host 'PASS: Fluent UI, themes, language persistence, cancellation, launch, repair, MSI migration, .NET 8-to-Framework bundle upgrade, startup choice, payload hashes and uninstall.'
 }
 finally {
     if ($sentinel -and (Test-Path $sentinel)) { Remove-Item $sentinel }
