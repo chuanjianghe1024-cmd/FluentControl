@@ -51,3 +51,9 @@ Only confirmed independent SDR outputs with a usable driver interface can be adj
 The tray retains the effect. Normal exit attempts to restore FC-owned curves. A crash or forced termination may prevent restoration; the next launch offers explicit recovery without automatically applying old settings. External curve changes release control instead of triggering repeated writes.
 
 Avoid competing night-light or calibration tools. This is an approximate warmth effect, not professional calibration; brightness and tonal levels may change. Driver readback cannot prove identical effects across all rendering paths. [Implementation scope](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/system-color-temperature.md).
+
+## 后续修复 / Development fixes
+
+v0.3.92 审查后的开发分支补充连续失败恢复、写前曲线复核与跨刷新总配置失效保护；不属于旧版安装包。仍需双屏和笔记本实机验收。
+
+Post-audit development changes add interrupted-recovery ownership preservation, a pre-write curve check and stale-profile cancellation across refresh. They are not part of the v0.3.92 installer and still require physical display validation.
