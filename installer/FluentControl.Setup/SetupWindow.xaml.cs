@@ -159,7 +159,7 @@ public partial class SetupWindow : FluentWindow
     {
         if (setup?.Busy != true) return;
         e.Cancel = true;
-        if (!cancelling && System.Windows.MessageBox.Show(this, T("Cancel installation and wait for rollback?"), T("FluentControl Setup"), MessageBoxButton.YesNo, MessageBoxImage.Question) == System.Windows.MessageBoxResult.Yes)
+        if (!cancelling && System.Windows.MessageBox.Show(this, T("Cancel installation and wait for rollback?"), T("FluentControl Setup"), System.Windows.MessageBoxButton.YesNo, MessageBoxImage.Question) == System.Windows.MessageBoxResult.Yes)
             setup.Cancel();
     }
 }
