@@ -21,7 +21,9 @@ internal static class FolderPicker
             if (Directory.Exists(initialDirectory))
             {
                 var iid = typeof(IShellItem).GUID;
-                Marshal.ThrowExceptionForHR(SHCreateItemFromParsingName(initialDirectory, IntPtr.Zero, ref iid, out initial));
+                // Shell parsing does not normalize filesystem dot segments in
+                // the same way as System.IO; resolve them before creating an item.
+                Marshal.ThrowExceptionForHR(SHCreateItemFromParsingName(Path.GetFullPath(initialDirectory), IntPtr.Zero, ref iid, out initial));
                 dialog.SetFolder(initial);
             }
             var result = dialog.Show(new WindowInteropHelper(owner).EnsureHandle());

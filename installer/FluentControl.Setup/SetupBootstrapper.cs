@@ -206,6 +206,7 @@ internal sealed class SetupBootstrapper : BootstrapperApplication
         catch (Exception ex) { window.ShowInputError(ex.Message); }
     }
 
+    internal void LogInputError(Exception error) => engine.Log(LogLevel.Error, error.ToString());
     internal void OpenLog()
     {
         try

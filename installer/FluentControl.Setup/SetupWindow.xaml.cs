@@ -142,7 +142,7 @@ public partial class SetupWindow : FluentWindow
             var folder = FolderPicker.Show(this, T("Installation folder"), Folder.Text);
             if (folder is not null) Folder.Text = folder;
         }
-        catch (Exception ex) { ShowInputError(ex.Message); }
+        catch (Exception ex) { setup?.LogInputError(ex); ShowInputError(ex.Message); }
     }
     private void Primary_Click(object sender, RoutedEventArgs e)
     {
