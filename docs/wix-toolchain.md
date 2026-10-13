@@ -14,7 +14,7 @@
 
 [PR #3](https://github.com/chuanjianghe1024-cmd/FluentControl/pull/3) 原始版本仅升级工具，曾在 [run 38269140092](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/runs/38269140092) 因 WIX7015 失败，安装回归未执行。本修复同步升级扩展并明确接受已授权的协议。
 
-WiX 5 的社区安全更新已于 2026-02-05 结束；WiX 7 提供较新维护和长路径等改进。见 [生命周期](https://docs.firegiant.com/wix/) 和 [发布说明](https://docs.firegiant.com/wix/whatsnew/releasenotes/)。当前项目不使用 Burn、Heat 或 Files 通配采集；继续使用单 MSI 和自定义中文向导。
+WiX 5 的社区安全更新已于 2026-02-05 结束；WiX 7 提供较新维护和长路径等改进。见 [生命周期](https://docs.firegiant.com/wix/) 和 [发布说明](https://docs.firegiant.com/wix/whatsnew/releasenotes/)。当前项目保留独立 MSI 与中文向导，并新增 WiX 7 Burn + WPF UI 的离线 Setup 前端。前端 API 与主工具使用相同版本；不使用 Heat 或 Files 通配采集。详见[现代安装器](modern-installer.md)。
 
 WiX 5/7 加载器分别查找 `wixext5` / `wixext7`，不能保留旧扩展。UI 对话框、路径验证自定义动作和 MSI 升级行为必须由 Windows 回归验证，不能仅凭应用编译成功判断兼容。
 

@@ -6,6 +6,8 @@
 
 ### 安装
 
+开发构建新增 `FluentControl-<版本>-x64-Setup.exe`：Win11 风格、明暗主题、八种语言，仍为离线当前用户安装。选择目录和自启动后安装，完成时点击“启动 FluentControl”；也可直接关闭。同版本打开可修复或卸载。当前正式版 v0.3.92 仍提供下面的 MSI 向导。
+
 1. 在 [Releases](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) 下载最新正式版 `FluentControl-<版本>-x64.msi`。主要面向 Windows 11 x64；安装包包含离线运行库。
 2. 新安装可选择自己有写入权限的本地目录。默认位置是 `%LOCALAPPDATA%\Programs\FluentControl`，采用当前用户安装，无需管理员权限。
 3. 按需勾选“随 Windows 启动”。新安装默认关闭；升级时参考实际启动项，不会因为以前安装过就强制开启。
@@ -32,6 +34,8 @@
 ## English
 
 ### Install and set up
+
+Development builds add `FluentControl-<version>-x64-Setup.exe`: a Fluent offline per-user installer with themes and eight languages. Choose the folder and startup option, then explicitly launch or close after success. Reopening the same version offers repair/uninstall. Stable v0.3.92 still uses the MSI wizard described below.
 
 1. Download `FluentControl-<version>-x64.msi` from the [latest stable release](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest). FC primarily targets Windows 11 x64 and includes runtimes for offline installation.
 2. A fresh installation lets you select a writable local folder. The default is `%LOCALAPPDATA%\Programs\FluentControl`; installation is per user without administrator privileges.

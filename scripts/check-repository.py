@@ -87,6 +87,13 @@ def main():
             ids = [field["id"] for field in data["body"] if "id" in field]
             require(len(ids) == len(set(ids)), f"Duplicate issue field id: {path}")
     load_yaml(ROOT / ".github/dependabot.yml")
+    setup_locales = json.loads((ROOT / "installer/FluentControl.Setup/Locales.json").read_text(encoding="utf-8"))
+    require(set(setup_locales) == {"zh-CN", "zh-TW", "en-US", "ja-JP", "ko-KR", "de-DE", "fr-FR", "es-ES"}, "Setup languages are incomplete")
+    for language, entries in setup_locales.items():
+        require(entries.keys() == setup_locales["en-US"].keys(), f"Setup translation keys differ: {language}")
+        for key, value in entries.items():
+            require(value.strip() and sorted(re.findall(r"\{\d+\}", key)) == sorted(re.findall(r"\{\d+\}", value)),
+                    f"Invalid setup translation: {language}: {key}")
     check_ruleset(json.loads((ROOT / ".github/rulesets/community-main.json").read_text()), workflows)
     guides = [ROOT / name for name in (
         "README.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "SECURITY.md", "agent.md",

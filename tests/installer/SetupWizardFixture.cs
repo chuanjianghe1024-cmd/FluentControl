@@ -24,7 +24,7 @@ internal static class SetupWizardFixture
             Select("Language", 2); // assertions use English; controls use stable automation IDs
             var folder = Wait("InstallFolder", false, 10);
             var path = (ValuePattern)folder.GetCurrentPattern(ValuePattern.Pattern);
-            var locked = mode == "upgrade" || mode == "maintenance";
+            var locked = mode == "upgrade" || mode == "maintenance" || mode == "locked-uninstall";
             Assert(path.Current.IsReadOnly == locked, "Existing directory must be locked; fresh directory must be editable.");
             if (locked) Assert(SamePath(path.Current.Value, args[1]), "Previous installation path not preserved.");
             else path.SetValue(args[1]);
@@ -43,12 +43,37 @@ internal static class SetupWizardFixture
                 Assert(process.WaitForExit(30000) && process.ExitCode == 1602, "Cancel must exit with 1602.");
                 return 0;
             }
-            if (mode == "maintenance")
+            if (mode == "maintenance" || mode == "locked-uninstall")
             {
                 Invoke(Wait("Uninstall", true, 10));
                 Assert(Wait("Heading", false, 10).Current.Name == "Uninstall FluentControl?", "Uninstall needs a confirmation page.");
             }
             Invoke(Wait("Primary", true, 10));
+            if (mode == "locked-uninstall")
+            {
+                var lockDeadline = DateTime.UtcNow.AddSeconds(60);
+                bool cancelledLock = false;
+                while (DateTime.UtcNow < lockDeadline && !cancelledLock)
+                {
+                    foreach (AutomationElement w in AutomationElement.RootElement.FindAll(TreeScope.Children, Condition.TrueCondition))
+                    {
+                        if (w.Current.Name != "Files in use") continue;
+                        var button = w.FindFirst(TreeScope.Descendants, new AndCondition(
+                            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+                            new PropertyCondition(AutomationElement.AutomationIdProperty, "2")));
+                        if (button != null) { Invoke(button); cancelledLock = true; break; }
+                    }
+                    Thread.Sleep(150);
+                }
+                Assert(cancelledLock, "Expected a real files-in-use prompt.");
+                lockDeadline = DateTime.UtcNow.AddSeconds(60);
+                while (Wait("Heading", false, 10).Current.Name != "Installation did not finish" && DateTime.UtcNow < lockDeadline) Thread.Sleep(200);
+                Invoke(Wait("Close", true, 10));
+                Assert(process.WaitForExit(30000) && process.ExitCode != 0, "Cancelled uninstall must not succeed.");
+                Assert(Process.GetProcessesByName("FluentControl").Length == 0, "Cancelled uninstall launched the application.");
+                Console.WriteLine("PASS: files-in-use cancellation through the real Burn frontend.");
+                return 0;
+            }
             var deadline = DateTime.UtcNow.AddSeconds(120);
             bool done = false;
             while (DateTime.UtcNow < deadline)

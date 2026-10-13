@@ -48,7 +48,7 @@ README 保留产品层面的计划，详细实现步骤、模块路径和验收�
 | `tests/ci/` | 变更分类、必需检查接线和社区资料验证 |
 | `tests/wiki/` | Wiki 链接校验、同步及页面保留验证 |
 | `scripts/` | 启动、MSI、发布与签名辅助脚本 |
-| `installer/` | WiX 安装器定义及组件组织 |
+| `installer/` | MSI 与 Burn 定义；`FluentControl.Setup/` 为独立 WPF UI 安装前端 |
 | `.github/workflows/` | Windows 构建验收、独立正式发布及 Wiki 同步流程 |
 | `.github/release.json` | 正式发布的确切构建、附件及校验信息 |
 | `docs/` | 协议、操作手册、设计备忘录与发布说明 |
@@ -105,7 +105,7 @@ README 保留产品层面的计划，详细实现步骤、模块路径和验收�
 - 保持 WinUI/Windows 11 风格、主题一致性及紧凑布局。用户可见文字经 `Strings.T/F` 本地化，维护八种语言相同键和占位符；不要翻译用户名称或硬件名称。
 - 桌面面板锁定时不激活或升层、不写入设备；双击必须立即解锁并激活到普通窗口前台，不能依赖第三次点击或永久置顶；失焦/Esc 锁定。桌面恢复任务不得覆盖更晚的解锁操作，Win+D 后解锁也必须保持前台。原生测试检查真实点击、前台句柄、Z 序及恢复定时器；拖动、缩放、透明度与最小尺寸提示布局同样需要验证。
 - 不修改系统默认音频路由，不为自启动索取管理员权限，不关闭系统防护。凭据、私钥和用户数据不能提交仓库。
-- 更新仅由用户点击触发，固定官方仓库的最新正式 Release；数字版本比较，不能降级或采用草稿/预发布。MSI 必须匹配官方附件 URL、大小和 SHA-256，下载与安装前分别验证；失败/取消清理临时文件，不自动安装或关闭应用。安装调用复用现有当前用户 MSI，先保存状态并等待待写入操作，关闭时取消网络任务。
+- 更新仅由用户点击触发，固定官方仓库的最新正式 Release；数字版本比较，不能降级或采用草稿/预发布。Setup EXE / MSI 必须匹配官方附件 URL、大小和 SHA-256，下载与安装前分别验证；失败/取消清理临时文件，不自动安装或关闭应用。安装调用优先使用经过验证的官方离线 Setup EXE，旧 Release 兼容 MSI；Setup 存在但资料无效时不得静默降级，先保存状态并等待待写入操作，关闭时取消网络任务。
 - 设置子菜单独立滚动、保留当前分类。刷新、切语言或切分类不能丢失更新请求状态，不重复发请求；更新文案同步八种语言。网络回归使用可注入的 HttpClient，不执行模拟安装包。
 
 ## 构建与验证
@@ -128,9 +128,10 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 - 保留 WinUI XAML/PRI、嵌入本地化资源和必要反射支持；不能为缩包随意删除 DLL 或启用未经验证的裁剪。更改依赖后使用干净 publish 目录。
 - MSI 使用 WiX 7（所有者已于 2026-10-13 接受对应 OSMF EULA；未来主版本需重新审查）、当前用户安装、稳定 UpgradeCode/组件身份和既有数据目录。publish 与 MSI 使用同一个版本号；不要破坏升级或删除用户配置。
-- 安装向导允许新安装选择目录；升级从 HKCU 登记恢复并锁定原目录，不能移动共享的稳定组件。开机启动复用应用的当前用户 `FluentControl.lnk` 与 `--background`，以实际启动项预选，不按旧安装标记恢复；新安装默认关闭。完成页的立即启动只由成功后的“完成”按钮触发，静默、修复、卸载、取消及需要重启时不能启动。回归入口 `tests/installer/InstallerWizardFixture.cs` / `scripts/Test-Msi.ps1`。
-- `.github/workflows/build.yml` 先完成全部 Windows 检查再上传安装包；版本为 `0.3.<run_number>`。
-- 正式发布通过 `.github/release.json` 指定成功构建及确切安装包，工作流校验来源和 SHA-256 后发布。标签指向该安装包的源码提交，不因文档更新改指向其他构建。
+- 安装向导允许新安装选择目录；升级从 HKCU 登记恢复并锁定原目录，不能移动共享的稳定组件。开机启动复用应用的当前用户 `FluentControl.lnk` 与 `--background`，以实际启动项预选，不按旧安装标记恢复；新安装默认关闭。MSI 完成页的立即启动只由成功后的“完成”按钮触发，Setup 由独立“启动”按钮触发，静默、修复、卸载、取消及需要重启时不能启动。回归入口 `tests/installer/InstallerWizardFixture.cs` / `scripts/Test-Msi.ps1`。
+- 现代安装前端见 `docs/modern-installer.md`：独立 .NET 8 WPF UI + WiX 7 Burn，离线包含前端运行时和原 MSI。保留当前用户范围、MSI 组件身份和原目录；不将 WPF 依赖加入主程序。UI 文字使用安装器自己的 `Strings.T/F` 与八语言资源。取消等待 Burn 回滚，关闭不强杀进程，3010 不启动应用或自动重启。
+- `.github/workflows/build.yml` 先完成全部 Windows、MSI 与 Setup 检查再分别上传 MSI/EXE；版本为 `0.3.<run_number>`。
+- 正式发布通过 `.github/release.json` 指定成功构建及确切安装包，可选 setup 对象必须与 MSI 来自同一个 main 构建，工作流校验来源和 SHA-256 后发布。标签指向该安装包的源码提交，不因文档更新改指向其他构建。
 - 已发布标签和附件不能移动或替换；修复用新版本。签名状态如实记录，域名、Manufacturer 和文件摘要不等于 Authenticode 签名。
 - `docs/releases/v<版本>.md` 是对应 Release 正文的维护入口，采用同页中英文，突出用户收益、功能变化、升级和实际限制；不要把后续开发构建的修复追记为旧安装包的能力。标题首行为 `# FluentControl v<版本>`，链接使用绝对地址。
 - 修改发布说明会触发发布工作流：先验证既有发布，再用 `scripts/publish-release.py --sync-notes` 同步已发布正式版本的正文。同步只发送 `body`，核对前后标签、标题、发布状态、附件身份与摘要；未发布版本跳过，不因补写说明创建新 Release。

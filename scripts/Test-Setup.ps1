@@ -48,6 +48,18 @@ try {
     Remove-Item $startup
     RunQuiet $setup '/repair' 'repair-after-app-opt-out'
     VerifyInstall $false
+    $lockReady = Join-Path $logs 'lock.ready'
+    $lockExe = (Resolve-Path 'artifacts/msi-logs/lock-fixture/InstallerLockFixture.exe').Path
+    $lock = Start-Process $lockExe -ArgumentList "hold `"$target/coreclr.dll`" `"$lockReady`"" -PassThru
+    try {
+        $deadline = (Get-Date).AddSeconds(15)
+        while (-not (Test-Path $lockReady) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 100 }
+        if (-not (Test-Path $lockReady)) { throw 'Setup lock fixture did not start.' }
+        Wizard 'locked-uninstall' '0' '0' '0'
+        if ($lock.HasExited) { throw 'Setup terminated the locked process.' }
+        VerifyInstall $false
+    }
+    finally { if ($lock -and -not $lock.HasExited) { Stop-Process -Id $lock.Id } }
     Wizard 'maintenance' '0' '0' '0'
     VerifyRemoved
 
@@ -68,6 +80,9 @@ try {
     RunQuiet $old '' 'old-bundle-install'
     $target = Join-Path $env:LOCALAPPDATA 'Programs/FluentControl'
     RunQuiet $setup '' 'bundle-upgrade'
+    VerifyInstall $false
+    $downgrade = Start-Process $old -ArgumentList "/quiet /norestart /log `"$logs/downgrade.log`"" -PassThru
+    if (-not $downgrade.WaitForExit(60000) -or $downgrade.ExitCode -ne 1638) { throw 'An older bundle did not reject downgrade.' }
     VerifyInstall $false
     RunQuiet $setup '/uninstall' 'bundle-upgrade-uninstall'
     VerifyRemoved

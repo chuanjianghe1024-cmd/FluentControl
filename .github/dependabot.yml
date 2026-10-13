@@ -17,6 +17,9 @@ updates:
       - /src/FluentControl.DdcHost
       - /tests/FluentControl.Tests
       - /installer/FluentControl.Setup
+    ignore:
+      - dependency-name: WixToolset.BootstrapperApplicationApi
+        update-types: ['version-update:semver-major']
     schedule:
       interval: weekly
       day: monday

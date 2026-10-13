@@ -73,13 +73,13 @@ jobs:
       - name: Build single compressed offline MSI
         shell: pwsh
         run: ./scripts/Build-Msi.ps1 -Version $env:PACKAGE_VERSION
+      - name: Build offline Fluent setup EXE
+        shell: pwsh
+        run: ./scripts/Build-Setup.ps1 -Version $env:PACKAGE_VERSION
       - name: Verify MSI install, upgrade, installed UI, tray and uninstall
         timeout-minutes: 8
         shell: pwsh
         run: ./scripts/Test-Msi.ps1 -Version $env:PACKAGE_VERSION
-      - name: Build offline Fluent setup EXE
-        shell: pwsh
-        run: ./scripts/Build-Setup.ps1 -Version $env:PACKAGE_VERSION
       - name: Verify Fluent setup UI, migration, repair and uninstall
         timeout-minutes: 12
         shell: pwsh

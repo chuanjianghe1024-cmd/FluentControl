@@ -80,7 +80,7 @@ internal static class InstallerWizardFixture
                         app.Refresh();
                         var log = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentControl", "Logs", "startup.log");
                         if (app.MainWindowHandle != IntPtr.Zero && File.Exists(log) &&
-                            File.ReadAllText(log).Contains("[PID " + app.Id + "] Main window activated")) { ready = true; break; }
+                            ReadStartupLog(log).Contains("[PID " + app.Id + "] Main window activated")) { ready = true; break; }
                     }
                     Thread.Sleep(200);
                 }
@@ -166,6 +166,18 @@ internal static class InstallerWizardFixture
     {
         ((InvokePattern)element.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
         Thread.Sleep(300);
+    }
+
+    private static string ReadStartupLog(string path)
+    {
+        try
+        {
+            // Startup is still appending. A transient sharing conflict must
+            // retry within the existing deadline, not fail a successful launch.
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (var reader = new StreamReader(stream)) return reader.ReadToEnd();
+        }
+        catch (IOException) { return ""; }
     }
 
     private static void Assert(bool value, string message)

@@ -66,7 +66,19 @@ try {
     $setup = Join-Path $output "FluentControl-$Version-x64-Setup.exe"
     dotnet tool run wix build installer/Bundle.wxs $payload -arch x64 -d "ProductVersion=$Version" -d "SetupDir=$publish" -d "MsiPath=$msi" -pdbtype none -intermediatefolder "$work/wix" -o $setup
     if ($LASTEXITCODE -ne 0) { throw 'Offline bundle compilation failed.' }
-    if ($CertificateThumbprint) { & "$PSScriptRoot/Sign-Artifacts.ps1" -Path $setup @signing }
+    if ($CertificateThumbprint) {
+        # Burn caches its detached engine for maintenance. Sign both the engine
+        # and the final attached bundle, not just the outer download file.
+        $engine = Join-Path $work 'engine.exe'
+        $reattached = Join-Path $work 'reattached.exe'
+        dotnet tool run wix burn detach $setup -engine $engine
+        if ($LASTEXITCODE -ne 0) { throw 'Burn engine detach failed.' }
+        & "$PSScriptRoot/Sign-Artifacts.ps1" -Path $engine @signing
+        dotnet tool run wix burn reattach $setup -engine $engine -o $reattached
+        if ($LASTEXITCODE -ne 0) { throw 'Signed Burn engine reattachment failed.' }
+        Move-Item $reattached $setup -Force
+        & "$PSScriptRoot/Sign-Artifacts.ps1" -Path $setup @signing
+    }
     if ((Get-FileHash $msi -Algorithm SHA256).Hash -ne $msiHash) { throw 'Bundling changed the MSI.' }
     $report = [ordered]@{ version = $Version; setup = [IO.Path]::GetFileName($setup); bytes = (Get-Item $setup).Length; sha256 = (Get-FileHash $setup -Algorithm SHA256).Hash; embeddedMsiSha256 = $msiHash; signature = [string](Get-AuthenticodeSignature $setup).Status }
     $report | ConvertTo-Json | Set-Content "$work/size-report.json" -Encoding utf8

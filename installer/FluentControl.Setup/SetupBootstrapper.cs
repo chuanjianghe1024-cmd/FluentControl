@@ -50,7 +50,7 @@ internal sealed class SetupBootstrapper : BootstrapperApplication
             else if (command.Scope == BundleScope.PerMachine ||
                      command.Action is LaunchAction.Layout or LaunchAction.Cache or LaunchAction.UnsafeUninstall)
             {
-                Complete(unchecked((int)0x80070057), Strings.T("This operation is not supported. Use install, repair or uninstall."));
+                Ui(() => Complete(unchecked((int)0x80070057), Strings.T("This operation is not supported. Use install, repair or uninstall.")));
             }
             else
             {
