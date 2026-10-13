@@ -23,3 +23,7 @@ WiX 5/7 加载器分别查找 `wixext5` / `wixext7`，不能保留旧扩展。UI
 `tests/installer/Test-WixPolicy.ps1` 验证版本边界；Windows CI 继续检查应用编译、发布、启动、MSI 生成以及 `Test-Msi.ps1` 的安装、旧版本 fixture 升级、向导、修复、文件占用取消、卸载和个人配置保留。
 
 除 0.0.1 fixture 回归外，测试只读下载发布清单指定的正式 MSI，验证大小及 SHA-256 后执行正式旧版安装→新版本升级→卸载，检查目录、启动项、配置保留、全部新 payload 哈希和旧包未被修改。以本 PR 最新 Actions 结果为准，不能套用旧 WiX 5 的通过记录。保留当前用户安装、稳定 UpgradeCode、组件身份和数据目录；不修改已发布 v0.3.92 标签或附件。
+
+## 已定位的 WiX 7 UI 差异
+
+首轮 Windows 回归确认：静默安装/升级/卸载成功，但真实向导停在目录浏览窗口。WiX 7 的 BrowseDlg 不再内置 OK 的 SetTargetPath/EndDialog 事件，而由宿主 UI 集合定义；本项目自定义 UI 已显式补上路径检查、目录提交和关闭对话框事件。保留既有向导回归，不用跳过 UI 测试来掩盖问题。参考 [WiX 7 标准 UI 接线](https://github.com/wixtoolset/wix/blob/v7.0.0/src/ext/UI/wixlib/WixUI_InstallDir.wxs)。
