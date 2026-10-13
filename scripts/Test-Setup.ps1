@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string]$Version)
+param([Parameter(Mandatory)][string]$Version, [switch]$SmokeOnly)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 Push-Location $root
@@ -14,7 +14,8 @@ try {
     $compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
     $framework = Split-Path $compiler -Parent
     $fixture = Join-Path $logs 'SetupWizardFixture.exe'
-    & $compiler /nologo /target:exe /platform:x64 "/out:$fixture" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll "/reference:$framework/WPF/UIAutomationClient.dll" "/reference:$framework/WPF/UIAutomationTypes.dll" "/reference:$framework/WPF/WindowsBase.dll" tests/installer/SetupWizardFixture.cs
+    $source = (Resolve-Path 'tests/installer/SetupWizardFixture.cs').Path
+    & $compiler /nologo /target:exe /platform:x64 "/out:$fixture" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll "/reference:$framework\WPF\UIAutomationClient.dll" "/reference:$framework\WPF\UIAutomationTypes.dll" "/reference:$framework\WPF\WindowsBase.dll" $source
     if ($LASTEXITCODE -ne 0) { throw 'Setup UI fixture compilation failed.' }
     function RunQuiet([string]$exe, [string]$action, [string]$name) {
         $p = Start-Process $exe -ArgumentList "/quiet /norestart $action /log `"$logs/$name.log`"" -PassThru
@@ -41,6 +42,7 @@ try {
     }
     Wizard 'cancel' '0' '1' '0'
     if (Test-Path "$target/FluentControl.exe") { throw 'Cancelling the options page installed the app.' }
+    if ($SmokeOnly) { Write-Host 'PASS: actual offline bundle opens its Fluent UI and cancels without installing.'; return }
     Wizard 'fresh' '0' '1' '1'
     VerifyInstall $true
     # Stop only the fixture-launched app in this disposable CI profile.

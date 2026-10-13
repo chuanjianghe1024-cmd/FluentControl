@@ -76,6 +76,9 @@ jobs:
       - name: Build offline Fluent setup EXE
         shell: pwsh
         run: ./scripts/Build-Setup.ps1 -Version $env:PACKAGE_VERSION
+      - name: Verify Fluent setup opens and cancels
+        shell: pwsh
+        run: ./scripts/Test-Setup.ps1 -Version $env:PACKAGE_VERSION -SmokeOnly
       - name: Verify MSI install, upgrade, installed UI, tray and uninstall
         timeout-minutes: 8
         shell: pwsh
