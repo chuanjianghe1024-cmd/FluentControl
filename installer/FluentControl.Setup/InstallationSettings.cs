@@ -2,8 +2,15 @@ using System.IO;
 using Microsoft.Win32;
 namespace FluentControl.Setup;
 
-internal sealed record InstallationSettings(string Directory, bool ExistingDirectory, bool Startup)
+internal sealed class InstallationSettings
 {
+    internal string Directory { get; }
+    internal bool ExistingDirectory { get; }
+    internal bool Startup { get; }
+    private InstallationSettings(string directory, bool existingDirectory, bool startup)
+    {
+        Directory = directory; ExistingDirectory = existingDirectory; Startup = startup;
+    }
     internal static InstallationSettings Read()
     {
         using var hive = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Registry64);
@@ -12,15 +19,19 @@ internal sealed record InstallationSettings(string Directory, bool ExistingDirec
         using var run = hive.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
         var legacy = run?.GetValue("FluentControl") as string;
         var startup = File.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "FluentControl.lnk")) ||
-                      legacy?.Contains(" --background", StringComparison.OrdinalIgnoreCase) == true;
+                      (legacy?.IndexOf(" --background", StringComparison.OrdinalIgnoreCase) ?? -1) >= 0;
         return new(oldDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "FluentControl"),
             !string.IsNullOrWhiteSpace(oldDirectory), startup);
     }
 
     internal static string ValidateDirectory(string value)
     {
-        if (string.IsNullOrWhiteSpace(value) || !Path.IsPathFullyQualified(value) ||
-            value.StartsWith(@"\\", StringComparison.Ordinal) || value.IndexOfAny(['"', '\r', '\n', '\0']) >= 0)
+        // A drive-qualified local path, never a relative drive path, UNC/device
+        // path or rooted path whose drive depends on the current directory.
+        if (string.IsNullOrWhiteSpace(value) || value.Length < 3 ||
+            !((value[0] >= 'A' && value[0] <= 'Z') || (value[0] >= 'a' && value[0] <= 'z')) ||
+            value[1] != ':' || (value[2] != '\\' && value[2] != '/') ||
+            value.IndexOfAny(['"', '\r', '\n', '\0']) >= 0)
             throw new IOException(Strings.T("Choose a writable local folder."));
         var full = Path.GetFullPath(value.Trim());
         if (full.TrimEnd('\\').Equals(Path.GetPathRoot(full)?.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))

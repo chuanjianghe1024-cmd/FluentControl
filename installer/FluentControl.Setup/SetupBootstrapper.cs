@@ -45,7 +45,7 @@ internal sealed class SetupBootstrapper : BootstrapperApplication
                 window.ShowCompleted(false, Strings.T("Use /quiet, /repair or /uninstall. Installation is offline and per user."));
                 result = 0;
                 finished = true;
-                if (!Interactive) app.Dispatcher.BeginInvoke(() => app.Shutdown());
+                if (!Interactive) app.Dispatcher.BeginInvoke(new Action(() => app.Shutdown()));
             }
             else if (command.Scope == BundleScope.PerMachine ||
                      command.Action is LaunchAction.Layout or LaunchAction.Cache or LaunchAction.UnsafeUninstall)
@@ -123,7 +123,7 @@ internal sealed class SetupBootstrapper : BootstrapperApplication
             e.Result = Result.Cancel;
             if (!Interactive) return;
             // Classic MSI file-use records can match common runtime filenames
-            // in unrelated processes, including this self-contained frontend.
+            // in unrelated processes.
             // Keep raw evidence in the log; never ask users to close that list.
             engine.Log(LogLevel.Standard, "MSI files-in-use records: " + string.Join(" | ", e.Files));
             dispatcher.Invoke(() =>
@@ -206,6 +206,7 @@ internal sealed class SetupBootstrapper : BootstrapperApplication
         catch (Exception ex) { window.ShowInputError(ex.Message); }
     }
 
+    internal void LogInputError(Exception error) => engine.Log(LogLevel.Error, error.ToString());
     internal void OpenLog()
     {
         try

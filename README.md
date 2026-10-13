@@ -45,7 +45,7 @@ FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控�
 
 ### 下载与开始使用
 
-开发构建新增 **Win11 风格离线 Setup.exe**：明暗主题、八种语言和完整安装选项，内部继续使用 MSI。当前正式版 v0.3.92 仍为 MSI；新安装器尚未正式发布。
+开发构建新增 **Win11 风格离线 Setup.exe**：明暗主题、八种语言和完整安装选项，内部继续使用 MSI，前端复用 Windows 自带运行时以缩小下载体积。当前正式版 v0.3.92 仍为 MSI；新安装器尚未正式发布。
 
 **[下载最新正式版 MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · 当前正式版 **v0.3.92** · [版本说明](docs/releases/v0.3.92.md)
 
@@ -129,7 +129,7 @@ Save a setup for work, gaming or late-night use and recall it when needed. Adjus
 
 ### Download and get started
 
-Development builds add a **Fluent-style offline Setup.exe** with themes, eight languages and installation options, backed by the existing MSI. Stable v0.3.92 remains MSI-only; the new installer is not yet a stable release.
+Development builds add a **Fluent-style offline Setup.exe** with themes, eight languages and installation options, backed by the existing MSI and using the Windows-provided frontend runtime to reduce download size. Stable v0.3.92 remains MSI-only; the new installer is not yet a stable release.
 
 **[Download the latest stable MSI](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)** · Current stable release: **v0.3.92** · [Release notes](docs/releases/v0.3.92.md)
 

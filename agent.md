@@ -129,7 +129,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 - 保留 WinUI XAML/PRI、嵌入本地化资源和必要反射支持；不能为缩包随意删除 DLL 或启用未经验证的裁剪。更改依赖后使用干净 publish 目录。
 - MSI 使用 WiX 7（所有者已于 2026-10-13 接受对应 OSMF EULA；未来主版本需重新审查）、当前用户安装、稳定 UpgradeCode/组件身份和既有数据目录。publish 与 MSI 使用同一个版本号；不要破坏升级或删除用户配置。
 - 安装向导允许新安装选择目录；升级从 HKCU 登记恢复并锁定原目录，不能移动共享的稳定组件。开机启动复用应用的当前用户 `FluentControl.lnk` 与 `--background`，以实际启动项预选，不按旧安装标记恢复；新安装默认关闭。MSI 完成页的立即启动只由成功后的“完成”按钮触发，Setup 由独立“启动”按钮触发，静默、修复、卸载、取消及需要重启时不能启动。回归入口 `tests/installer/InstallerWizardFixture.cs` / `scripts/Test-Msi.ps1`。
-- 现代安装前端见 `docs/modern-installer.md`：独立 .NET 8 WPF UI + WiX 7 Burn，离线包含前端运行时和原 MSI。保留当前用户范围、MSI 组件身份和原目录；不将 WPF 依赖加入主程序。UI 文字使用安装器自己的 `Strings.T/F` 与八语言资源。取消等待 Burn 回滚，关闭不强杀进程，3010 不启动应用或自动重启。
+- 现代安装前端见 `docs/modern-installer.md`：独立 .NET Framework 4.8 WPF UI + WiX 7 Burn，使用 Windows 自带 Framework，离线包含原 MSI，主应用仍为自包含 .NET 8。前端禁止重复打包运行时，未压缩前端上限 20 MiB、EXE 相对 MSI 的额外体积上限 12 MiB；Burn high 压缩，记录逐文件体积。保留当前用户范围、MSI 组件身份和原目录；不将 WPF 依赖加入主程序。UI 文字使用安装器自己的 `Strings.T/F` 与八语言资源；目录选择使用系统 Common Item Dialog。取消等待 Burn 回滚，关闭不强杀进程，3010 不启动应用或自动重启。Windows 验收包含真实 CLR、目录选择/取消及固定旧 .NET 8 Bundle 跨运行时升级。
 - `.github/workflows/build.yml` 先完成全部 Windows、MSI 与 Setup 检查再分别上传 MSI/EXE；版本为 `0.3.<run_number>`。
 - 正式发布通过 `.github/release.json` 指定成功构建及确切安装包，可选 setup 对象必须与 MSI 来自同一个 main 构建，工作流校验来源和 SHA-256 后发布。标签指向该安装包的源码提交，不因文档更新改指向其他构建。
 - 已发布标签和附件不能移动或替换；修复用新版本。签名状态如实记录，域名、Manufacturer 和文件摘要不等于 Authenticode 签名。
