@@ -2,9 +2,9 @@
 
 **把多屏、音量、输入和鼠标的常用调节放在一个面板里。**
 
-本手册按正式版 **v0.3.92** 的实际功能编写，更新于 **2026-10-12**。FluentControl（FC）面向 Windows x64，提供显示器 DDC/CI 控制、系统色温与 HDR、总配置、型号预设、桌面面板和本地 OSD 配对。
+本手册按正式版 **v0.3.118** 的实际功能编写，更新于 **2026-10-13**。FluentControl（FC）面向 Windows x64，提供显示器 DDC/CI 控制、系统色温与 HDR、总配置、型号预设、桌面面板和本地 OSD 配对。
 
-[下载最新正式版](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · [本版更新](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.92) · [反馈问题](https://github.com/chuanjianghe1024-cmd/FluentControl/issues)
+[下载最新正式版](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · [本版更新](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.118) · [反馈问题](https://github.com/chuanjianghe1024-cmd/FluentControl/issues)
 
 采用 [MIT 许可证](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE)。
 
@@ -32,7 +32,7 @@
 
 ## English
 
-FluentControl brings monitor controls, system audio, input and mouse settings into one Windows panel. This guide describes **v0.3.92**, updated **2026-10-12**. Start with [installation and setup](Getting-Started.md), or use the pages below.
+FluentControl brings monitor controls, system audio, input and mouse settings into one Windows panel. This guide describes **v0.3.118**, updated **2026-10-13**. Start with [installation and setup](Getting-Started.md), or use the pages below.
 
 - [Monitor and multi-display controls](Monitor-Controls.md)
 - [Global profiles and model presets](Profiles-and-Presets.md)

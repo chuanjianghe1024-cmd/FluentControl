@@ -4,6 +4,14 @@
 
 ## 未发布 / Unreleased
 
+暂无后续变更 / No subsequent changes yet.
+
+## [0.3.118](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.118) — 2026-10-13
+
+首次正式提供 Win11 风格离线 Setup，同时发布单独 MSI。Setup 53.48 MB，相比首版现代安装器开发构建 #115 缩小约 52%；完整 Windows、MSI 和 Setup 验收通过，直接采用主干构建 #118。[中英文发布说明](docs/releases/v0.3.118.md)。
+
+First stable Fluent Setup release, alongside standalone MSI. Setup is 53.48 MB, about 52% smaller than the initial modern-installer development build #115. Promote main build #118 after full Windows, MSI and Setup validation.
+
 - 缩小现代安装包：前端改用 Windows 自带 .NET Framework 4.8，保留 Fluent 界面和完整离线 MSI；启用更高压缩，增加体积预算与逐文件报告。目录选择仍使用现代系统界面，新增目录选择/取消及旧 .NET 8 安装器升级验收。
 - Reduce Setup size by using Windows-provided .NET Framework 4.8 for the frontend, retaining the Fluent UI and complete offline MSI. Enable high compression, size budgets and file-level reports, with native folder-picker and previous .NET 8 installer upgrade checks.
 
@@ -12,14 +20,14 @@
 - 手动更新优先使用经过校验的官方 Setup，兼容旧 MSI；发布流程支持从同一成功构建发布双安装包与 SHA-256。新增真实向导、正式 MSI 迁移和 Bundle 升级回归。详见[现代安装器](docs/modern-installer.md)。
 - Manual updates prefer the verified official Setup with legacy MSI compatibility. Release automation supports matching EXE/MSI artifacts and checksums from one successful build, with real setup UI and migration/upgrade regressions.
 
-- 显示安全修复：保留未确认 Gamma 写入在恢复失败后的归属，写入前复核外部曲线，取消跨刷新/HDR 切换的旧总配置请求；新增模拟回归、[v0.3.92 审查](docs/reviews/v0.3.92-display-safety.md)与[实机验收表](docs/display-hardware-acceptance.md)。不更改已发布 MSI，真实硬件待验收。
-- Display safety: preserve ownership across interrupted gamma recovery, recheck external curves immediately before writes, and cancel stale global profiles across refresh/HDR changes. Add simulated regressions and a hardware acceptance checklist; the released MSI is unchanged and physical validation remains pending.
+- 显示安全修复：保留未确认 Gamma 写入在恢复失败后的归属，写入前复核外部曲线，取消跨刷新/HDR 切换的旧总配置请求；新增模拟回归、[v0.3.92 审查](docs/reviews/v0.3.92-display-safety.md)与[实机验收表](docs/display-hardware-acceptance.md)。修复收入 v0.3.118，旧版 MSI 附件不变，真实硬件待验收。
+- Display safety: preserve ownership across interrupted gamma recovery, recheck external curves immediately before writes, and cancel stale global profiles across refresh/HDR changes. Add simulated regressions and a hardware acceptance checklist; fixes ship in v0.3.118 while old MSI assets remain unchanged and physical validation remains pending.
 
 - 社区协作：贡献与行为/安全报告指南、PR 和型号兼容性模板、CODEOWNERS、Dependabot，以及分层 CI。新增默认禁用的 PR/评审规则模板，保留维护者当前直推 main 的能力；发布流程限制官方仓库。
 - Community setup: contribution/conduct/security guides, PR and monitor issue templates, CODEOWNERS, Dependabot and layered CI. Add a disabled PR/review ruleset template while retaining current maintainer direct pushes; restrict publishing to the official repository.
 
-- 文档与许可：新增 MIT LICENSE、中英文用户手册、Wiki 导航及同步流程；README 增加手册入口和许可说明。应用功能与 v0.3.92 已发布安装包不变。
-- Documentation and licensing: add the MIT LICENSE, bilingual user guide, Wiki navigation and synchronization workflow, with guide and license links in the README. No application changes or replacement of the published v0.3.92 installer.
+- 文档与许可：新增 MIT LICENSE、中英文用户手册、Wiki 导航及同步流程；README 增加手册入口和许可说明。旧版 v0.3.92 附件保持不变。
+- Documentation and licensing: add the MIT LICENSE, bilingual user guide, Wiki navigation and synchronization workflow, with guide and license links in the README. Published v0.3.92 assets remain unchanged.
 
 ## [0.3.92](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.92) — 2026-10-12
 

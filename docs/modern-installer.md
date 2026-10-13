@@ -1,6 +1,6 @@
 # Fluent 安装器 / Fluent setup
 
-状态：开发构建新增，尚未替换 v0.3.92 正式版附件。正式发布以 Release 的实际附件为准。
+状态：v0.3.118 首次正式发布现代 Setup，与单独 MSI 同时提供；复用主干构建 #118，旧版附件保持不变。
 
 ## 用户体验
 
@@ -33,7 +33,7 @@
 
 原单 MSI 清单仍有效。双包发布时在 `.github/release.json` 增加 `setup` 对象：`artifactId`、`artifactName`（固定 `FluentControl-Setup-x64`）、`archiveSha256`、`fileName`、`bytes`、`sha256`。文件名固定为 `FluentControl-<版本>-x64-Setup.exe`，来源必须与顶层 MSI 同一个成功 main push、提交及 run ID。
 
-两份来源和摘要验证成功后才能发布；`SHA256SUMS.txt` 包含两个安装包。任意来源、ZIP、文件或已存在附件不符都停止；重试不替换已发布附件。此次不修改 v0.3.92 清单或自动创建正式 Release。
+两份来源和摘要验证成功后才能发布；`SHA256SUMS.txt` 包含两个安装包。任意来源、ZIP、文件或已存在附件不符都停止；重试不替换已发布附件。v0.3.118 由用户明确授权发布，复用主干构建 #118 的双安装包；旧版本标签与附件不变。
 
 ## 第三方
 
@@ -43,7 +43,7 @@
 
 ## English
 
-Development builds add a Fluent offline Setup EXE around the existing per-user MSI. The frontend supports eight languages, system/light/dark themes, a native modern folder picker, startup options, explicit launch after success, repair and confirmed uninstall. It uses Windows-provided .NET Framework 4.8; the main application keeps its self-contained .NET 8 runtime inside the unchanged MSI payload. No runtime download is needed on supported Windows versions.
+v0.3.118 publishes the Fluent offline Setup EXE alongside the existing per-user MSI, promoting verified main-branch build #118. The frontend supports eight languages, system/light/dark themes, a native modern folder picker, startup options, explicit launch after success, repair and confirmed uninstall. It uses Windows-provided .NET Framework 4.8; the main application keeps its self-contained .NET 8 runtime inside the unchanged MSI payload. No runtime download is needed on supported Windows versions.
 
 Burn uses high compression. Build checks reject bundled frontend runtimes, enforce a 20 MiB uncompressed frontend budget and a 12 MiB EXE-over-MSI budget, and publish file-level size diagnostics. Windows UI tests inspect the loaded CLR, exercise folder selection/cancellation, and upgrade from an immutable .NET 8 frontend fixture to verify migration and cached-bundle removal.
 
