@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Promote an exact, tested MSI to a Release; never rebuild or replace assets."""
+"""Promote exact tested MSI/optional Setup assets; never rebuild or replace."""
 import argparse
 import hashlib
 import json
@@ -34,6 +34,21 @@ def validate_manifest(m):
     require(m["artifactName"] == "FluentControl-MSI-x64", "Unexpected artifact name")
     require(m["notes"] == f'docs/releases/v{m["version"]}.md', "Unexpected release notes path")
     require((ROOT / m["notes"]).is_file(), "Release notes are missing")
+    if "setup" in m:
+        setup = m["setup"]
+        require(set(setup) == {"artifactId", "artifactName", "archiveSha256", "fileName", "bytes", "sha256"},
+                "Unexpected setup manifest fields")
+        require(setup["fileName"] == f'FluentControl-{m["version"]}-x64-Setup.exe', "Unexpected setup name")
+        require(setup["artifactName"] == "FluentControl-Setup-x64", "Unexpected setup artifact")
+        for field in ("sha256", "archiveSha256"):
+            require(re.fullmatch(r"[0-9a-f]{64}", setup[field]), f"Invalid setup {field}")
+        for field in ("artifactId", "bytes"):
+            require(type(setup[field]) is int and setup[field] > 0, f"Invalid setup {field}")
+
+
+def installer_manifests(m):
+    """Both artifacts must originate in the same successful main build."""
+    return [m] + ([{**m, **m["setup"]}] if "setup" in m else [])
 
 
 def validate_source(m, run, artifact, repo):
@@ -118,11 +133,11 @@ def find_release(base, tag):
 
 
 def expected_assets(m):
-    checksum = f'{m["sha256"]}  {m["fileName"]}\n'.encode("utf-8")
-    return {
-        m["fileName"]: (m["sha256"], m["bytes"]),
-        "SHA256SUMS.txt": (hashlib.sha256(checksum).hexdigest(), len(checksum)),
-    }, checksum
+    entries = installer_manifests(m)
+    checksum = "".join(f'{entry["sha256"]}  {entry["fileName"]}\n' for entry in entries).encode("utf-8")
+    assets = {entry["fileName"]: (entry["sha256"], entry["bytes"]) for entry in entries}
+    assets["SHA256SUMS.txt"] = (hashlib.sha256(checksum).hexdigest(), len(checksum))
+    return assets, checksum
 
 
 def validate_assets(assets, expected, complete=False):
@@ -209,13 +224,17 @@ def publish(m, repo):
         validate_assets(release["assets"], expected)
 
     run = api(f'{base}/actions/runs/{m["runId"]}')
-    artifact = api(f'{base}/actions/artifacts/{m["artifactId"]}')
-    validate_source(m, run, artifact, repo)
+    entries = installer_manifests(m)
+    for entry in entries:
+        artifact = api(f'{base}/actions/artifacts/{entry["artifactId"]}')
+        validate_source(entry, run, artifact, repo)
     with tempfile.TemporaryDirectory(prefix="fluentcontrol-release-") as temporary:
         work = Path(temporary)
-        archive = work / "artifact.zip"
-        gh("api", f'{base}/actions/artifacts/{m["artifactId"]}/zip', output=archive)
-        msi = unpack_msi(m, archive, work)
+        installers = []
+        for entry in entries:
+            archive = work / f'{entry["artifactId"]}.zip'
+            gh("api", f'{base}/actions/artifacts/{entry["artifactId"]}/zip', output=archive)
+            installers.append(unpack_msi(entry, archive, work))
         sums = work / "SHA256SUMS.txt"
         sums.write_bytes(checksum)
         if release is None:
@@ -229,7 +248,7 @@ def publish(m, repo):
         require(release["tag_name"] == tag and release["draft"], "Expected matching release draft")
         release_id = release["id"]
         present = {a["name"] for a in release["assets"]}
-        for asset in (msi, sums):
+        for asset in (*installers, sums):
             if asset.name not in present:
                 # Address the draft by ID rather than resolving its tag again.
                 # POST refuses duplicate names; no delete/replace operation.

@@ -19,7 +19,7 @@
   <ItemGroup>
     <PackageReference Include="WixToolset.BootstrapperApplicationApi" Version="7.0.0" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
-    <Resource Include="../../src/FluentControl/Assets/FluentControl.png" Link="Assets/FluentControl.png" />
+    <Resource Include="../../docs/assets/app-icon.png" Link="Assets/FluentControl.png" />
     <EmbeddedResource Include="Locales.json" />
     <Content Include="../licenses/*" Link="licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

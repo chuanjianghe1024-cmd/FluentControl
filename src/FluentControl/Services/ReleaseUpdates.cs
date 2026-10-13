@@ -72,18 +72,23 @@ internal sealed class ReleaseUpdates(HttpClient client)
                 throw new UpdateException(UpdateFailure.InvalidRelease);
             var page = Repository + "/releases/tag/" + tag;
             if (root.GetProperty("html_url").GetString() != page) throw new UpdateException(UpdateFailure.InvalidRelease);
-            var name = "FluentControl-" + version.ToString(version.Revision < 0 ? 3 : 4) + "-x64.msi";
-            var url = Repository + "/releases/download/" + tag + "/" + name;
+            var prefix = "FluentControl-" + version.ToString(version.Revision < 0 ? 3 : 4) + "-x64";
             ReleaseInstaller? installer = null;
-            foreach (var asset in root.GetProperty("assets").EnumerateArray())
+            // Prefer the modern offline bundle; older releases still offer MSI.
+            // A present but invalid bundle must not be hidden by a fallback.
+            foreach (var name in new[] { prefix + "-Setup.exe", prefix + ".msi" })
             {
-                if (asset.GetProperty("name").GetString() != name) continue;
-                if (installer is not null) throw new UpdateException(UpdateFailure.InvalidRelease);
+                var matches = root.GetProperty("assets").EnumerateArray().Where(x => x.GetProperty("name").GetString() == name).ToArray();
+                if (matches.Length == 0) continue;
+                if (matches.Length != 1) throw new UpdateException(UpdateFailure.InvalidRelease);
+                var asset = matches[0];
+                var url = Repository + "/releases/download/" + tag + "/" + name;
                 var digest = asset.TryGetProperty("digest", out var hash) ? hash.GetString() : null;
                 var bytes = asset.GetProperty("size").GetInt64();
                 if (asset.GetProperty("state").GetString() == "uploaded" && asset.GetProperty("browser_download_url").GetString() == url &&
                     bytes is > 0 and <= MaxInstallerBytes && digest is not null && Regex.IsMatch(digest, @"^sha256:[a-fA-F0-9]{64}$"))
                     installer = new(name, new Uri(url), bytes, digest[7..].ToLowerInvariant());
+                break;
             }
             return new(version, tag!, new Uri(page), installer);
         }
