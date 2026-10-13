@@ -48,6 +48,9 @@ jobs:
             [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors)
             if ($errors.Count) { throw ($errors | Out-String) }
           }
+      - name: Test WiX license boundary before restoring tools
+        shell: pwsh
+        run: ./tests/installer/Test-WixPolicy.ps1
       - name: Test device control logic and native mouse settings
         run: dotnet run --project tests/FluentControl.Tests -c Release -- --native
       - name: Build WinUI application

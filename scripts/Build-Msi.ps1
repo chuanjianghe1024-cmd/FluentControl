@@ -12,6 +12,14 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 Push-Location $root
 try {
+    # Major upgrades require a separate license and installer compatibility review.
+    # Check before tool restore, signing, or generating any build outputs.
+    $tools = Get-Content (Join-Path $root '.config/dotnet-tools.json') -Raw | ConvertFrom-Json
+    $wixVersion = [string]$tools.tools.wix.version
+    if ($wixVersion -notmatch '^5\.\d+\.\d+$') {
+        throw "Unsupported WiX version '$wixVersion'. Keep the reviewed WiX 5 toolchain; see docs/wix-toolchain.md before upgrading. No EULA is accepted by this script."
+    }
+    $wixUiExtension = "WixToolset.UI.wixext/$wixVersion"
     if ($RequireSigned -and -not $CertificateThumbprint) { throw 'A signed release requires -CertificateThumbprint and -TimestampUrl. No unsigned fallback is allowed.' }
     if ($CertificateThumbprint -and -not $TimestampUrl) { throw 'Provide your certificate provider RFC 3161 -TimestampUrl.' }
     $signing = @{ CertificateThumbprint = $CertificateThumbprint; TimestampUrl = $TimestampUrl; MachineStore = $MachineStore; SignToolPath = $SignToolPath }
@@ -43,7 +51,7 @@ try {
     New-Item $work -ItemType Directory -Force | Out-Null
     dotnet tool restore
     if ($LASTEXITCODE -ne 0) { throw 'WiX tool restore failed.' }
-    dotnet tool run wix extension add WixToolset.UI.wixext/5.0.2
+    dotnet tool run wix extension add $wixUiExtension
     if ($LASTEXITCODE -ne 0) { throw 'WiX UI extension restore failed.' }
 
     function StableId([string]$prefix, [string]$path) {
@@ -110,7 +118,7 @@ try {
     $doc.Save($payload)
     $manifest | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $work 'payload.json') -Encoding utf8
     $msi = Join-Path $output "FluentControl-$Version-x64.msi"
-    dotnet tool run wix build installer/Package.wxs installer/Interface.wxs $payload -arch x64 -culture zh-CN -loc installer/Strings.zh-cn.wxl -ext WixToolset.UI.wixext -d "ProductVersion=$Version" -d "PublishDir=$publish" -pdbtype none -intermediatefolder $work -o $msi
+    dotnet tool run wix build installer/Package.wxs installer/Interface.wxs $payload -arch x64 -culture zh-CN -loc installer/Strings.zh-cn.wxl -ext $wixUiExtension -d "ProductVersion=$Version" -d "PublishDir=$publish" -pdbtype none -intermediatefolder $work -o $msi
     if ($LASTEXITCODE -ne 0) { throw 'MSI compilation/validation failed.' }
     if ($CertificateThumbprint) { & "$PSScriptRoot/Sign-Artifacts.ps1" -Path $msi @signing }
     $signatures = @(@("$publish/FluentControl.exe", "$publish/FluentControl.dll", $msi) | ForEach-Object {

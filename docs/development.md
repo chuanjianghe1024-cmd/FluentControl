@@ -4,7 +4,7 @@
 
 ## 开发环境
 
-Windows x64、.NET 8 SDK、Windows SDK、WinUI 构建组件（可通过 Visual Studio 2022 安装）。安装器工具通过仓库 `.config/dotnet-tools.json` 恢复，使用 WiX 5。项目结构、开发规范、当前进度与详细计划统一见 [agent.md](../agent.md)；[AGENTS.md](../AGENTS.md) 保留为自动发现入口。本页维护完整操作命令与测试副作用。
+Windows x64、.NET 8 SDK、Windows SDK、WinUI 构建组件（可通过 Visual Studio 2022 安装）。安装器工具通过仓库 `.config/dotnet-tools.json` 恢复，使用 WiX 5.0.2；UI 扩展恢复与加载均使用清单中的同一精确版本。升级策略、许可边界和风险见 [WiX 工具链审查](wix-toolchain.md)。项目结构、开发规范、当前进度与详细计划统一见 [agent.md](../agent.md)；[AGENTS.md](../AGENTS.md) 保留为自动发现入口。本页维护完整操作命令与测试副作用。
 
 ```powershell
 dotnet build src/FluentControl/FluentControl.csproj -c Debug -p:Platform=x64
