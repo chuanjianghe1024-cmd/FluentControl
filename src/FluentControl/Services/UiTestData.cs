@@ -12,9 +12,10 @@ internal static class UiTestData
             if (!ramps.TryGetValue(id, out var ramp)) ramps[id] = ramp = Enumerable.Range(0, 768).Select(i => (ushort)((i % 256) * 257)).ToArray();
             return new(id, target.State.Active == false && target.State.Enabled == false, ramp.ToArray());
         }
-        public void Write(string id, string token, ushort[] ramp)
+        public void Write(string id, string token, ushort[] expected, ushort[] ramp)
         {
             if (!Read(id).Allowed || token != id) throw new IOException("Simulated color target changed.");
+            SystemColorService.EnsureUnchanged(expected, Read(id).Ramp);
             ramps[id] = ramp.ToArray();
         }
     }

@@ -10,16 +10,22 @@ internal static class SystemColorTests
         internal Dictionary<string, ushort[]> Ramps = new() { ["a"] = Identity(), ["b"] = Identity() };
         internal bool Allowed = true, Ignore, FailWrite, FailRead;
         internal int Writes;
+        internal bool FailReadAfterWrite;
+        internal Action<Backend, string>? BeforeWrite;
+        internal string? Disconnected;
         internal string Token = "original-target";
         public ColorReading Read(string id)
         {
-            if (FailRead) throw new IOException("read failed");
+            if (FailRead || id == Disconnected) throw new IOException("read failed");
             return new(Token + id, Allowed, Ramps[id].ToArray());
         }
-        public void Write(string id, string token, ushort[] ramp)
+        public void Write(string id, string token, ushort[] expected, ushort[] ramp)
         {
+            BeforeWrite?.Invoke(this, id);
+            SystemColorService.EnsureUnchanged(expected, Ramps[id]);
             Writes++; if (FailWrite) throw new IOException("write failed");
             if (!Ignore) Ramps[id] = ramp.ToArray();
+            if (FailReadAfterWrite) FailRead = true;
         }
     }
     private static void Fails(Action action)
@@ -30,6 +36,16 @@ internal static class SystemColorTests
         Check(WindowsDisplayHdrBackend.Decode(true, 0, 0).LegacyGammaAllowed, "SDR without HDR support is allowed");
         foreach (var state in new[] { WindowsDisplayHdrBackend.Decode(true, 0x33, 2), WindowsDisplayHdrBackend.Decode(true, 0xC3, 1), WindowsDisplayHdrBackend.Decode(false, 7), DisplayHdrState.Unknown() })
             Check(!state.LegacyGammaAllowed, "HDR, ACM/WCG and unknown modes must block legacy gamma");
+        var independent = new HdrTarget("a", 1, 0, 2, true, WindowsDisplayHdrBackend.Decode(true, 0, 0))
+            { SourceName = @"\\.\DISPLAY1", SourceTargetCount = 1 };
+        Check(WindowsSystemColorBackend.Allowed(independent), "native policy permits confirmed independent SDR");
+        foreach (var blockedTarget in new[]
+        {
+            independent with { SourceTargetCount = 2 }, independent with { SourceTargetCount = 0 },
+            independent with { SourceName = "" }, independent with { State = DisplayHdrState.Unknown() },
+            independent with { State = WindowsDisplayHdrBackend.Decode(true, 0x33, 2) },
+            independent with { State = WindowsDisplayHdrBackend.Decode(true, 0xC3, 1) }
+        }) Check(!WindowsSystemColorBackend.Allowed(blockedTarget), "native policy blocks clone/missing source/unknown/HDR/ACM");
         var original = Identity(); var warm = SoftwareWhiteBalance.Transform(original, 4500); var cool = SoftwareWhiteBalance.Transform(original, 7500);
         Check(SoftwareWhiteBalance.Transform(original, 6500).SequenceEqual(original), "neutral preserves exact baseline");
         Check(warm[255] == original[255] && warm[767] < original[767] && cool[767] == original[767] && cool[255] < original[255], "warm/cool directions");
@@ -67,6 +83,37 @@ internal static class SystemColorTests
             Check(new SystemColorService(b, path).Read("a").Recovery, "failure after journaling remains recoverable");
             c.Restore("a"); b.FailRead = true; writes = b.Writes; Fails(() => c.Set("a", 4500)); Check(b.Writes == writes, "read failure prevents writing"); b.FailRead = false;
             b.Ramps["a"] = new ushort[768]; Fails(() => c.Set("a", 4500)); Check(!c.Read("a").Available && b.Writes == writes, "invalid ramp cannot be a baseline");
+            // A completed native write with failed readback is owned via Pending.
+            // A subsequent failed restore must not erase that ownership on disk.
+            b.Ramps["a"] = original.ToArray();
+            b.FailReadAfterWrite = true;
+            Fails(() => c.Set("a", 4500));
+            b.FailRead = false; b.FailReadAfterWrite = false;
+            b.FailWrite = true; Fails(() => c.Restore("a")); b.FailWrite = false;
+            var retry = new SystemColorService(b, path);
+            Check(retry.Read("a").Recovery, "failed restore preserves ownership of previously pending curve across restart");
+            Check(retry.Restore("a") && b.Ramps["a"].SequenceEqual(original), "retry restores baseline after two interrupted operations");
+            // External calibration can arrive after the service reads, while it journals.
+            c = new(b, path); writes = b.Writes;
+            b.BeforeWrite = (backend, id) => backend.Ramps[id] = other.ToArray();
+            Fails(() => c.Set("a", 4500));
+            Check(b.Writes == writes && b.Ramps["a"].SequenceEqual(other), "write-time guard preserves late external calibration");
+            Check(!c.Read("a").Recovery, "late external curve releases ownership");
+            b.BeforeWrite = null; b.Ramps["a"] = original.ToArray();
+            c.Set("a", 4500); writes = b.Writes;
+            b.BeforeWrite = (backend, id) => backend.Ramps[id] = other.ToArray();
+            Fails(() => c.Restore("a"));
+            Check(b.Writes == writes && b.Ramps["a"].SequenceEqual(other), "restore-time guard preserves late external calibration");
+            b.BeforeWrite = null; c.Read("a");
+            b.Ramps["a"] = original.ToArray(); c.Set("a", 4500); c.Set("b", 7500);
+            b.Disconnected = "a"; c.RestoreAll();
+            Check(b.Ramps["b"].SequenceEqual(original) && c.HasSessions, "unreachable first screen does not block second-screen exit restore");
+            b.Disconnected = null; c.Restore("a");
+            // A journal failure must stop the native write even when the baseline is valid.
+            var blockedPath = Path.Combine(dir, "blocked.json"); Directory.CreateDirectory(blockedPath);
+            var blocked = new SystemColorService(b, blockedPath); writes = b.Writes;
+            Fails(() => blocked.Set("a", 4500));
+            Check(b.Writes == writes && b.Ramps["a"].SequenceEqual(original), "failed durable intent blocks native write");
             File.WriteAllText(path, "{bad"); Fails(() => new SystemColorService(b, path)); Check(File.ReadAllText(path) == "{bad", "corrupt recovery is preserved");
         }
         finally { Directory.Delete(dir, true); }

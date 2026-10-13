@@ -8,7 +8,7 @@ internal sealed record ColorReading(string Token, bool Allowed, ushort[] Ramp);
 internal interface ISystemColorBackend
 {
     ColorReading Read(string devicePath);
-    void Write(string devicePath, string token, ushort[] ramp);
+    void Write(string devicePath, string token, ushort[] expected, ushort[] ramp);
 }
 internal sealed record SystemColorStatus(bool Available, int? Kelvin, bool Recovery = false, string Error = "");
 internal sealed class ColorSession
@@ -74,6 +74,10 @@ internal sealed class SystemColorService
     }
     private static string Blocked => T("仅支持可确认的 SDR 独立屏幕；HDR、自动颜色管理或复制模式下请使用 Windows 夜间模式。", "Requires a confirmed SDR display with an independent output. Use Windows night light for HDR, auto color management or duplicated displays.");
     private static string External => T("颜色曲线已被其他程序或显示模式改变，FC 已停止接管；再次应用将以当前颜色为基准。", "The color curve changed outside FC. Control was released; applying again will use the current colors as the baseline.");
+    internal static void EnsureUnchanged(ushort[] expected, ushort[] current)
+    {
+        if (!SoftwareWhiteBalance.Same(expected, current)) throw new IOException(External);
+    }
     private static bool Owned(ColorSession s, ColorReading r) => s.Token == r.Token && (SoftwareWhiteBalance.Same(s.Last, r.Ramp) || s.Pending is not null && SoftwareWhiteBalance.Same(s.Pending, r.Ramp));
     internal SystemColorStatus Read(string id)
     {
@@ -115,7 +119,7 @@ internal sealed class SystemColorService
         }
         var next = SoftwareWhiteBalance.Transform(s.Original, (int)value);
         s.Pending = next; Save(); // Durable recovery before the native write.
-        backend.Write(id, r.Token, next);
+        backend.Write(id, r.Token, r.Ramp, next);
         var actual = backend.Read(id);
         if (!actual.Allowed || actual.Token != r.Token || !SoftwareWhiteBalance.Same(next, actual.Ramp))
             throw new IOException(T("系统未确认色温曲线已生效，请重新读取或恢复。", "The system did not confirm the color curve. Refresh or restore colors."));
@@ -128,8 +132,12 @@ internal sealed class SystemColorService
         var r = backend.Read(id);
         if (!r.Allowed) throw new InvalidOperationException(Blocked);
         if (!Owned(s, r)) { sessions.Remove(id); Save(); log?.Invoke("System color restore skipped: newer external curve or target changed."); return false; }
+        // Pending may be the only record of an applied but unconfirmed write.
+        // Preserve the observed owned curve before replacing that intent, so a
+        // failed restore can still be retried, including after a process restart.
+        s.Last = r.Ramp.ToArray();
         var original = s.Original.ToArray(); s.Pending = original; Save();
-        backend.Write(id, r.Token, original);
+        backend.Write(id, r.Token, r.Ramp, original);
         var actual = backend.Read(id);
         if (!actual.Allowed || actual.Token != r.Token || !SoftwareWhiteBalance.Same(original, actual.Ramp))
             throw new IOException(T("原颜色尚未恢复，请重新读取后重试。", "Original colors are not restored yet. Refresh and try again."));
@@ -152,7 +160,7 @@ internal sealed class WindowsSystemColorBackend : ISystemColorBackend
         if (matches.Length != 1) throw new IOException(T("无法确认显示器连接，请重新读取设备。", "Cannot identify the display connection. Refresh devices."));
         return matches[0];
     }
-    private static bool Allowed(HdrTarget t) => t.State.LegacyGammaAllowed && t.SourceTargetCount == 1 && !string.IsNullOrWhiteSpace(t.SourceName);
+    internal static bool Allowed(HdrTarget t) => t.State.LegacyGammaAllowed && t.SourceTargetCount == 1 && !string.IsNullOrWhiteSpace(t.SourceName);
     private static string Token(HdrTarget t) => $"{t.DevicePath.ToUpperInvariant()}|{t.AdapterHigh}:{t.AdapterLow}:{t.TargetId}|{t.SourceName}";
     public ColorReading Read(string id)
     {
@@ -165,12 +173,18 @@ internal sealed class WindowsSystemColorBackend : ISystemColorBackend
             return ramp;
         }));
     }
-    public void Write(string id, string token, ushort[] ramp)
+    public void Write(string id, string token, ushort[] expected, ushort[] ramp)
     {
         var t = Resolve(id); // No cached source IDs/DCs; check mode again before every write.
         if (!Allowed(t) || Token(t) != token || ramp.Length != 768) throw new IOException(T("显示模式已变化，请重新读取设备。", "Display mode changed. Refresh devices."));
         WithDc(t, dc =>
         {
+            // Journaling and topology resolution can take time. Recheck ownership
+            // on the same DC immediately before writing. GDI offers no atomic CAS;
+            // an external writer racing the final native call remains possible.
+            var current = new ushort[768];
+            if (!GetDeviceGammaRamp(dc, current)) throw new IOException(T("显卡驱动无法读取系统颜色曲线。", "The graphics driver cannot read the system color curve."));
+            SystemColorService.EnsureUnchanged(expected, current);
             if (!SetDeviceGammaRamp(dc, ramp)) throw new IOException(T("显卡驱动未接受系统颜色曲线。", "The graphics driver did not accept the system color curve."));
             return true;
         });

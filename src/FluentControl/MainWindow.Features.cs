@@ -227,8 +227,8 @@ public sealed partial class MainWindow
     }
     private async Task ApplyProfileAsync(ControlProfile profile)
     {
-        if (applyingProfile || refreshing || closed || colorExiting || monitorAdaptationDialog is not null) return;
-        applyingProfile = true; var page = notificationContext;
+        if (applyingProfile || refreshing || closed || hdrChanging || colorExiting || monitorAdaptationDialog is not null) return;
+        applyingProfile = true; var page = notificationContext; var version = generation;
         try
         {
             await WaitForWritesAsync();
@@ -237,7 +237,7 @@ public sealed partial class MainWindow
             await gate.WaitAsync();
             try
             {
-                if (closed || colorExiting || monitorAdaptationDialog is not null) return;
+                if (closed || refreshing || hdrChanging || colorExiting || version != generation || monitorAdaptationDialog is not null) return;
                 var available = AllChannels();
                 var result = await Task.Run(() =>
                 {

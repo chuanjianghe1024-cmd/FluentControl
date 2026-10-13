@@ -74,6 +74,20 @@ internal static class DisplayHdrTests
         b.BeforeRead = backend => { if (backend.Writes == 5) backend.Targets.Clear(); };
         changed = c.Set("panel-a", false);
         Check(!changed.Confirmed && changed.State.Availability == HdrAvailability.Disconnected && b.Writes == 5, "disconnect after write not mistaken for success");
+        b = new Backend(); c = new DisplayHdrController(b, wait: () => { });
+        b.Targets[0] = b.Targets[0] with { State = new(HdrAvailability.Limited, true, true) };
+        Check(c.Set("panel-a", false).Confirmed && b.Writes == 1, "policy-limited target may be explicitly disabled");
+        Check(!c.Set("panel-a", true).Sent && b.Writes == 1, "policy-limited target cannot be re-enabled");
+        b.Targets[0] = b.Targets[0] with { State = DisplayHdrState.Unknown("query failed") };
+        Check(!c.Set("panel-a", true).Sent && b.Writes == 1, "unknown state fails closed");
+        b = new Backend(); c = new DisplayHdrController(b, wait: () => { });
+        b.BeforeRead = backend =>
+        {
+            if (backend.Writes == 1 && backend.Targets.Count == 2) backend.Targets.Add(backend.Targets[0]);
+        };
+        changed = c.Set("panel-a", true);
+        Check(changed.Sent && !changed.Confirmed && changed.State.Availability == HdrAvailability.Ambiguous && b.Writes == 1,
+            "identity becoming ambiguous during readback is never confirmed or retried");
         Console.WriteLine("Windows HDR controller checks passed (simulated; no native HDR writes).");
     }
 }

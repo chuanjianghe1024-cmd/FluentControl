@@ -4,6 +4,9 @@
 
 ## 未发布 / Unreleased
 
+- 显示安全修复：保留未确认 Gamma 写入在恢复失败后的归属，写入前复核外部曲线，取消跨刷新/HDR 切换的旧总配置请求；新增模拟回归、[v0.3.92 审查](docs/reviews/v0.3.92-display-safety.md)与[实机验收表](docs/display-hardware-acceptance.md)。不更改已发布 MSI，真实硬件待验收。
+- Display safety: preserve ownership across interrupted gamma recovery, recheck external curves immediately before writes, and cancel stale global profiles across refresh/HDR changes. Add simulated regressions and a hardware acceptance checklist; the released MSI is unchanged and physical validation remains pending.
+
 - 社区协作：贡献与行为/安全报告指南、PR 和型号兼容性模板、CODEOWNERS、Dependabot，以及分层 CI。新增默认禁用的 PR/评审规则模板，保留维护者当前直推 main 的能力；发布流程限制官方仓库。
 - Community setup: contribution/conduct/security guides, PR and monitor issue templates, CODEOWNERS, Dependabot and layered CI. Add a disabled PR/review ruleset template while retaining current maintainer direct pushes; restrict publishing to the official repository.
 
