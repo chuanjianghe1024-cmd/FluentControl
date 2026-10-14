@@ -63,7 +63,7 @@ python tools/light-source/server.py
 
 - [ROHM BH1750 数据手册](https://www.mouser.com/datasheet/2/348/bh1750fvi-e-186247.pdf)，测量时间见 Electrical Characteristics。
 - [NOAA 通用太阳位置公式](https://www.gml.noaa.gov/grad/solcalc/solareqns.PDF)，按公开公式独立实现日出日落估算，不调用网站运行时服务。
-- 纯逻辑回归覆盖格式、时间新鲜度、尖峰/重复采样、对数插值、跨午夜、极昼极夜、输出步幅、手动/自动通知隔离。现有显示器/音频/配置回归通过。2026-10-14：Linux .NET 8 纯逻辑回归、C# 12 语法解析及本机模拟 HTTP 端点实测通过。已新增 Windows 模拟界面/调度回归，但因远程提交审批被拒尚未运行 Windows 构建/CI；实体传感器、显示器与休眠恢复实测仍待完成。
+- 纯逻辑回归覆盖格式、时间新鲜度、尖峰/重复采样、对数插值、跨午夜、极昼极夜、输出步幅、手动/自动通知隔离。现有显示器/音频/配置回归通过。2026-10-14：Linux .NET 8 纯逻辑回归、C# 12 语法解析及本机模拟 HTTP 端点实测通过。Windows 构建 #129 已通过完整 WinUI、模拟界面/调度、MSI 与 Setup 验收；包含曲线编辑持久化、午夜衔接、百分比步幅、写入间隔、手动保持和关闭门控。实体传感器、显示器与休眠恢复实测仍待完成。
 
 # Automatic brightness and light-data subscriptions
 

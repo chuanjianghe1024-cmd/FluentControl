@@ -40,6 +40,22 @@ class ReleaseTests(unittest.TestCase):
     def test_checked_in_manifest(self):
         release.validate_manifest(self.m)
 
+    def test_preview_manifest_requires_separate_notes_and_boolean_channel(self):
+        self.m["prerelease"] = True
+        with self.assertRaisesRegex(ValueError, "notes path"):
+            release.validate_manifest(self.m)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.m["notes"] = f'docs/releases/previews/v{self.m["version"]}-snap.md'
+            notes = root / self.m["notes"]
+            notes.parent.mkdir(parents=True)
+            notes.write_text("Preview notes", encoding="utf-8")
+            with patch.object(release, "ROOT", root):
+                release.validate_manifest(self.m)
+                self.m["prerelease"] = "true"
+                with self.assertRaisesRegex(ValueError, "prerelease flag"):
+                    release.validate_manifest(self.m)
+
     def add_setup(self):
         self.m["setup"] = {"artifactId": 98765, "artifactName": "FluentControl-Setup-x64",
                            "archiveSha256": "a" * 64, "sha256": "b" * 64, "bytes": 123,
@@ -159,6 +175,17 @@ class ReleaseTests(unittest.TestCase):
             gh.assert_not_called()
             api.assert_not_called()
 
+    def test_channel_mismatch_cannot_promote_or_demote_existing_release(self):
+        for requested in (False, True):
+            self.m["prerelease"] = requested
+            published = {"draft": False, "prerelease": not requested,
+                         "assets": self.assets(), "html_url": "release URL"}
+            with patch.object(release, "find_release", return_value=published), \
+                 patch.object(release, "verify_tag"), patch.object(release, "api") as api:
+                with self.assertRaisesRegex(ValueError, "channel differs"):
+                    release.publish(self.m, self.repo)
+                api.assert_not_called()
+
     def test_conflicting_draft_stops_before_any_mutation(self):
         draft = {"draft": True, "target_commitish": "0" * 40}
         with patch.object(release, "find_release", return_value=draft), \
@@ -181,8 +208,9 @@ class ReleaseTests(unittest.TestCase):
     @patch.dict(release.os.environ, {}, clear=True)
     def test_creation_uses_returned_id_without_read_after_create_tag_lookup(self):
         # Exercise both release shapes independently of the current manifest.
-        for include_setup in (False, True):
-            with self.subTest(include_setup=include_setup):
+        for include_setup, preview in ((False, False), (True, False), (True, True)):
+            with self.subTest(include_setup=include_setup, preview=preview):
+                self.m["prerelease"] = preview
                 self.m.pop("setup", None)
                 if include_setup:
                     self.add_setup()
@@ -191,8 +219,8 @@ class ReleaseTests(unittest.TestCase):
                 artifacts = [{**artifact, "id": e["artifactId"], "name": e["artifactName"],
                               "digest": "sha256:" + e["archiveSha256"]} for e in entries]
                 expected = self.assets()
-                tag = "v" + self.m["version"]
-                draft = {"id": 42, "tag_name": tag, "draft": True, "prerelease": False, "assets": []}
+                tag = "v" + self.m["version"] + ("-snap" if preview else "")
+                draft = {"id": 42, "tag_name": tag, "draft": True, "prerelease": preview, "assets": []}
                 uploaded = {**draft, "assets": self.assets()}
                 published = {**uploaded, "draft": False, "html_url": "release URL"}
                 api_responses = [run, *artifacts, draft, uploaded, published]
@@ -216,6 +244,10 @@ class ReleaseTests(unittest.TestCase):
                     writes = [c for c in api.call_args_list if c.kwargs.get("method") in ("POST", "PATCH")]
                     self.assertEqual([c.kwargs["method"] for c in writes], ["POST", "PATCH"])
                     self.assertTrue(writes[1].args[0].endswith("/releases/42"))
+                    self.assertEqual(writes[0].kwargs["payload"]["tag_name"], tag)
+                    self.assertEqual(writes[0].kwargs["payload"]["prerelease"], preview)
+                    self.assertEqual(writes[1].kwargs["payload"]["prerelease"], preview)
+                    self.assertEqual(writes[1].kwargs["payload"]["make_latest"], "false" if preview else "true")
 
 
 class ReleaseNotesTests(unittest.TestCase):

@@ -1,0 +1,21 @@
+{
+  "version": "0.3.129",
+  "prerelease": true,
+  "sourceCommit": "dece26a38d476a28b109f74f18146a2ef31da2fd",
+  "runId": 38523140564,
+  "artifactId": 11874358419,
+  "artifactName": "FluentControl-MSI-x64",
+  "archiveSha256": "79e5226ef503611efda0091d98e51ce9802baadcdc3c143209ee736100d04844",
+  "fileName": "FluentControl-0.3.129-x64.msi",
+  "bytes": 50720981,
+  "sha256": "b9dc3178b5a1514d6d5902f27c5d98e3bcd88191876dac75e4bb22b18b00f815",
+  "notes": "docs/releases/previews/v0.3.129-snap.md",
+  "setup": {
+    "artifactId": 11874777929,
+    "artifactName": "FluentControl-Setup-x64",
+    "archiveSha256": "d2076cd864e261185cd3c1c7b835c6e48371a61600609333b70a542b0929ed14",
+    "fileName": "FluentControl-0.3.129-x64-Setup.exe",
+    "bytes": 53505923,
+    "sha256": "052d5673b46dfcae972249306599b3de10a67ec0071949ec54b83326c74ed8ca"
+  }
+}

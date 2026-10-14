@@ -132,6 +132,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 - 现代安装前端见 `docs/modern-installer.md`：独立 .NET Framework 4.8 WPF UI + WiX 7 Burn，使用 Windows 自带 Framework，离线包含原 MSI，主应用仍为自包含 .NET 8。前端禁止重复打包运行时，未压缩前端上限 20 MiB、EXE 相对 MSI 的额外体积上限 12 MiB；Burn high 压缩，记录逐文件体积。保留当前用户范围、MSI 组件身份和原目录；不将 WPF 依赖加入主程序。UI 文字使用安装器自己的 `Strings.T/F` 与八语言资源；目录选择使用系统 Common Item Dialog。取消等待 Burn 回滚，关闭不强杀进程，3010 不启动应用或自动重启。Windows 验收包含真实 CLR、目录选择/取消及固定旧 .NET 8 Bundle 跨运行时升级。
 - `.github/workflows/build.yml` 先完成全部 Windows、MSI 与 Setup 检查再分别上传 MSI/EXE；版本为 `0.3.<run_number>`。
 - 正式发布通过 `.github/release.json` 指定成功构建及确切安装包，可选 setup 对象必须与 MSI 来自同一个 main 构建，工作流校验来源和 SHA-256 后发布。标签指向该安装包的源码提交，不因文档更新改指向其他构建。
+- Snap 预览使用独立 `.github/preview-release.json`（`prerelease: true`）及 `docs/releases/previews/v<版本>-snap.md`，标签为 `v<版本>-snap`；同样只提升完整成功 main 构建的确切附件，不设为 Latest，不改变正式版更新通道。
 - 已发布标签和附件不能移动或替换；修复用新版本。签名状态如实记录，域名、Manufacturer 和文件摘要不等于 Authenticode 签名。
 - `docs/releases/v<版本>.md` 是对应 Release 正文的维护入口，采用同页中英文，突出用户收益、功能变化、升级和实际限制；不要把后续开发构建的修复追记为旧安装包的能力。标题首行为 `# FluentControl v<版本>`，链接使用绝对地址。
 - 修改发布说明会触发发布工作流：先验证既有发布，再用 `scripts/publish-release.py --sync-notes` 同步已发布正式版本的正文。同步只发送 `body`，核对前后标签、标题、发布状态、附件身份与摘要；未发布版本跳过，不因补写说明创建新 Release。
@@ -183,7 +184,9 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 状态基线：**2026-10-13**。这里只列工程进度与后续验收；不因条目写入计划就宣称已完成或已发布。
 
-### 当前未发布变更
+### 当前预览变更（尚未进入正式版）
+
+- Snap 预览 `v0.3.129-snap` 使用主干构建 #129 / `dece26a38d476a28b109f74f18146a2ef31da2fd`。Windows、模拟自动调节界面、MSI 与 Setup 验收通过；正式通道保持 v0.3.118，实体硬件未验收。
 
 - 自动亮度与光照订阅：`AdaptivePresets.cs` 保存独立 lux/clock 曲线；`AdaptiveAutomation.cs` 提供统一 `fluentcontrol.light-sample` JSON、过滤和平滑及 NOAA 本地太阳公式。`MainWindow.Automation*.cs` 提供运行时和设置，默认关闭；用户明确启用后允许定时亮度及 FC 主题（不修改系统主题/Gamma），持久启用可在下次运行继续。共用 gate/generation，手动保持 10 分钟，网络失败暂停、屏幕写入失败需重新开启，HDR/未知状态不自动写。订阅是动态数据源，不是远程预设安装器；导入曲线不自动开启；用户配置的源码不执行。`tools/light-source/server.py` 是独立本机模拟接口。实体硬件、串口/BLE 桥接及学习未完成。详见 `docs/adaptive-presets.md`。
 

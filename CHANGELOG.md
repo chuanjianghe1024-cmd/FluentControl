@@ -1,8 +1,14 @@
 # 更新记录
 
-记录正式发布版本；开发构建由 GitHub Actions 单独提供。
+记录正式版与明确标记的预览版；普通开发构建由 GitHub Actions 单独提供。
 
 ## 未发布 / Unreleased
+
+## [0.3.129-snap](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.129-snap) — 2026-10-14 · Preview
+
+基于通过完整 Windows、模拟界面、MSI 和 Setup 验收的主干构建 #129；这是 Windows 快照预览，不替换 Latest 正式版。[中英文发布说明](docs/releases/previews/v0.3.129-snap.md)。
+
+Windows snapshot preview from fully validated main build #129; it does not replace the latest stable release.
 
 - 新增自动亮度：订阅统一 JSON 光照数据（真实/模拟来源同协议），独立 lux 与 24 小时曲线，按经纬度/时区计算日出日落，日夜亮度及 FC 浅色/深色主题切换；默认关闭，显式开启后作用于选定屏幕。加入采样平滑、写入限速、手动保持、HDR/断线暂停和可配置的本地模拟服务器。硬件固件与 USB/BLE 桥接尚待实物接入验证。
 - Add opt-in automatic brightness from common JSON light feeds, separate lux/time curves, local sunrise/sunset schedules and FC theme switching. Include smoothing, rate limits, manual holds, HDR/disconnect guards and a configurable localhost simulator. Physical hardware firmware and USB/BLE bridges remain pending.

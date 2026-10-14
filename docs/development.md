@@ -84,3 +84,20 @@ python3 -m unittest discover -s tests/release -v
 `FluentControl.DdcHost` 是独立 .NET 8 x64 控制台项目，构建/发布由主项目引用并复制到同一目录。发布包括它的 exe、dll、deps.json 和 runtimeconfig.json，复用安装包中已有的自包含 .NET 运行时。`Build-Msi.ps1` 检查这些文件；配置代码签名时辅助 exe/dll 同样签名。
 
 Windows 发布目录验证：`./scripts/Test-DdcHost.ps1`。它只发送一个未打开句柄的读取请求，验证离线启动、IPC 和退出，不改动显示器。逻辑测试中的 `--ddc-fixture` 是隔离进程故障注入入口，仅在测试可执行文件中存在，不随应用发布。实机 USB/HID 调试参考 [usb-hid-adaptation.md](usb-hid-adaptation.md)。
+
+
+### Snap 预览发布
+
+预览使用 `.github/preview-release.json`，结构与正式版清单相同，但必须有 `"prerelease": true`。
+版本仍填写安装包的数字版本 `0.3.<run_number>`；标签自动追加 `-snap`，说明放在
+`docs/releases/previews/v<版本>-snap.md`。只有完整通过 main Windows 构建、UI、MSI、Setup
+检查的确切附件才能发布。来源提交、run/artifact ID、ZIP 与文件摘要和大小均需填写并核验。
+
+```sh
+python3 scripts/publish-release.py --manifest .github/preview-release.json --validate-only
+```
+
+提交此清单后由 `Publish release` 工作流发布，标记 Pre-release 且不设置 Latest。
+正式版 `.github/release.json` 和软件内稳定更新入口保持独立。重跑只验证已有发布，
+不会替换附件、移动标签或将预览升级成正式版；下一次预览用新的构建版本。
+此处 Snap 表示 Windows 快照预览，并非 Linux Snap 软件包。

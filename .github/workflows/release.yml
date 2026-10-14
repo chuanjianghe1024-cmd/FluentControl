@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - .github/release.json
+      - .github/preview-release.json
       - .github/workflows/release.yml
       - scripts/publish-release.py
       - tests/release/**
@@ -38,3 +39,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 scripts/publish-release.py --sync-notes
+      - name: Publish the verified snap preview
+        if: hashFiles('.github/preview-release.json') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/publish-release.py --manifest .github/preview-release.json --validate-only
+          python3 scripts/publish-release.py --manifest .github/preview-release.json

@@ -32,7 +32,10 @@ def validate_manifest(m):
         require(type(m[field]) is int and m[field] > 0, f"Invalid {field}")
     require(m["fileName"] == f'FluentControl-{m["version"]}-x64.msi', "Unexpected MSI name")
     require(m["artifactName"] == "FluentControl-MSI-x64", "Unexpected artifact name")
-    require(m["notes"] == f'docs/releases/v{m["version"]}.md', "Unexpected release notes path")
+    preview = m.get("prerelease", False)
+    require(type(preview) is bool, "Invalid prerelease flag")
+    notes = f'docs/releases/previews/v{m["version"]}-snap.md' if preview else f'docs/releases/v{m["version"]}.md'
+    require(m["notes"] == notes, "Unexpected release notes path")
     require((ROOT / m["notes"]).is_file(), "Release notes are missing")
     if "setup" in m:
         setup = m["setup"]
@@ -207,12 +210,13 @@ def sync_notes(repo):
 
 def publish(m, repo):
     require(re.fullmatch(r"[\w.-]+/[\w.-]+", repo), "Invalid repository")
-    base, tag = f"repos/{repo}", "v" + m["version"]
+    preview = m.get("prerelease", False)
+    base, tag = f"repos/{repo}", "v" + m["version"] + ("-snap" if preview else "")
     expected, checksum = expected_assets(m)
     release = find_release(base, tag)
     if release and not release["draft"]:
         verify_tag(base, tag, m["sourceCommit"])
-        require(not release["prerelease"], "Existing release is a prerelease")
+        require(release["prerelease"] == preview, "Existing release channel differs")
         validate_assets(release["assets"], expected, complete=True)
         print(f'Already published and verified: {release["html_url"]}')
         return
@@ -220,7 +224,7 @@ def publish(m, repo):
     verify_tag(base, tag, m["sourceCommit"], optional=True)
     if release:
         require(release["target_commitish"] == m["sourceCommit"], "Draft has different source")
-        require(not release["prerelease"], "Draft is a prerelease")
+        require(release["prerelease"] == preview, "Draft release channel differs")
         validate_assets(release["assets"], expected)
 
     run = api(f'{base}/actions/runs/{m["runId"]}')
@@ -242,7 +246,7 @@ def publish(m, repo):
             # need not appear immediately in tag/list queries.
             release = api(f"{base}/releases", method="POST", payload={
                 "tag_name": tag, "target_commitish": m["sourceCommit"],
-                "name": f"FluentControl {tag}", "draft": True, "prerelease": False,
+                "name": f"FluentControl {tag}", "draft": True, "prerelease": preview,
                 "body": (ROOT / m["notes"]).read_text(encoding="utf-8"),
             })
         require(release["tag_name"] == tag and release["draft"], "Expected matching release draft")
@@ -259,11 +263,11 @@ def publish(m, repo):
         release = api(f"{base}/releases/{release_id}")
         validate_assets(release["assets"], expected, complete=True)
         release = api(f"{base}/releases/{release_id}", method="PATCH", payload={
-            "draft": False, "prerelease": False, "make_latest": "true",
+            "draft": False, "prerelease": preview, "make_latest": "false" if preview else "true",
             "body": (ROOT / m["notes"]).read_text(encoding="utf-8"),
         })
 
-    require(not release["draft"] and not release["prerelease"], "Release was not published")
+    require(not release["draft"] and release["prerelease"] == preview, "Release was not published in the requested channel")
     verify_tag(base, tag, m["sourceCommit"])
     validate_assets(release["assets"], expected, complete=True)
     print(f'Published and verified: {release["html_url"]}')
@@ -279,12 +283,16 @@ if __name__ == "__main__":
     mode.add_argument("--validate-only", action="store_true")
     mode.add_argument("--sync-notes", action="store_true",
                       help="Sync docs/releases descriptions without publishing or changing assets")
+    parser.add_argument("--manifest", default=".github/release.json",
+                        choices=[".github/release.json", ".github/preview-release.json"])
     args = parser.parse_args()
     if args.sync_notes:
         sync_notes(os.environ["GITHUB_REPOSITORY"])
     else:
-        manifest = json.loads((ROOT / ".github/release.json").read_text(encoding="utf-8"))
+        manifest = json.loads((ROOT / args.manifest).read_text(encoding="utf-8"))
         validate_manifest(manifest)
+        require(manifest.get("prerelease", False) == (args.manifest == ".github/preview-release.json"),
+                "Manifest file and release channel differ")
         if args.validate_only:
             print(f'Valid release manifest: v{manifest["version"]}')
         else:
