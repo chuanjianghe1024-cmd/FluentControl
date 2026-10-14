@@ -9,10 +9,12 @@ public sealed partial class MainWindow
     {
         var previous = state.Settings.Adaptive;
         var section = selectedSettingsSection;
+        var navigation = Navigation.SelectedItem;
         var snapshot = AllChannels().ToDictionary(x => x.Key, x => x.Value.Value);
         try
         {
             state.Settings.Adaptive = new() { PreviewEnabled = true };
+            Navigation.SelectedItem = Navigation.SettingsItem;
             BuildSettings(); SelectSettingsSection("adaptive");
             await Task.Delay(100); SettingsPanel.UpdateLayout();
             var canvas = Descendants<Canvas>(SettingsPanel).Single(x => AutomationProperties.GetAutomationId(x) == "adaptive-curve");
@@ -34,13 +36,17 @@ public sealed partial class MainWindow
             var originalHold = Interlocked.Read(ref manualBrightnessHold);
             try
             {
+                var baseline = channel.Minimum + .4 * (channel.Maximum - channel.Minimum);
+                ControlOperations.Apply(new[] { channel }, baseline, automatic: true);
+                baseline = channel.Read!();
                 state.Settings.Adaptive.Mode = "clock"; state.Settings.Adaptive.Enabled = true;
                 state.Settings.Adaptive.TargetDisplayId = fixtureTarget.Id;
                 foreach (var point in state.Settings.Adaptive.TimeCurve.Points) point.Brightness = 100;
                 SaveAdaptiveSettings(); adaptiveLastWrite = default; adaptiveLastTick = default;
                 Interlocked.Exchange(ref manualBrightnessHold, 0);
                 await TickAdaptiveAsync(fixture: true);
-                if (channel.Read!() <= originalValue || channel.Read!() - originalValue > 5.1) throw new InvalidOperationException("Automatic schedule did not apply a bounded brightness step.");
+                var deltaPercent = (channel.Read!() - baseline) / (channel.Maximum - channel.Minimum) * 100;
+                if (deltaPercent <= 0 || deltaPercent > 5.1) throw new InvalidOperationException("Automatic schedule did not apply a bounded brightness step.");
                 var after = channel.Read!(); adaptiveDue = default;
                 await TickAdaptiveAsync(fixture: true);
                 if (channel.Read!() != after) throw new InvalidOperationException("Automatic rate limit failed.");
@@ -56,6 +62,6 @@ public sealed partial class MainWindow
             StartupLog.Write("PASS: simulated automatic schedule output, slew rate, write interval, manual hold and disable gate.");
             StartupLog.Write("PASS: adaptive curve rendering, numeric edits, persistence, midnight endpoints and no channel mutation.");
         }
-        finally { state.Settings.Adaptive = previous; selectedSettingsSection = section; SaveState(); BuildSettings(); }
+        finally { state.Settings.Adaptive = previous; selectedSettingsSection = section; SaveState(); BuildSettings(); Navigation.SelectedItem = navigation; }
     }
 }
