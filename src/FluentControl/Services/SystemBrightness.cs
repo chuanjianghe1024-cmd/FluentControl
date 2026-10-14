@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Runtime.InteropServices;
 
 namespace FluentControl.Services;
@@ -167,10 +166,12 @@ internal sealed class WindowsSystemBrightnessBackend : ISystemBrightnessBackend
         }
         internal void Query(string query, Action<object> visit)
         {
-            dynamic rows = Own(services.ExecQuery(query, "WQL", 48));
-            var iterator = ((IEnumerable)rows).GetEnumerator();
-            try { while (iterator.MoveNext()) visit(Own(iterator.Current)); }
-            finally { if (iterator is IDisposable disposable) disposable.Dispose(); else if (Marshal.IsComObject(iterator)) Marshal.ReleaseComObject(iterator); }
+            // Use the documented indexed collection API instead of the .NET
+            // IDispatch IEnumerable adapter, which fails for schema queries too.
+            dynamic rows = Own(services.ExecQuery(query, "WQL", 0));
+            var count = (int)rows.Count;
+            if (count > 256) throw new InvalidDataException("Too many WMI brightness endpoints.");
+            for (var i = 0; i < count; i++) visit(Own(rows.ItemIndex(i)));
         }
         public void Dispose()
         {
