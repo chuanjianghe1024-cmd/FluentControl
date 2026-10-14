@@ -5,6 +5,9 @@ internal static class AdaptiveAutomationTests
     private static void Reject(Action a) { try { a(); } catch (InvalidDataException) { return; } throw new Exception("Invalid light data accepted"); }
     internal static void Run()
     {
+        var corrupt = new AdaptiveSettings { Enabled = true };
+        corrupt.Curve.Points.Clear(); AdaptivePresets.Normalize(corrupt);
+        Check(!corrupt.Enabled, "Corrupt curve must not enable fallback brightness writes");
         var now = DateTimeOffset.Parse("2026-10-14T04:00:00Z");
         LightSample Sample(double lux, int seconds) => new() { Format = "fluentcontrol.light-sample", Version = 1, SourceId = "test", Timestamp = now.AddSeconds(seconds), Lux = lux, Valid = true };
         var good = Sample(100, 0);

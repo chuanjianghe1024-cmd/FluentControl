@@ -127,7 +127,7 @@ public static class AdaptivePresets
     }
     public static void Normalize(AdaptiveSettings s)
     {
-        try { Validate(s.Curve); } catch { s.Curve = Default("ambient"); s.PreviewEnabled = false; }
+        try { Validate(s.Curve); } catch { s.Curve = Default("ambient"); s.PreviewEnabled = false; s.Enabled = false; }
         try { Validate(s.TimeCurve); if (s.TimeCurve.Axis != "clock") throw new InvalidDataException(); } catch { s.TimeCurve = Default("clock"); s.Enabled = false; }
         if (s.Curve.Axis == "clock") { s.TimeCurve = s.Curve; s.Curve = Default("ambient"); }
         if (s.Mode is not ("ambient" or "clock" or "solar")) { s.Mode = "ambient"; s.Enabled = false; }

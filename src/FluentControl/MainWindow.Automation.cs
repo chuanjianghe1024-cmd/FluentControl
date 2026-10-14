@@ -86,7 +86,8 @@ public sealed partial class MainWindow
                 {
                     if (source is null) throw new InvalidDataException();
                     using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(3)); lightRequest = cancellation;
-                    sample = await LightFeed.ReadAsync(lightClient, source, cancellation.Token);
+                    try { sample = await LightFeed.ReadAsync(lightClient, source, cancellation.Token); }
+                    finally { lightRequest = null; }
                 }
                 if (closed || revision != adaptiveRevision || version != generation || !s.Enabled) return;
                 double? lux = adaptiveFilter.Add(sample);
