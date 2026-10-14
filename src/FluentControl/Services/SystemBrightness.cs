@@ -91,7 +91,9 @@ internal sealed class WindowsSystemBrightnessBackend : ISystemBrightnessBackend
             var instance = (string)scope.Property(row, "InstanceName");
             if (methods.Count(x => x.Equals(instance, StringComparison.OrdinalIgnoreCase)) != 1) return;
             var levels = scope.Property(row, "Level") as Array;
-            result.Add(new(instance, Convert.ToByte(scope.Property(row, "CurrentBrightness")),
+            var current = scope.Property(row, "CurrentBrightness");
+            if (current is null) return; // Missing data is not zero brightness.
+            result.Add(new(instance, Convert.ToByte(current),
                 levels?.Cast<object>().Select(Convert.ToByte).ToArray() ?? Array.Empty<byte>()));
         });
         return result;
@@ -128,10 +130,7 @@ internal sealed class WindowsSystemBrightnessBackend : ISystemBrightnessBackend
     {
         using var scope = new WmiScope();
         var schemas = new List<object>();
-        scope.Query("SELECT * FROM meta_class WHERE __CLASS = 'WmiMonitorBrightnessMethods'", row =>
-        {
-            if ((string)scope.Property(row, "__CLASS") == "WmiMonitorBrightnessMethods") schemas.Add(row);
-        });
+        scope.Query("SELECT * FROM meta_class WHERE __CLASS = 'WmiMonitorBrightnessMethods'", schemas.Add);
         if (schemas.Count != 1) throw new InvalidOperationException("Windows brightness WMI schema unavailable.");
         dynamic input = CreateInput(scope, schemas[0], 50);
         if (Convert.ToByte(scope.Property(input, "Brightness")) != 50 || Convert.ToUInt64(scope.Property(input, "Timeout")) != 0)
