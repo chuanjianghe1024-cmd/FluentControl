@@ -184,6 +184,10 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 状态基线：**2026-10-13**。这里只列工程进度与后续验收；不因条目写入计划就宣称已完成或已发布。
 
+### 托盘菜单后续变更
+
+- `TrayMenuWindow.cs` 使用 WinUI MenuFlyout 和独立透明工具窗口；主窗隐藏时也能显示，菜单关闭隐藏宿主、退出销毁。`ShellIntegration` 只负责通知与托盘坐标，命令仍走 ShellCommand。主题同步覆盖浅色、深色和自动主题，沿用现有八语言文案；回归入口 `MainWindow.TrayChecks.cs`。此变更不在 v0.3.129-snap 安装包中。
+
 ### 当前预览变更（尚未进入正式版）
 
 - Snap 预览 `v0.3.129-snap` 使用主干构建 #129 / `dece26a38d476a28b109f74f18146a2ef31da2fd`。Windows、模拟自动调节界面、MSI 与 Setup 验收通过；正式通道保持 v0.3.118，实体硬件未验收。

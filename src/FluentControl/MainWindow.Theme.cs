@@ -26,6 +26,7 @@ public sealed partial class MainWindow
     private void ApplyTitleTheme()
     {
         var theme = ShellRoot.ActualTheme;
+        trayMenu?.ApplyTheme(theme);
         ApplyWindowTitleTheme(this, theme);
         if (monitorOsd?.Content is FrameworkElement osdRoot)
         {

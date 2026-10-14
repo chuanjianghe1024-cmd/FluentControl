@@ -4,6 +4,9 @@
 
 ## 未发布 / Unreleased
 
+- 托盘右键菜单改用 WinUI Fluent 菜单：圆角、图标、标准悬停/键盘交互及 FC 明暗主题；独立透明宿主允许主面板隐藏时弹出，关闭菜单后隐藏宿主，保留六项原有操作。
+- Replace the legacy tray context menu with a themed WinUI Fluent menu, icons and standard keyboard interaction. A separate transparent owner supports a hidden main panel and is hidden on dismissal; all six commands are retained.
+
 ## [0.3.129-snap](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.129-snap) — 2026-10-14 · Preview
 
 基于通过完整 Windows、模拟界面、MSI 和 Setup 验收的主干构建 #129；这是 Windows 快照预览，不替换 Latest 正式版。[中英文发布说明](docs/releases/previews/v0.3.129-snap.md)。

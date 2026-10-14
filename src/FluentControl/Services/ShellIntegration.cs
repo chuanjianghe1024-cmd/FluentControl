@@ -10,14 +10,15 @@ internal sealed class ShellIntegration : IDisposable
     private readonly nint window;
     private readonly SubclassProc callback;
     private readonly Action<int> command;
+    private readonly Action showMenu;
     private readonly List<int> hotkeys = new();
     private NotifyData icon;
     private bool disposed;
     internal bool TrayAvailable { get; private set; }
 
-    internal ShellIntegration(nint window, string iconPath, Action<int> command)
+    internal ShellIntegration(nint window, string iconPath, Action<int> command, Action showMenu)
     {
-        this.window = window; this.command = command; callback = WindowMessage;
+        this.window = window; this.command = command; this.showMenu = showMenu; callback = WindowMessage;
         if (!SetWindowSubclass(window, callback, 918, 0)) throw new Win32Exception(Marshal.GetLastWin32Error());
         icon = new NotifyData
         {
@@ -51,33 +52,21 @@ internal sealed class ShellIntegration : IDisposable
             {
                 var mouse = (uint)(long)lParam & 0xffff;
                 if (mouse == 0x203 || mouse == 0x400 || mouse == 0x401) command(1);
-                else if (mouse == 0x205 || mouse == 0x7b) ShowMenu();
+                else if (mouse == 0x205 || mouse == 0x7b) showMenu();
                 return 0;
             }
         }
         catch (Exception ex) { StartupLog.Write("Shell command: " + ex); }
         return DefSubclassProc(hwnd, message, wParam, lParam);
     }
-    private void ShowMenu()
+    internal Windows.Graphics.PointInt32 MenuAnchor()
     {
-        var menu = CreatePopupMenu();
-        try
-        {
-            AppendMenu(menu, 0, 1, Strings.T("打开主面板", "Open panel"));
-            AppendMenu(menu, 0, 4, Strings.T("隐藏主面板", "Hide panel"));
-            AppendMenu(menu, 0, 5, Strings.T("显示 / 隐藏桌面面板", "Toggle desktop panel"));
-            AppendMenu(menu, 0x800, 0, "");
-            AppendMenu(menu, 0, 2, Strings.T("上一个配置", "Previous profile"));
-            AppendMenu(menu, 0, 3, Strings.T("下一个配置", "Next profile"));
-            AppendMenu(menu, 0x800, 0, "");
-            AppendMenu(menu, 0, 6, Strings.T("退出聚合控制", "Exit Fluent Control"));
-            GetCursorPos(out var point); SetForegroundWindow(window);
-            var chosen = TrackPopupMenu(menu, 0x102, point.X, point.Y, 0, window, 0);
-            PostMessage(window, 0, 0, 0);
-            if (chosen != 0) command((int)chosen);
-        }
-        finally { DestroyMenu(menu); }
+        var identifier = new NotifyIdentifier { Size = (uint)Marshal.SizeOf<NotifyIdentifier>(), Window = window, Id = icon.Id };
+        return ShellNotifyIconGetRect(ref identifier, out var rect) == 0
+            ? new(rect.Right, rect.Top) : PointerPosition();
     }
+    [StructLayout(LayoutKind.Sequential)] private struct NotifyIdentifier { public uint Size; public nint Window; public uint Id; public Guid Guid; }
+    [DllImport("shell32.dll", EntryPoint = "Shell_NotifyIconGetRect")] private static extern int ShellNotifyIconGetRect(ref NotifyIdentifier identifier, out Rect rect);
     public void Dispose()
     {
         if (disposed) return; disposed = true;
@@ -137,9 +126,5 @@ internal sealed class ShellIntegration : IDisposable
     [DllImport("user32.dll")] private static extern bool ReleaseCapture();
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern nint GetWindowLongPtr(nint hwnd, int index);
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")] private static extern nint SetWindowLongPtr(nint hwnd, int index, nint value);
-    [DllImport("user32.dll")] private static extern nint CreatePopupMenu();
-    [DllImport("user32.dll", EntryPoint = "AppendMenuW", CharSet = CharSet.Unicode)] private static extern bool AppendMenu(nint menu, uint flags, nuint item, string label);
-    [DllImport("user32.dll")] private static extern uint TrackPopupMenu(nint menu, uint flags, int x, int y, int reserved, nint hwnd, nint rect);
-    [DllImport("user32.dll")] private static extern bool DestroyMenu(nint menu);
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out Point point);
 }

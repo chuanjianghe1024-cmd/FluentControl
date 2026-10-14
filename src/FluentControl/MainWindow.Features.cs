@@ -11,6 +11,7 @@ public sealed partial class MainWindow
     private UserStateStore? stateStore;
     private UserState state = new();
     private ShellIntegration? shell;
+    private TrayMenuWindow? trayMenu;
     private DesktopPanelWindow? desktopPanel;
     private CrosshairWindow? crosshair;
     private List<ControlChannel> audioChannels = new(), mouseChannels = new();
@@ -36,7 +37,8 @@ public sealed partial class MainWindow
         {
             var icon = Path.Combine(AppContext.BaseDirectory, "Assets", "FluentControl.ico");
             AppWindow.SetIcon(icon);
-            shell = new ShellIntegration(WinRT.Interop.WindowNative.GetWindowHandle(this), icon, id => DispatcherQueue.TryEnqueue(() => ShellCommand(id)));
+            shell = new ShellIntegration(WinRT.Interop.WindowNative.GetWindowHandle(this), icon, id => DispatcherQueue.TryEnqueue(() => ShellCommand(id)),
+                () => DispatcherQueue.TryEnqueue(ShowTrayMenu));
             hotkeyProblems = shell.ConfigureHotkeys(state.Settings.HotkeysEnabled && !uiTest);
         }
         catch (Exception ex) { StartupLog.Write("Tray unavailable: " + ex); }
@@ -69,7 +71,18 @@ public sealed partial class MainWindow
             SaveState();
         }
         desktopPanel?.Close(); desktopPanel = null; crosshair?.Close(); crosshair = null;
+        trayMenu?.Dispose(); trayMenu = null;
         shell?.Dispose(); shell = null;
+    }
+    private void ShowTrayMenu()
+    {
+        if (closed || exitRequested) return;
+        try
+        {
+            trayMenu ??= new TrayMenuWindow(id => DispatcherQueue.TryEnqueue(() => ShellCommand(id)));
+            trayMenu.Show(shell?.MenuAnchor() ?? ShellIntegration.PointerPosition(), ShellRoot.ActualTheme);
+        }
+        catch (Exception ex) { StartupLog.Write("Tray menu: " + ex); }
     }
     private void ClearStatus()
     {
@@ -541,6 +554,7 @@ public sealed partial class MainWindow
             await CheckProfilesAndThemeAsync();
         await CheckSettingsNavigationAsync();
         await CheckAdaptivePreviewAsync();
+        await CheckTrayMenuAsync();
             var profile = new ControlProfile { Name = "UI test profile", Values = CaptureProfile() };
             state.Profiles.Add(profile);
             var brightness = displayDevices[0].Channels.First(x => x.PropertyKey == "brightness");
