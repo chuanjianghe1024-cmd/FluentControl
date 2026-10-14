@@ -57,7 +57,7 @@ internal sealed class SystemBrightnessController(ISystemBrightnessBackend backen
         return new()
         {
             Name = Strings.T("亮度", "Brightness"), Detail = Strings.T("Windows 内屏亮度", "Windows panel brightness"), Glyph = "\uE706",
-            DeviceId = path, PropertyKey = "brightness", Minimum = initial.Levels.Min(), Maximum = initial.Levels.Max(), Value = initial.Current,
+            DeviceId = path, PropertyKey = "brightness", Minimum = 0, Maximum = 100, Value = initial.Current,
             Read = () => { lock (sync) return Require(path).Current; },
             Write = value =>
             {
@@ -107,15 +107,36 @@ internal sealed class WindowsSystemBrightnessBackend : ISystemBrightnessBackend
         });
         if (matches.Count != 1) throw new IOException(Strings.T("屏幕连接已改变，请重新读取设备。", "Display connection changed. Refresh devices."));
         dynamic target = matches[0];
+        dynamic input = CreateInput(scope, target, value);
+        dynamic output = scope.Own(target.ExecMethod_("WmiSetBrightness", input));
+        var result = Convert.ToUInt32(scope.Property(output, "ReturnValue"));
+        if (result != 0) throw new IOException(Strings.T("Windows 亮度写入失败", "Windows brightness write failed") + $" (0x{result:X8})");
+    }
+    private static object CreateInput(WmiScope scope, dynamic target, byte value)
+    {
         dynamic methods = scope.Own(target.Methods_);
         dynamic method = scope.Own(methods.Item("WmiSetBrightness"));
         dynamic definition = scope.Own(method.InParameters);
         dynamic input = scope.Own(definition.SpawnInstance_());
-        scope.SetProperty(input, "Timeout", 0u);
+        scope.SetProperty(input, "Timeout", "0"); // WMI automation represents CIM uint64 as a string.
         scope.SetProperty(input, "Brightness", value);
-        dynamic output = scope.Own(target.ExecMethod_("WmiSetBrightness", input));
-        var result = Convert.ToUInt32(scope.Property(output, "ReturnValue"));
-        if (result != 0) throw new IOException(Strings.T("Windows 亮度写入失败", "Windows brightness write failed") + $" (0x{result:X8})");
+        return input;
+    }
+    // Read schema and construct (but never execute) method input even on a VM
+    // without a panel. This checks COM enumeration, property access and binding
+    // separately from optional hardware-provider availability.
+    internal static void CheckAutomation()
+    {
+        using var scope = new WmiScope();
+        var schemas = new List<object>();
+        scope.Query("SELECT * FROM meta_class WHERE __CLASS = 'WmiMonitorBrightnessMethods'", row =>
+        {
+            if ((string)scope.Property(row, "__CLASS") == "WmiMonitorBrightnessMethods") schemas.Add(row);
+        });
+        if (schemas.Count != 1) throw new InvalidOperationException("Windows brightness WMI schema unavailable.");
+        dynamic input = CreateInput(scope, schemas[0], 50);
+        if (Convert.ToByte(scope.Property(input, "Brightness")) != 50 || Convert.ToUInt64(scope.Property(input, "Timeout")) != 0)
+            throw new InvalidOperationException("WMI brightness input marshalling failed.");
     }
     private sealed class WmiScope : IDisposable
     {

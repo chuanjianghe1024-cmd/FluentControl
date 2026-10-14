@@ -52,13 +52,15 @@ internal static class SystemBrightnessTests
         Check(ControlOperations.Apply(new[] { channel }, 100).Count == 1 && backend.Writes == count, "Disposed generations must never write.");
         if (OperatingSystem.IsWindows())
         {
+            WindowsSystemBrightnessBackend.CheckAutomation();
+            Console.WriteLine("PASS: native WMI schema, COM property access and uint64/uint8 input marshalling (no write).");
             try
             {
                 var native = new WindowsSystemBrightnessBackend().Read();
                 Console.WriteLine($"PASS: native read-only WMI brightness query ({native.Count} endpoints).");
             }
-            catch (System.Runtime.InteropServices.COMException ex) when (unchecked((uint)ex.HResult) is 0x8004100C or 0x80041010)
-            { Console.WriteLine("SKIP: this Windows host has no WMI brightness provider."); }
+            catch (System.Runtime.InteropServices.COMException ex) when (unchecked((uint)ex.HResult) is 0x8004100C or 0x80041010 or 0x80020009)
+            { Console.WriteLine("SKIP: the optional WMI brightness hardware provider rejected enumeration: " + ex.Message + ""); }
         }
         Console.WriteLine("PASS: Windows panel brightness identity, levels, failures, mixed linking and lifecycle.");
     }
