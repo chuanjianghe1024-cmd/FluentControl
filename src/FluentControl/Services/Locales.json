@@ -585,7 +585,11 @@
     "Light": "淺色",
     "Dark": "深色",
     "App theme": "應用程式主題",
-    "Applies immediately and remembers your choice; desktop panel text is configured separately": "立即切換並記住選擇；桌面面板文字顏色另行設定"
+    "Applies immediately and remembers your choice; desktop panel text is configured separately": "立即切換並記住選擇；桌面面板文字顏色另行設定",
+    "Windows panel brightness": "Windows 內螢幕亮度",
+    "Display connection changed. Refresh devices.": "螢幕連線已變更，請重新讀取裝置。",
+    "Windows brightness unavailable. Check the display driver and refresh devices.": "Windows 亮度不可用，請檢查顯示驅動程式並重新讀取裝置。",
+    "Windows brightness write failed": "Windows 亮度寫入失敗"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -1173,7 +1177,11 @@
     "Light": "ライト",
     "Dark": "ダーク",
     "App theme": "アプリのテーマ",
-    "Applies immediately and remembers your choice; desktop panel text is configured separately": "すぐに適用し、選択を保存します。デスクトップパネルの文字色は別途設定します"
+    "Applies immediately and remembers your choice; desktop panel text is configured separately": "すぐに適用し、選択を保存します。デスクトップパネルの文字色は別途設定します",
+    "Windows panel brightness": "Windows の内蔵画面の明るさ",
+    "Display connection changed. Refresh devices.": "画面の接続が変わりました。デバイスを更新してください。",
+    "Windows brightness unavailable. Check the display driver and refresh devices.": "Windows の明るさを利用できません。ディスプレイドライバーを確認し、デバイスを更新してください。",
+    "Windows brightness write failed": "Windows の明るさの設定に失敗しました"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -1761,7 +1769,11 @@
     "Light": "밝게",
     "Dark": "어둡게",
     "App theme": "앱 테마",
-    "Applies immediately and remembers your choice; desktop panel text is configured separately": "즉시 적용하고 선택을 저장합니다. 데스크톱 패널의 글자색은 별도로 설정합니다"
+    "Applies immediately and remembers your choice; desktop panel text is configured separately": "즉시 적용하고 선택을 저장합니다. 데스크톱 패널의 글자색은 별도로 설정합니다",
+    "Windows panel brightness": "Windows 내장 화면 밝기",
+    "Display connection changed. Refresh devices.": "화면 연결이 변경되었습니다. 장치를 새로 고치세요.",
+    "Windows brightness unavailable. Check the display driver and refresh devices.": "Windows 밝기를 사용할 수 없습니다. 디스플레이 드라이버를 확인하고 장치를 새로 고치세요.",
+    "Windows brightness write failed": "Windows 밝기 설정 실패"
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -2349,7 +2361,11 @@
     "Light": "Hell",
     "Dark": "Dunkel",
     "App theme": "App-Design",
-    "Applies immediately and remembers your choice; desktop panel text is configured separately": "Wird sofort angewendet und gespeichert; die Textfarbe des Desktop-Panels wird separat eingestellt"
+    "Applies immediately and remembers your choice; desktop panel text is configured separately": "Wird sofort angewendet und gespeichert; die Textfarbe des Desktop-Panels wird separat eingestellt",
+    "Windows panel brightness": "Windows-Panelhelligkeit",
+    "Display connection changed. Refresh devices.": "Die Bildschirmverbindung hat sich geändert. Geräte aktualisieren.",
+    "Windows brightness unavailable. Check the display driver and refresh devices.": "Windows-Helligkeit nicht verfügbar. Grafiktreiber prüfen und Geräte aktualisieren.",
+    "Windows brightness write failed": "Windows-Helligkeit konnte nicht eingestellt werden"
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -2937,7 +2953,11 @@
     "Light": "Clair",
     "Dark": "Sombre",
     "App theme": "Thème de l’application",
-    "Applies immediately and remembers your choice; desktop panel text is configured separately": "Appliqué immédiatement et mémorisé ; la couleur du texte du panneau de bureau se règle séparément"
+    "Applies immediately and remembers your choice; desktop panel text is configured separately": "Appliqué immédiatement et mémorisé ; la couleur du texte du panneau de bureau se règle séparément",
+    "Windows panel brightness": "Luminosité de la dalle Windows",
+    "Display connection changed. Refresh devices.": "La connexion de l’écran a changé. Actualisez les appareils.",
+    "Windows brightness unavailable. Check the display driver and refresh devices.": "Luminosité Windows indisponible. Vérifiez le pilote d’affichage et actualisez les appareils.",
+    "Windows brightness write failed": "Échec du réglage de la luminosité Windows"
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -3525,6 +3545,10 @@
     "Light": "Claro",
     "Dark": "Oscuro",
     "App theme": "Tema de la aplicación",
-    "Applies immediately and remembers your choice; desktop panel text is configured separately": "Se aplica al instante y se guarda; el color del texto del panel de escritorio se configura por separado"
+    "Applies immediately and remembers your choice; desktop panel text is configured separately": "Se aplica al instante y se guarda; el color del texto del panel de escritorio se configura por separado",
+    "Windows panel brightness": "Brillo del panel de Windows",
+    "Display connection changed. Refresh devices.": "La conexión de la pantalla ha cambiado. Actualiza los dispositivos.",
+    "Windows brightness unavailable. Check the display driver and refresh devices.": "Brillo de Windows no disponible. Revisa el controlador de pantalla y actualiza los dispositivos.",
+    "Windows brightness write failed": "No se pudo ajustar el brillo de Windows"
   }
 }

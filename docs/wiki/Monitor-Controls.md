@@ -47,3 +47,14 @@ Discovery is read-only. Basic controls appear first, followed by advanced featur
 Hardware color and picture selectors are command choices; actual readback is displayed separately. A mismatch such as writing 6500 K and reading 9300 K remains visible rather than being silently remapped. Record the physical menu's result when reporting it. [Software temperature](HDR-and-Color-Temperature.md) is a separate GPU effect.
 
 An HDMI/DP audio endpoint does not prove DDC monitor-volume support. Use the system Volume control for PC audio. Input, power, reset and button-lock operations retain confirmation where applicable. See [troubleshooting](Troubleshooting.md) for unavailable or ineffective controls.
+
+
+## 笔记本内屏亮度 / Notebook panel brightness
+
+开发构建新增 Windows 内屏亮度控制。驱动提供可读取的 WMI 亮度与写入接口、且设备身份能够精确匹配时，亮度行显示“Windows 内屏亮度”。可使用单独调节、多屏联动、FC 屏幕菜单、桌面面板和场景；数值按驱动支持的档位取最近值，成功后显示回读值。没有接口时不会靠型号或屏幕顺序猜测控制对象，也不会把对比度、原厂 OSD 等不存在的能力补出来。HDR 与软件色温继续按各自能力判断。
+
+Development builds add Windows panel brightness when the driver exposes readable WMI brightness and a matching write endpoint. The row is labelled “Windows panel brightness” and participates in individual/linked controls, FC menus, desktop panels and scenes. Values snap to supported driver levels and show actual readback. Missing or ambiguous interfaces never authorize guessed writes or imply contrast/native OSD support. HDR and software color retain their separate capability checks.
+
+若 Fn 按键或 Windows 改变了亮度，可点击重新读取设备更新显示值；本版尚无外部亮度事件订阅、环境光采集与自动亮度。Windows 策略仍可能随后调整亮度。真实笔记本需验证内外屏独立调节、休眠恢复与 HDR 状态。
+
+Refresh devices after changing brightness with Fn keys or Windows. This version does not subscribe to external brightness events or implement ambient-light automatic adjustment. Windows policy can still change brightness afterward. Physical notebook tests should cover independent internal/external control, resume and HDR.

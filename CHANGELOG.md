@@ -4,6 +4,9 @@
 
 ## 未发布 / Unreleased
 
+- 新增 Windows WMI 内屏亮度控制：按完整设备实例匹配，只读发现后接入单屏、多屏联动、FC 菜单、桌面面板与场景；按驱动支持档位调节并回读真实亮度。没有接口或身份不明确时不猜测绑定，不把 Windows 亮度标成 DDC 功能。实际笔记本仍需验证。
+- Add Windows WMI panel brightness: match complete device instances, discover read-only, and use existing individual/linked controls, FC menus, desktop panels and scenes. Respect driver-supported levels and read back actual brightness; never guess identities or advertise Windows brightness as DDC. Physical notebook validation remains pending.
+
 - 修复深色模式下设置开关、选择器所在卡片背景与文字不匹配的问题；卡片、型号标记和识别提示改为随主题更新的资源。
 - 设置 → 常规新增应用主题：跟随系统、浅色、深色，立即生效并保存；主窗口、导航、标题栏、对话框及 FC 屏幕菜单保持一致，桌面面板文字颜色仍独立设置。
 - Fix mismatched card backgrounds and text around switches and selectors in dark mode. Cards, model badges and identification labels now use live theme resources.

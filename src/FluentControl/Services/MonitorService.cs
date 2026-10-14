@@ -32,6 +32,8 @@ public sealed class MonitorService : IDisposable
     {
         public DdcResponse Call(string operation, byte code = 0, uint value = 0) => Client.Request(new(operation, Index, code, value));
     }
+    private readonly WindowsSystemBrightnessBackend systemBrightnessBackend = new();
+    private readonly SystemBrightnessController systemBrightness;
     private readonly List<DdcProcessClient> hosts = new();
     private readonly Dictionary<MonitorDevice, Endpoint> diagnosticHandles = new();
     private readonly DdcProbeRecovery recovery;
@@ -43,6 +45,7 @@ public sealed class MonitorService : IDisposable
     public MonitorService(Action<string>? diagnostic = null)
     {
         this.diagnostic = diagnostic;
+        systemBrightness = new(systemBrightnessBackend, diagnostic);
         recovery = new DdcProbeRecovery(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentControl", "DdcRecovery"), diagnostic);
         capabilityCache = new MonitorCapabilityCache(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -81,6 +84,9 @@ public sealed class MonitorService : IDisposable
         var devices = new List<MonitorDevice>();
         var logical = new List<MonitorInfo>();
         var friendlyNames = MonitorNames.ReadActive();
+        IReadOnlyList<SystemBrightnessReading> panelReadings = Array.Empty<SystemBrightnessReading>();
+        try { panelReadings = systemBrightnessBackend.Read(); }
+        catch (Exception ex) { diagnostic?.Invoke("Windows panel brightness discovery: " + ex.Message); }
         MonitorCallback callback = (monitor, _, _, _) =>
         {
             var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
@@ -93,16 +99,20 @@ public sealed class MonitorService : IDisposable
         {
             var identity = new DisplayDevice { Size = Marshal.SizeOf<DisplayDevice>() };
             EnumDisplayDevices(info.Device, 0, ref identity, 1);
+            var panelChannel = systemBrightness.Create(identity.Id ?? "", panelReadings);
             DdcProcessClient? host = null;
             string[] descriptions = Array.Empty<string>();
             string warning = "";
             try
             {
-                host = new DdcProcessClient();
-                lock (hosts) hosts.Add(host);
-                var opened = host.Request(new("open", Connection: info.Device, Identity: identity.Id ?? ""));
-                if (opened.Error != 0) throw new Win32Exception(opened.Error);
-                descriptions = opened.Descriptions ?? Array.Empty<string>();
+                if (panelChannel is null)
+                {
+                    host = new DdcProcessClient();
+                    lock (hosts) hosts.Add(host);
+                    var opened = host.Request(new("open", Connection: info.Device, Identity: identity.Id ?? ""));
+                    if (opened.Error != 0) throw new Win32Exception(opened.Error);
+                    descriptions = opened.Descriptions ?? Array.Empty<string>();
+                }
             }
             catch (Exception ex) { warning = ex.Message; host?.Dispose(); }
             for (var i = 0; i < Math.Max(descriptions.Length, 1); i++)
@@ -121,7 +131,12 @@ public sealed class MonitorService : IDisposable
                     CapabilitiesPending = descriptions.Length > 0, DiscoveryWarning = warning
                 };
                 lock (devices) devices.Add(device);
-                if (descriptions.Length > 0 && host is not null)
+                if (panelChannel is not null && string.Equals(device.Id, panelChannel.DeviceId, StringComparison.OrdinalIgnoreCase))
+                {
+                    device.Features.Add(new() { Definition = VcpCatalog.Find("brightness")!, Channel = panelChannel });
+                    device.Channels.Add(panelChannel);
+                }
+                else if (descriptions.Length > 0 && host is not null)
                 {
                     var endpoint = new Endpoint(host, i);
                     lock (diagnosticHandles) diagnosticHandles.Add(device, endpoint);
@@ -335,6 +350,7 @@ public sealed class MonitorService : IDisposable
 
     public void Dispose()
     {
+        systemBrightness.Dispose();
         diagnosticHandles.Clear();
         foreach (var host in hosts) host.Dispose();
         hosts.Clear();

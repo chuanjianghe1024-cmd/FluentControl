@@ -27,7 +27,7 @@ public sealed class MonitorHardwareInfo
             var advertised = caps.Features.ContainsKey(feature.Definition.Code);
             var readable = feature.Information.Length > 0 || channel is { IsAction: false };
             if (!advertised && !readable && channel is null) continue;
-            result.Controls.Add(Describe(feature.Definition.Key, feature.Definition.Code, Kind(feature.Definition.Kind), channel, advertised, readable));
+            result.Controls.Add(Describe(feature.Definition.Key, channel is null ? feature.Definition.Code : channel.VcpCode, Kind(feature.Definition.Kind), channel, advertised, readable));
         }
         foreach (var channel in device.Channels.Where(c => !c.CompatibilityOnly && !result.Controls.Any(f => f.Key == c.PropertyKey)))
             result.Controls.Add(Describe(channel.PropertyKey, channel.VcpCode, channel.Options is null ? "continuous" : "choice", channel, false, !channel.IsAction));

@@ -17,6 +17,7 @@ DdcReliabilityTests.Run();
 SystemAudioTests.Run();
 DisplayHdrTests.Run();
 SystemColorTests.Run();
+SystemBrightnessTests.Run();
 await ReleaseUpdateTests.RunAsync();
 WindowGeometryTests.Run();
 MonitorDiscoveryTests.Run();

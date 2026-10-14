@@ -185,6 +185,9 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 ### 当前未发布变更
 
+- `Services/SystemBrightness.cs` 通过系统 WMI COM 自动化提供内屏亮度，不增加运行时依赖；只读发现 `WmiMonitorBrightness` 与 `WmiMonitorBrightnessMethods`，按完整 PnP 路径与 WMI 实例后缀匹配，歧义/无有效档位不开放写入。刷新销毁控制器，旧闭包拒绝写入；操作共用现有 gate，写前确认活动连接并重读，选最近支持档位，单次写入后由通用通道回读。Windows 亮度 `VcpCode` 为空；复用 `brightness` 通道接入现有界面/联动/桌面/场景/预设，匹配成功的屏幕不启动 DDC 探测。原生 WMI 查询失败不影响其他 DDC 显示器。WinUI 模拟回归位于 `MainWindow.SystemBrightnessChecks.cs`。尚未实机验证，不新增传感器采集、自动亮度或低蓝光自动化。
+- 用户计划：传感器组装后增加环境光自适应与本地偏好学习，参考追光护眼使用教程的交互，独立实现；具体边界见 [docs/adaptive-brightness-plan.md](docs/adaptive-brightness-plan.md)。当前只记录方案，不自动采集或写屏幕。
+
 - 应用主题保存于 `AppSettings.Theme`（`system/light/dark`，旧设置和未知值回退到 `system`）；设置 → 常规可立即切换。将 `RequestedTheme` 设置在 `ShellRoot`，覆盖导航及启动界面，窗口标题和已打开的 FC 菜单同步；桌面面板保留独立文字偏好。
 - 动态卡片、型号标记和识别背景经 `App.xaml` 的样式使用 `ThemeResource`；不要通过 `Application.Current.Resources` 一次性取出主题画刷并赋给动态控件。对话框显式继承宿主主题。原生主题回归在 `MainWindow.ThemeChecks.cs`，包含同一组设置卡片连续切换、文字对比度、已打开的 FC 菜单、持久化及恢复跟随系统。
 

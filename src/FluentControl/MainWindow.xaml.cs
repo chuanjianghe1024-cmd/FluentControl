@@ -439,6 +439,7 @@ public sealed partial class MainWindow : Window
             await RunFeatureChecksAsync();
             await RunHdrChecksAsync();
             await RunSystemColorChecksAsync();
+            await RunSystemBrightnessChecksAsync();
             StartupLog.Write("UI smoke checks passed");
         }
         catch (Exception ex) { StartupLog.Write("UI smoke checks failed: " + ex); }

@@ -78,7 +78,7 @@ public sealed partial class MainWindow
                         var supported = devices.Where(d => d.Channels.Any(c => c.PropertyKey == definition.Key && c.Options?.Any(o => o.Value == option.Value) == true)).ToArray();
                         return supported.Length == devices.Count ? option : new ControlOption(option.Value, option.Label + " · " + F("仅 {0}", "Only {0}", string.Join(", ", supported.Select(MonitorTitle))));
                     }).ToArray();
-                    var aggregate = new ControlChannel { Name = definition.Name, Detail = SupportSummary(definition.Key, devices) + $" · VCP 0x{definition.Code:X2}", Glyph = first.Glyph, PropertyKey = first.PropertyKey, Minimum = first.Minimum, Maximum = first.Maximum, Unit = first.Unit, Options = options, Write = _ => { } };
+                    var aggregate = new ControlChannel { Name = definition.Name, Detail = SupportSummary(definition.Key, devices) + (targets.All(c => c.VcpCode == definition.Code) ? $" · VCP 0x{definition.Code:X2}" : ""), Glyph = first.Glyph, PropertyKey = first.PropertyKey, Minimum = first.Minimum, Maximum = first.Maximum, Unit = first.Unit, Options = options, Write = _ => { } };
                     var aggregateRow = CreateRow(aggregate, version, targets);
                     Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(aggregateRow, "linked-" + definition.Key);
                     rows.Children.Add(aggregateRow);
