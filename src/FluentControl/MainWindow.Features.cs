@@ -540,6 +540,7 @@ public sealed partial class MainWindow
             await RefreshAsync();
             await CheckProfilesAndThemeAsync();
         await CheckSettingsNavigationAsync();
+        await CheckAdaptivePreviewAsync();
             var profile = new ControlProfile { Name = "UI test profile", Values = CaptureProfile() };
             state.Profiles.Add(profile);
             var brightness = displayDevices[0].Channels.First(x => x.PropertyKey == "brightness");

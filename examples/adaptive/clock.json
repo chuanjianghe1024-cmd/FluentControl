@@ -1,0 +1,32 @@
+{
+  "format": "fluentcontrol.adaptive-preset",
+  "version": 1,
+  "name": "FC clock",
+  "axis": "clock",
+  "points": [
+    {
+      "x": 0,
+      "brightness": 20
+    },
+    {
+      "x": 7,
+      "brightness": 40
+    },
+    {
+      "x": 12,
+      "brightness": 65
+    },
+    {
+      "x": 18,
+      "brightness": 45
+    },
+    {
+      "x": 22,
+      "brightness": 25
+    },
+    {
+      "x": 24,
+      "brightness": 20
+    }
+  ]
+}

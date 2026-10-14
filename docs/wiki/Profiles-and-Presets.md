@@ -45,3 +45,9 @@ The model library includes connected models and models with saved presets. Ident
 Export all model presets or a selected model. Import stores data without applying it; matching content is deduplicated and differing content is retained separately. Offline models can be imported. Cross-model application uses only supported parameters and options and can be saved under the target model.
 
 Application/game labels are descriptive filters, not automatic app-switch rules. Global profiles, portable model presets and OSD pairing files serve different purposes. Review user-written names, labels and notes before sharing. Portable model files exclude local device instances, serial numbers and audio identities. Local JSON exchange is available; the online sharing service is not deployed.
+
+## 自动亮度与数据来源 / Automatic brightness and data sources
+
+设置 → 自动调节预设：光照 JSON 订阅、独立的 lux/24 小时曲线、按地区/坐标计算日出日落，以及 FC 明暗主题。默认关闭，明确启用后会调整选定屏幕；支持相同协议的真实或模拟数据。参见[使用与格式](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/adaptive-presets.md)。
+
+Settings → Adaptive presets supports live light-data subscriptions, lux/time curves, local sunrise/sunset calculation and FC themes. Off by default; enabling adjusts the selected display. Real and simulated feeds share one schema. USB/BLE bridges and physical validation remain pending.

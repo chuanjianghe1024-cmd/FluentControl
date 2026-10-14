@@ -1,0 +1,32 @@
+{
+  "format": "fluentcontrol.adaptive-preset",
+  "version": 1,
+  "name": "FC ambient",
+  "axis": "ambient",
+  "points": [
+    {
+      "x": 0,
+      "brightness": 10
+    },
+    {
+      "x": 10,
+      "brightness": 20
+    },
+    {
+      "x": 100,
+      "brightness": 40
+    },
+    {
+      "x": 500,
+      "brightness": 65
+    },
+    {
+      "x": 2000,
+      "brightness": 85
+    },
+    {
+      "x": 10000,
+      "brightness": 100
+    }
+  ]
+}

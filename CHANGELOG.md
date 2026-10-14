@@ -4,6 +4,9 @@
 
 ## 未发布 / Unreleased
 
+- 新增自动亮度：订阅统一 JSON 光照数据（真实/模拟来源同协议），独立 lux 与 24 小时曲线，按经纬度/时区计算日出日落，日夜亮度及 FC 浅色/深色主题切换；默认关闭，显式开启后作用于选定屏幕。加入采样平滑、写入限速、手动保持、HDR/断线暂停和可配置的本地模拟服务器。硬件固件与 USB/BLE 桥接尚待实物接入验证。
+- Add opt-in automatic brightness from common JSON light feeds, separate lux/time curves, local sunrise/sunset schedules and FC theme switching. Include smoothing, rate limits, manual holds, HDR/disconnect guards and a configurable localhost simulator. Physical hardware firmware and USB/BLE bridges remain pending.
+
 - 新增 Windows WMI 内屏亮度控制：按完整设备实例匹配，只读发现后接入单屏、多屏联动、FC 菜单、桌面面板与场景；按驱动支持档位调节并回读真实亮度。没有接口或身份不明确时不猜测绑定，不把 Windows 亮度标成 DDC 功能。实际笔记本仍需验证。
 - Add Windows WMI panel brightness: match complete device instances, discover read-only, and use existing individual/linked controls, FC menus, desktop panels and scenes. Respect driver-supported levels and read back actual brightness; never guess identities or advertise Windows brightness as DDC. Physical notebook validation remains pending.
 

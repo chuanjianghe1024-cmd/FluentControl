@@ -1,0 +1,151 @@
+using FluentControl.Services;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using System.Net.Http;
+using static FluentControl.Services.Strings;
+namespace FluentControl;
+
+public sealed partial class MainWindow
+{
+    private readonly DispatcherTimer adaptiveTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
+    private readonly LightSmoothing adaptiveFilter = new();
+    private readonly HttpClient lightClient = new(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
+    private CancellationTokenSource? lightRequest;
+    private int adaptiveRevision;
+    private long manualBrightnessHold;
+    private bool adaptiveBusy, adaptiveOutputFault;
+    private DateTimeOffset adaptiveDue, adaptiveLastTick, adaptiveLastWrite;
+    private double? adaptiveReadback;
+    private TextBlock? adaptiveLiveStatus;
+    private string? automaticTheme;
+    private void InitializeAdaptiveAutomation()
+    {
+        ControlOperations.ManualBrightnessRequested += HoldAdaptiveBrightness;
+        adaptiveTimer.Tick += async (_, _) => await TickAdaptiveAsync();
+        if (!uiTest) adaptiveTimer.Start();
+    }
+    private void StopAdaptiveAutomation()
+    {
+        adaptiveTimer.Stop(); lightRequest?.Cancel();
+        ControlOperations.ManualBrightnessRequested -= HoldAdaptiveBrightness;
+        adaptiveRevision++; automaticTheme = null;
+    }
+    private void HoldAdaptiveBrightness() => Interlocked.Exchange(ref manualBrightnessHold, DateTimeOffset.UtcNow.AddMinutes(10).UtcTicks);
+    private void SaveAdaptiveSettings()
+    {
+        adaptiveRevision++; lightRequest?.Cancel(); adaptiveFilter.Reset(); adaptiveDue = default; adaptiveReadback = null; adaptiveOutputFault = false;
+        if (!state.Settings.Adaptive.Enabled || !state.Settings.Adaptive.ThemeEnabled || state.Settings.Adaptive.Mode == "ambient") { automaticTheme = null; ApplyAppTheme(); }
+        SaveState();
+    }
+    private void AdaptiveStatus(string text) { if (adaptiveLiveStatus is not null) adaptiveLiveStatus.Text = text; }
+    private async Task TickAdaptiveAsync(bool fixture = false)
+    {
+        if (fixture && !uiTest) throw new InvalidOperationException("Automation fixture requires simulated devices.");
+        if (closed || (uiTest && !fixture) || adaptiveBusy) return;
+        var now = DateTimeOffset.UtcNow;
+        if (adaptiveLastTick != default && (now < adaptiveLastTick || now - adaptiveLastTick > TimeSpan.FromSeconds(10)))
+        {
+            // Sleep/resume and wall-clock changes invalidate all pre-sleep samples.
+            adaptiveFilter.Reset(); adaptiveReadback = null; adaptiveDue = default; adaptiveLastWrite = now;
+        }
+        adaptiveLastTick = now;
+        var s = state.Settings.Adaptive;
+        if (!s.Enabled || adaptiveOutputFault || refreshing || hdrChanging || colorExiting || pendingWrites > 0 || applyingProfile || monitorAdaptationDialog is not null || now < adaptiveDue) return;
+        var source = s.LightSources.FirstOrDefault(x => x.Id == s.ActiveSourceId);
+        var period = s.Mode == "ambient" ? source?.PollMilliseconds ?? 1000 : 1000;
+        adaptiveDue = now.AddMilliseconds(period);
+        var revision = adaptiveRevision; var version = generation;
+        var targetId = s.TargetDisplayId; var mode = s.Mode;
+        var curve = AdaptivePresets.Copy(mode == "clock" ? s.TimeCurve : s.Curve);
+        adaptiveBusy = true;
+        bool outputStage = false;
+        try
+        {
+            var local = TimeZoneInfo.ConvertTime(now, TimeZoneInfo.FindSystemTimeZoneById(s.TimeZoneId));
+            double hour = local.TimeOfDay.TotalHours, target;
+            bool day = SolarSchedule.InDayRange(hour, s.LightThemeHour, s.DarkThemeHour);
+            string info;
+            if (mode == "solar")
+            {
+                var sun = SolarSchedule.Calculate(local.Date, s.Latitude, s.Longitude);
+                day = sun.IsDay(now); target = day ? s.DayBrightness : s.NightBrightness;
+                info = sun.Sunrise is { } rise && sun.Sunset is { } set
+                    ? $"☀ {TimeZoneInfo.ConvertTime(rise, TimeZoneInfo.FindSystemTimeZoneById(s.TimeZoneId)):HH:mm} / ☾ {TimeZoneInfo.ConvertTime(set, TimeZoneInfo.FindSystemTimeZoneById(s.TimeZoneId)):HH:mm}"
+                    : day ? T("极昼", "Polar day") : T("极夜", "Polar night");
+            }
+            else if (mode == "clock") { target = AdaptivePresets.Evaluate(curve, hour); info = local.ToString("HH:mm:ss"); }
+            else
+            {
+                LightSample sample;
+                if (s.ActiveSourceId == "simulation")
+                {
+                    sample = LightFeed.Parse(LightFeed.Serialize(new() { Format = "fluentcontrol.light-sample", Version = 1, SourceId = "fc-simulation", Timestamp = now,
+                        Lux = 200 + 180 * Math.Sin(now.ToUnixTimeMilliseconds() / 1000d * Math.PI / 30), Valid = true, Simulated = true }), now, 1000);
+                }
+                else
+                {
+                    if (source is null) throw new InvalidDataException();
+                    using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(3)); lightRequest = cancellation;
+                    sample = await LightFeed.ReadAsync(lightClient, source, cancellation.Token);
+                }
+                if (closed || revision != adaptiveRevision || version != generation || !s.Enabled) return;
+                double? lux = adaptiveFilter.Add(sample);
+                if (lux is null) { AdaptiveStatus(T("等待 3 个有效样本…", "Waiting for 3 valid samples…")); return; }
+                target = AdaptivePresets.Evaluate(curve, lux.Value);
+                info = $"{sample.SourceId} · {lux:0.##} lux" + (sample.Simulated ? " · " + T("模拟", "Simulated") : "");
+            }
+            if (closed || revision != adaptiveRevision || version != generation || !s.Enabled) return;
+            if (s.ThemeEnabled && mode != "ambient")
+            {
+                string next = day ? "light" : "dark";
+                if (automaticTheme != next) { automaticTheme = next; ApplyAppTheme(); }
+            }
+            AdaptiveStatus(info + $" → {target:0.#}%");
+            if (now.UtcTicks < Interlocked.Read(ref manualBrightnessHold)) { AdaptiveStatus(info + " · " + T("手动调整保持中", "Manual adjustment hold")); return; }
+            if (now - adaptiveLastWrite < TimeSpan.FromSeconds(2) || pendingWrites > 0) return;
+            if (!await gate.WaitAsync(0)) return;
+            outputStage = true;
+            try
+            {
+                if (closed || refreshing || hdrChanging || colorExiting || revision != adaptiveRevision || version != generation || !s.Enabled || pendingWrites > 0) return;
+                var device = displayDevices.FirstOrDefault(x => x.Id == targetId);
+                var channel = device?.Channels.FirstOrDefault(x => x.PropertyKey == "brightness" && x.IsAvailable && x.Options is null && x.Read is not null && x.Maximum > x.Minimum);
+                if (device is null || channel is null) { AdaptiveStatus(T("目标屏幕不可用", "Target display unavailable")); return; }
+                // Re-resolve HDR immediately before each automatic write, not from stale UI metadata.
+                var previousReadback = adaptiveReadback;
+                var result = await Task.Run(() =>
+                {
+                    var states = hdr.ReadAll();
+                    if (!states.TryGetValue(device.Id, out var value) || value.Active == true || value.Enabled == true ||
+                        !(value.Availability == HdrAvailability.Unsupported || value.Availability == HdrAvailability.Available && value.Active == false && value.Enabled == false)) return "HDR";
+                    double current = channel.Read!();
+                    if (!double.IsFinite(current)) throw new InvalidDataException();
+                    if (previousReadback is double previous && Math.Abs(current - previous) > 1) { HoldAdaptiveBrightness(); return "manual"; }
+                    if (Math.Abs((DateTimeOffset.UtcNow - now).TotalSeconds) > 5 || DateTimeOffset.UtcNow.UtcTicks < Interlocked.Read(ref manualBrightnessHold) || revision != adaptiveRevision || version != generation || closed || !s.Enabled || pendingWrites > 0 || applyingProfile) return "manual";
+                    channel.Value = current; channel.ReadbackUnconfirmed = false;
+                    double percent = (current - channel.Minimum) / (channel.Maximum - channel.Minimum) * 100;
+                    var next = SolarSchedule.NextBrightness(percent, target);
+                    if (next is null) return "";
+                    var errors = ControlOperations.Apply(new[] { channel }, channel.Minimum + next.Value / 100 * (channel.Maximum - channel.Minimum), automatic: true);
+                    if (errors.Count != 0) throw new IOException(string.Join("; ", errors));
+                    return "";
+                });
+                adaptiveLastWrite = DateTimeOffset.UtcNow;
+                if (closed || version != generation) return;
+                if (result == "HDR") AdaptiveStatus(T("HDR 或显示状态未确认，暂停亮度调节", "HDR or display state unconfirmed; brightness paused"));
+                else if (result == "manual") AdaptiveStatus(T("手动调整保持中", "Manual adjustment hold"));
+                else { adaptiveReadback = channel.Value; SynchronizeValues(); }
+            }
+            finally { gate.Release(); }
+        }
+        catch (OperationCanceledException) { adaptiveFilter.Reset(); if (revision == adaptiveRevision) adaptiveDue = DateTimeOffset.UtcNow.AddSeconds(10); AdaptiveStatus(T("光照来源超时或已取消", "Light source timed out or canceled")); }
+        catch (Exception ex)
+        {
+            adaptiveFilter.Reset(); adaptiveReadback = null; adaptiveDue = DateTimeOffset.UtcNow.AddSeconds(10);
+            if (outputStage) adaptiveOutputFault = true;
+            AdaptiveStatus(outputStage ? T("屏幕写入失败，重新启用后再试", "Display write failed; re-enable to retry") : T("数据或屏幕不可用，已暂停；稍后重试", "Data or display unavailable; paused, retrying later"));
+            StartupLog.Write("Adaptive automation: " + ex.GetType().Name); // no source URL, token or location in logs
+        }
+        finally { lightRequest = null; adaptiveBusy = false; }
+    }
+}

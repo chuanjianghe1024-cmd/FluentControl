@@ -38,11 +38,14 @@ public sealed class ControlChannel
 
 public static class ControlOperations
 {
+    internal static event Action? ManualBrightnessRequested;
     // A failed monitor must not stop the remaining monitors from receiving a command.
-    public static List<string> Apply(IEnumerable<ControlChannel> channels, double value, bool linked = false)
+    public static List<string> Apply(IEnumerable<ControlChannel> channels, double value, bool linked = false, bool automatic = false)
     {
+        var targets = channels.ToArray();
+        if (!automatic && targets.Any(x => x.PropertyKey == "brightness")) ManualBrightnessRequested?.Invoke();
         var errors = new List<string>();
-        foreach (var channel in channels)
+        foreach (var channel in targets)
         {
             var sent = false;
             try

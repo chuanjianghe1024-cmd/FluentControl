@@ -10,6 +10,8 @@
     <Compile Include="../../src/FluentControl/Services/Strings.cs" Link="Strings.cs" />
     <Compile Include="../../src/FluentControl/Services/WindowGeometry.cs" Link="WindowGeometry.cs" />
 
+    <Compile Include="../../src/FluentControl/Services/AdaptiveAutomation.cs" Link="AdaptiveAutomation.cs" />
+    <Compile Include="../../src/FluentControl/Services/AdaptivePresets.cs" Link="AdaptivePresets.cs" />
     <Compile Include="../../src/FluentControl/Services/UserState.cs" Link="UserState.cs" />
     <Compile Include="../../src/FluentControl/Services/ControlChannel.cs" Link="ControlChannel.cs" />
     <Compile Include="../../src/FluentControl/Services/SystemAudioControls.cs" Link="SystemAudioControls.cs" />

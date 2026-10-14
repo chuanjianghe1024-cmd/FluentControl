@@ -15,7 +15,7 @@ public sealed partial class MainWindow
     {
         // Theme the whole window, including navigation and the startup screen.
         // Default keeps WinUI's live system-theme and accessibility behavior.
-        ShellRoot.RequestedTheme = state.Settings.Theme switch
+        ShellRoot.RequestedTheme = (automaticTheme ?? state.Settings.Theme) switch
         {
             "light" => ElementTheme.Light,
             "dark" => ElementTheme.Dark,

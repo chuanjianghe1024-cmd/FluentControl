@@ -185,8 +185,10 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 ### 当前未发布变更
 
+- 自动亮度与光照订阅：`AdaptivePresets.cs` 保存独立 lux/clock 曲线；`AdaptiveAutomation.cs` 提供统一 `fluentcontrol.light-sample` JSON、过滤和平滑及 NOAA 本地太阳公式。`MainWindow.Automation*.cs` 提供运行时和设置，默认关闭；用户明确启用后允许定时亮度及 FC 主题（不修改系统主题/Gamma），持久启用可在下次运行继续。共用 gate/generation，手动保持 10 分钟，网络失败暂停、屏幕写入失败需重新开启，HDR/未知状态不自动写。订阅是动态数据源，不是远程预设安装器；导入曲线不自动开启；用户配置的源码不执行。`tools/light-source/server.py` 是独立本机模拟接口。实体硬件、串口/BLE 桥接及学习未完成。详见 `docs/adaptive-presets.md`。
+
 - `Services/SystemBrightness.cs` 通过系统 WMI COM 自动化提供内屏亮度，不增加运行时依赖；只读发现 `WmiMonitorBrightness` 与 `WmiMonitorBrightnessMethods`，按完整 PnP 路径与 WMI 实例后缀匹配，歧义/无有效档位不开放写入。刷新销毁控制器，旧闭包拒绝写入；操作共用现有 gate，写前确认活动连接并重读，选最近支持档位，单次写入后由通用通道回读。Windows 亮度 `VcpCode` 为空；复用 `brightness` 通道接入现有界面/联动/桌面/场景/预设，匹配成功的屏幕不启动 DDC 探测。原生 WMI 查询失败不影响其他 DDC 显示器。WinUI 模拟回归位于 `MainWindow.SystemBrightnessChecks.cs`。尚未实机验证，不新增传感器采集、自动亮度或低蓝光自动化。
-- 用户计划：传感器组装后增加环境光自适应与本地偏好学习，参考追光护眼使用教程的交互，独立实现；具体边界见 [docs/adaptive-brightness-plan.md](docs/adaptive-brightness-plan.md)。当前只记录方案，不自动采集或写屏幕。
+- 用户计划：传感器组装后增加环境光自适应与本地偏好学习，参考追光护眼使用教程的交互，独立实现；具体边界见 [docs/adaptive-brightness-plan.md](docs/adaptive-brightness-plan.md)。已增加通用 HTTP 光照来源、模拟器与显式启用的自动调节；真实 USB/BLE 桥接、学习和实物验证仍待完成。
 
 - 应用主题保存于 `AppSettings.Theme`（`system/light/dark`，旧设置和未知值回退到 `system`）；设置 → 常规可立即切换。将 `RequestedTheme` 设置在 `ShellRoot`，覆盖导航及启动界面，窗口标题和已打开的 FC 菜单同步；桌面面板保留独立文字偏好。
 - 动态卡片、型号标记和识别背景经 `App.xaml` 的样式使用 `ThemeResource`；不要通过 `Application.Current.Resources` 一次性取出主题画刷并赋给动态控件。对话框显式继承宿主主题。原生主题回归在 `MainWindow.ThemeChecks.cs`，包含同一组设置卡片连续切换、文字对比度、已打开的 FC 菜单、持久化及恢复跟随系统。

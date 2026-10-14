@@ -45,6 +45,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex) { preferencesError = "无法读取显示器名称：" + ex.Message; }
         InitializeFeatures();
+        InitializeAdaptiveAutomation();
         initialized = true;
         Navigation.SelectedItem = Navigation.MenuItems[0];
         identificationTimer.Tick += (_, _) => CloseIdentification();
@@ -60,6 +61,7 @@ public sealed partial class MainWindow : Window
         Closed += async (_, _) =>
         {
             closed = true;
+            StopAdaptiveAutomation();
             audioRefreshTimer.Stop();
             colorRefreshTimer.Stop();
             CloseMonitorAdaptation();
@@ -98,6 +100,7 @@ public sealed partial class MainWindow : Window
     {
         if (refreshing || closed || hdrChanging || colorExiting) return;
         refreshing = true;
+        adaptiveRevision++; lightRequest?.Cancel(); adaptiveFilter.Reset(); adaptiveReadback = null;
         var refreshWatch = System.Diagnostics.Stopwatch.StartNew();
         RefreshButton.IsEnabled = false;
         IdentifyButton.IsEnabled = false;
@@ -315,6 +318,7 @@ public sealed partial class MainWindow : Window
         slider.ValueChanged += async (_, args) =>
         {
             if (synchronizing) return;
+            if (channel.PropertyKey == "brightness") HoldAdaptiveBrightness();
             var target = args.NewValue;
             var page = notificationContext; pendingWrites++;
             number.Text = Math.Round(target).ToString(CultureInfo.InvariantCulture) + channel.Unit;

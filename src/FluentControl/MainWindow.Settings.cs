@@ -67,6 +67,7 @@ public sealed partial class MainWindow
         {
             if (theme.SelectedIndex < 0) return;
             state.Settings.Theme = theme.SelectedIndex switch { 1 => "light", 2 => "dark", _ => "system" };
+            automaticTheme = null; state.Settings.Adaptive.ThemeEnabled = false;
             ApplyAppTheme(); SaveState();
         };
         section.Children.Add(SettingsRow(T("应用主题", "App theme"), T("立即切换并记住选择；桌面面板文字颜色单独设置", "Applies immediately and remembers your choice; desktop panel text is configured separately"), theme));
@@ -90,6 +91,8 @@ public sealed partial class MainWindow
             finally { if (!closed) rescanDisplays.IsEnabled = true; }
         };
         section.Children.Add(SettingsRow(T("显示器功能检测", "Display capability scan"), T("通常复用能力缓存；更换连接或显示器模式后，可重新完整检测", "Normally reuses cached capabilities. Detect again after changing connections or monitor modes."), rescanDisplays));
+        Section("adaptive", T("自动调节预设", "Adaptive presets"));
+        BuildAdaptiveSettings(section);
         Section("shortcuts", T("全局快捷键", "Global shortcuts"));
         Toggle(T("启用快捷键", "Enable shortcuts"), T("若组合已被占用，会显示冲突而不抢占", "Conflicts are reported without taking over other shortcuts"), state.Settings.HotkeysEnabled, value =>
         {
