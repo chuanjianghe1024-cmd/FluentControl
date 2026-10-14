@@ -20,7 +20,7 @@ public sealed partial class MainWindow
             var y = Descendants<NumberBox>(SettingsPanel).Single(x => AutomationProperties.GetAutomationId(x) == "adaptive-y-1");
             y.Value = 37;
             if (state.Settings.Adaptive.Curve.Points[1].Brightness != 37) throw new InvalidOperationException("Adaptive numeric editing failed.");
-            var stored = new UserStateStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentControl", "test-user-state.json"));
+            var stored = new UserStateStore(System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentControl", "test-user-state.json"));
             if (stored.State.Settings.Adaptive.Curve.Points[1].Brightness != 37) throw new InvalidOperationException("Adaptive edit not persisted.");
             state.Settings.Adaptive.Mode = "clock"; state.Settings.Adaptive.TimeCurve = AdaptivePresets.Default("clock"); BuildSettings(); SelectSettingsSection("adaptive");
             await Task.Delay(50); SettingsPanel.UpdateLayout();
