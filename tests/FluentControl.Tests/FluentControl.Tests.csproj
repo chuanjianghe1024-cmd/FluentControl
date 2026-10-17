@@ -6,10 +6,14 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
     <EmbeddedResource Include="../../src/FluentControl/Services/Locales.json" LogicalName="FluentControl.Locales.json" />
     <Compile Include="../../src/FluentControl/Services/Strings.cs" Link="Strings.cs" />
     <Compile Include="../../src/FluentControl/Services/WindowGeometry.cs" Link="WindowGeometry.cs" />
 
+    <Compile Include="../../src/FluentControl/Services/LightHistory.cs" Link="LightHistory.cs" />
+    <Compile Include="../../src/FluentControl/Services/LocalLightProtocol.cs" Link="LocalLightProtocol.cs" />
+    <Compile Include="../../src/FluentControl/Services/LocalLightSensor.cs" Link="LocalLightSensor.cs" />
     <Compile Include="../../src/FluentControl/Services/AdaptiveAutomation.cs" Link="AdaptiveAutomation.cs" />
     <Compile Include="../../src/FluentControl/Services/AdaptivePresets.cs" Link="AdaptivePresets.cs" />
     <Compile Include="../../src/FluentControl/Services/UserState.cs" Link="UserState.cs" />

@@ -15,6 +15,8 @@ static ControlChannel Channel(string name, double initial, Action<double> write,
 Strings.ValidateCatalog();
 await AdaptivePresetTests.RunAsync();
 AdaptiveAutomationTests.Run();
+LocalLightSensorTests.Run();
+await LightHistoryTests.RunAsync();
 DdcReliabilityTests.Run();
 SystemAudioTests.Run();
 DisplayHdrTests.Run();

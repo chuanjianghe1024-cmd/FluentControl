@@ -58,3 +58,9 @@ Use **Settings → General → App theme** to choose System default, Light or Da
 Use **Settings → About & updates** to check stable releases on demand. After download and verification, choose when to exit and install. This version prefers Setup; older updaters may still download MSI. There is no automatic startup update check or installation.
 
 Close normally to keep FC in the tray; exit from the tray before manually installing an update. Upgrades keep the original installation folder and personal settings. Uninstalling also retains settings; uninstall and reinstall to change the installation folder. The startup option can be changed in the installer or application settings. Prefer stable Releases over Actions test packages for everyday use.
+
+## 光照传感器开发入口 / Light-sensor development
+
+固件、组合接线、驱动和说明书链接集中在 [FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors)（当前私有，需要访问权限）。内置 USB 订阅与本地历史尚未发布；不要把开发源码能力当成当前安装包功能。开发版可只保存光照历史而关闭自动亮度，容量合计 64 MiB，满后轮换最早记录。
+
+Firmware, board/sensor combinations and official setup links live in [FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors), currently private. Native USB subscriptions and history are unreleased. The development version can record light history without automatic brightness, with a 64 MiB rolling capacity across subscriptions.

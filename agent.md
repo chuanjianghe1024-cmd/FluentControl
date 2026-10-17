@@ -190,6 +190,8 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 ### 当前预览变更（尚未进入正式版）
 
+- 本地光照订阅开发分支：`Services/LocalLightSensor.cs` 与自动调节设置支持 RP2040 VID 限定的串口发现、READ/PING 身份握手、持久设备绑定及 0.2 秒至 24 小时输入/滑块/预设。`LightHistory.cs` 保存本地 64 MiB 分段历史，按来源分页查看；记录开关与自动亮度独立。固件在 `tools/light-source/rp2040/main.py`，配套私有仓库 `FluentControl-Sensors`；不依赖运行中的 Python 桥接。当前未执行 Windows 构建/实机验收，不宣称 C3/CH552 固件完成。
+
 - Snap 预览 `v0.3.129-snap` 使用主干构建 #129 / `dece26a38d476a28b109f74f18146a2ef31da2fd`。Windows、模拟自动调节界面、MSI 与 Setup 验收通过；正式通道保持 v0.3.118，实体硬件未验收。
 
 - 自动亮度与光照订阅：`AdaptivePresets.cs` 保存独立 lux/clock 曲线；`AdaptiveAutomation.cs` 提供统一 `fluentcontrol.light-sample` JSON、过滤和平滑及 NOAA 本地太阳公式。`MainWindow.Automation*.cs` 提供运行时和设置，默认关闭；用户明确启用后允许定时亮度及 FC 主题（不修改系统主题/Gamma），持久启用可在下次运行继续。共用 gate/generation，手动保持 10 分钟，网络失败暂停、屏幕写入失败需重新开启，HDR/未知状态不自动写。订阅是动态数据源，不是远程预设安装器；导入曲线不自动开启；用户配置的源码不执行。`tools/light-source/server.py` 是独立本机模拟接口。实体硬件、串口/BLE 桥接及学习未完成。详见 `docs/adaptive-presets.md`。

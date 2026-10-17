@@ -70,3 +70,34 @@ python tools/light-source/server.py
 Three independent modes: illuminance from a live HTTP(S) JSON feed, a fixed 24-hour brightness curve, or locally estimated sunrise/sunset using coordinates and a time zone. The two curves retain separate edits. Optional light/dark switching affects FC only, not Windows. The default is off; explicitly enabling applies real brightness changes to one chosen display and persists across app restarts.
 
 Real and simulated providers return the same `fluentcontrol.light-sample` document. Use `tools/light-source/server.py` with the configurable pattern for a local test endpoint. Default polling is 1Hz; a three-sample median and EMA smooth readings, writes are limited to one per 2 seconds with a 2-point deadband and 5-point step limit. Manual changes hold automation for 10 minutes. Invalid/stale data, unavailable displays and HDR pause brightness; write failures require re-enabling. Hardware USB/BLE bridges and preference learning remain future work.
+
+
+## 本地 USB 订阅（开发中，尚未发布） / Local USB subscription (unreleased)
+
+设置 → 自动调节预设 → 光照强度：端口保留 `auto`，点击“发现并订阅本地传感器”。FC 仅对 Raspberry Pi USB VID `2E8A` 的已连接串口进行身份握手，最多 8 个候选；其他设备需手动指定 `COM5` 等端口。多块设备分别加入订阅，选择要使用的一块。添加只读取设备身份，并关闭自动调节；确认目标屏幕和曲线后再显式开启。
+
+In Settings → Automatic adjustment → Illuminance, leave the local port as `auto` and select “Discover and subscribe to local sensors”. Only connected Raspberry Pi USB VID `2E8A` ports are automatically probed (up to eight); other boards require an explicit COM port. Each compatible sensor becomes a separate subscription. Adding a source reads identity only and disables automatic adjustment until explicitly enabled.
+
+本地来源使用 `fc-usb://auto` 或 `fc-usb://com5`，同时保存固件 `sourceId`。自动模式 COM 编号变化后重新枚举，必须匹配原设备身份；不会悄悄换成另一块探头。手动端口模式需在端口改变后重新发现。读数失败不写屏幕，10 秒后重试。长间隔期间不持续测量或监测拔出，下一次读取时发现断线；等待期间没有新亮度写入。
+
+Local sources store a `fc-usb://auto` or explicit COM address and the firmware's stable `sourceId`. Automatic mode re-enumerates ports and requires the same identity. Explicit-port sources must be rediscovered if the port changes. Read failures suspend display writes and retry after ten seconds. Long intervals do not continuously monitor unplug events; loss is detected on the next read, with no new brightness writes between measurements.
+
+采样间隔同时支持滑块、数字输入与最快/1 秒/5 秒/10 秒/1 分钟/10 分钟预设，范围 0.2 秒至 24 小时，配置随 FC 保存。最快档是请求间隔下限；转换、USB、Windows 调度开销会降低实际频率。默认 1 秒；滤波需要 3 个新样本，10 分钟间隔首次输出约需 20 分钟。HTTP 订阅沿用此间隔，旧样本有效期为至少 5 秒或 3 倍间隔；不会刷新旧样本时间。
+
+Sampling supports a slider, numeric entry and fast/1s/5s/10s/1min/10min presets, persisted by FC. Range: 0.2 seconds to 24 hours. Fast mode specifies a minimum request interval, not guaranteed throughput. The default is one second. Three distinct samples are needed for smoothing, so ten-minute sampling takes about twenty minutes to warm up. HTTP freshness remains at least five seconds or three polling intervals, without rewriting old sample timestamps.
+
+当前原型固件：`tools/light-source/rp2040/main.py`。先用 Thonny 保存到 RP2040 根目录，再退出 Thonny 并正常重插 USB；不要同时运行旧桥接程序。FC 使用 `System.IO.Ports`，不需要用户安装 Python。READ/PING 协议沿用验证包，115200/8N1，每次请求包含 32 位随机 ID，响应必须匹配。PING 返回 `protocol: fc-light-usb/1` 和 `sourceId`；READ 返回 `sourceId`、`valid`、`lux`。畸形、超时、错误身份与无效 lux 均不作为有效光照。
+
+Prototype firmware is in `tools/light-source/rp2040/main.py`. Save it to the RP2040 with Thonny, close Thonny and reconnect normally. Do not run the standalone bridge concurrently. FC uses System.IO.Ports; Python is not required at runtime. The bounded READ/PING serial protocol uses a random request ID, verified firmware identity and validated readings. C3 Wi-Fi can use the existing HTTP feed; C3/CH552 firmware and HID/BLE transport are not implemented here.
+
+验证边界：新增协议与配置回归测试；Linux 环境已使用 .NET 8 编译器与运行时编译并执行完整控制台回归；未执行 WinUI 构建、MSI 或实物验收。发布前必须在 Windows 完成这些检查。此源码变更不代表当前安装版已包含此功能。
+
+## 光照历史 / Light history
+
+添加本地或 HTTP 来源后默认开启“保存光照历史”，自动亮度仍保持关闭。可以只记录而不改屏幕；取消历史开关后，只有启用自动调节才继续读取。FC 关闭或电脑休眠期间不补造记录。
+
+本机目录 `%LOCALAPPDATA%\FluentControl\LightHistory\` 保存原始 lux、采样和接收时间、来源与模拟标记。重复时间戳不重复写入；读取失败保存缺口，连续失败合并。所有来源合计最多 64 MiB，按约 1 MiB 分段，满后删除最早分段。“查看光照历史”可按订阅分页浏览，每页 100 条。删除订阅不自动清除其已有日志。
+
+History recording is enabled when adding a source, independently of brightness adjustment. Logs stay under the user's local FluentControl/LightHistory directory, with raw readings, timestamps and gap events. Retention is capped at 64 MiB across all subscriptions, rotating oldest segments. Each subscription has a paginated history view. Closing FC or suspending the computer does not invent missing readings; deleting a subscription does not erase its retained files.
+
+固件、组合目录和官方资料入口：[FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors)。目前为私有仓库，仅授权账户可访问。RP2040 固件另有 64 条 RAM 诊断缓存，断电丢失，HISTORY 使用设备 ticks_ms，当前 FC 不自动回灌。
