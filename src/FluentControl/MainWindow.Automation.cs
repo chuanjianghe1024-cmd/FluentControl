@@ -7,10 +7,12 @@ namespace FluentControl;
 
 public sealed partial class MainWindow
 {
-    private readonly DispatcherTimer adaptiveTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
+    private readonly DispatcherTimer adaptiveTimer = new() { Interval = TimeSpan.FromMilliseconds(200) };
+    private readonly LightHistory lightHistory = new(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentControl", "LightHistory"));
     private readonly LightSmoothing adaptiveFilter = new();
     private readonly HttpClient lightClient = new(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
     private CancellationTokenSource? lightRequest;
+    private CancellationTokenSource? localDiscovery;
     private int adaptiveRevision;
     private long manualBrightnessHold;
     private bool adaptiveBusy, adaptiveOutputFault;
@@ -26,7 +28,7 @@ public sealed partial class MainWindow
     }
     private void StopAdaptiveAutomation()
     {
-        adaptiveTimer.Stop(); lightRequest?.Cancel();
+        adaptiveTimer.Stop(); lightRequest?.Cancel(); localDiscovery?.Cancel();
         ControlOperations.ManualBrightnessRequested -= HoldAdaptiveBrightness;
         adaptiveRevision++; automaticTheme = null;
     }
@@ -50,7 +52,8 @@ public sealed partial class MainWindow
         }
         adaptiveLastTick = now;
         var s = state.Settings.Adaptive;
-        if (!s.Enabled || adaptiveOutputFault || refreshing || hdrChanging || colorExiting || pendingWrites > 0 || applyingProfile || monitorAdaptationDialog is not null || now < adaptiveDue) return;
+        bool collectOnly = (!s.Enabled || adaptiveOutputFault) && s.RecordLightHistory && s.Mode == "ambient" && s.ActiveSourceId != "simulation";
+        if ((!s.Enabled && !collectOnly) || (adaptiveOutputFault && !collectOnly) || refreshing || hdrChanging || colorExiting || pendingWrites > 0 || applyingProfile || monitorAdaptationDialog is not null || now < adaptiveDue) return;
         var source = s.LightSources.FirstOrDefault(x => x.Id == s.ActiveSourceId);
         var period = s.Mode == "ambient" ? source?.PollMilliseconds ?? 1000 : 1000;
         adaptiveDue = now.AddMilliseconds(period);
@@ -85,11 +88,16 @@ public sealed partial class MainWindow
                 else
                 {
                     if (source is null) throw new InvalidDataException();
-                    using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(3)); lightRequest = cancellation;
-                    try { sample = await LightFeed.ReadAsync(lightClient, source, cancellation.Token); }
+                    using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(LocalLightProtocol.IsLocal(source.Url) ? 25 : 3)); lightRequest = cancellation;
+                    try { sample = LocalLightProtocol.IsLocal(source.Url)
+                        ? await LocalLightSensor.ReadAsync(source, cancellation.Token)
+                        : await LightFeed.ReadAsync(lightClient, source, cancellation.Token); }
                     finally { lightRequest = null; }
                 }
-                if (closed || revision != adaptiveRevision || version != generation || !s.Enabled) return;
+                if (closed || revision != adaptiveRevision || version != generation) return;
+                if (s.RecordLightHistory && !uiTest) await RecordLightSampleAsync(s.ActiveSourceId, sample);
+                if (closed || revision != adaptiveRevision || version != generation) return;
+                if (!s.Enabled || adaptiveOutputFault) { AdaptiveStatus($"{sample.SourceId} · {sample.Lux:0.##} lux"); return; }
                 double? lux = adaptiveFilter.Add(sample);
                 if (lux is null) { AdaptiveStatus(T("等待 3 个有效样本…", "Waiting for 3 valid samples…")); return; }
                 target = AdaptivePresets.Evaluate(curve, lux.Value);
@@ -139,14 +147,22 @@ public sealed partial class MainWindow
             }
             finally { gate.Release(); }
         }
-        catch (OperationCanceledException) { adaptiveFilter.Reset(); if (revision == adaptiveRevision) adaptiveDue = DateTimeOffset.UtcNow.AddSeconds(10); AdaptiveStatus(T("光照来源超时或已取消", "Light source timed out or canceled")); }
+        catch (OperationCanceledException) { if (revision == adaptiveRevision && s.RecordLightHistory && mode == "ambient" && !uiTest) await RecordLightSampleAsync(s.ActiveSourceId, null); adaptiveFilter.Reset(); if (revision == adaptiveRevision) adaptiveDue = DateTimeOffset.UtcNow.AddSeconds(10); AdaptiveStatus(T("光照来源超时或已取消", "Light source timed out or canceled")); }
         catch (Exception ex)
         {
+            if (revision == adaptiveRevision && s.RecordLightHistory && mode == "ambient" && !outputStage && !uiTest) await RecordLightSampleAsync(s.ActiveSourceId, null);
             adaptiveFilter.Reset(); adaptiveReadback = null; adaptiveDue = DateTimeOffset.UtcNow.AddSeconds(10);
             if (outputStage) adaptiveOutputFault = true;
             AdaptiveStatus(outputStage ? T("屏幕写入失败，重新启用后再试", "Display write failed; re-enable to retry") : T("数据或屏幕不可用，已暂停；稍后重试", "Data or display unavailable; paused, retrying later"));
             StartupLog.Write("Adaptive automation: " + ex.GetType().Name); // no source URL, token or location in logs
         }
         finally { lightRequest = null; adaptiveBusy = false; }
+    }
+
+    private async Task RecordLightSampleAsync(string subscriptionId, LightSample? sample)
+    {
+        try { await lightHistory.AppendAsync(subscriptionId, sample); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        { StartupLog.Write("Light history unavailable: " + ex.GetType().Name); }
     }
 }
