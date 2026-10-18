@@ -38,6 +38,7 @@ public sealed class AdaptiveSettings
     public double LightThemeHour { get; set; } = 7;
     public double DarkThemeHour { get; set; } = 20;
     public string ActiveSourceId { get; set; } = "simulation";
+    public bool RecordLightHistory { get; set; }
     public List<LightSourceSubscription> LightSources { get; set; } = new();
     public AdaptivePreset TimeCurve { get; set; } = AdaptivePresets.Default("clock");
     public bool PreviewEnabled { get; set; }
@@ -137,7 +138,7 @@ public static class AdaptivePresets
         s.DayBrightness = Limit(s.DayBrightness, 65, 100); s.NightBrightness = Limit(s.NightBrightness, 20, 100);
         s.LightThemeHour = Limit(s.LightThemeHour, 7, 24); s.DarkThemeHour = Limit(s.DarkThemeHour, 20, 24);
         s.LightSources ??= new();
-        s.LightSources = s.LightSources.Where(x => { try { if (x is null || string.IsNullOrWhiteSpace(x.Id) || string.IsNullOrWhiteSpace(x.Name) || x.Name.Length > 100) return false; LightFeed.UriFor(x.Url); x.PollMilliseconds = Math.Clamp(x.PollMilliseconds, 500, 60000); return true; } catch { return false; } }).DistinctBy(x => x.Id).Take(32).ToList();
+        s.LightSources = s.LightSources.Where(x => { try { if (x is null || string.IsNullOrWhiteSpace(x.Id) || string.IsNullOrWhiteSpace(x.Name) || x.Name.Length > 100) return false; LightFeed.ValidateSource(x); x.PollMilliseconds = Math.Clamp(x.PollMilliseconds, LightFeed.MinimumPollMilliseconds, LightFeed.MaximumPollMilliseconds); return true; } catch { return false; } }).DistinctBy(x => x.Id).Take(32).ToList();
         if (s.Source is not ("simulation" or "fc-usb")) s.Source = "simulation";
         s.Subscriptions ??= new();
         s.Subscriptions = s.Subscriptions.Where(x =>

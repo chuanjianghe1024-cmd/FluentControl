@@ -179,3 +179,9 @@ Bug reports, feature ideas and monitor compatibility reports are welcome in [Iss
 ### License
 
 Licensed under the [MIT License](LICENSE), allowing commercial use, modification and redistribution with the copyright and license notice retained. Third-party components keep their own licenses. See the [Wiki user guide](https://github.com/chuanjianghe1024-cmd/FluentControl/wiki) for detailed instructions, or read the [guide sources](docs/wiki/Home.md) in this repository.
+
+### 光照传感器配套仓库 / Companion light-sensor repository
+
+[FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors) 按主板与传感器组合整理固件、接线、官方驱动/工具/说明书入口。当前为私有仓库，仅授权账户可访问。FC 内置 USB 订阅、采样间隔和本地历史功能仍在开发验证，未进入发布安装包。
+
+[FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors) organizes firmware, wiring and official setup resources by board/sensor combination. It is currently private and requires repository access. Native USB subscriptions, configurable sampling and local history remain under development and are not in released installers.

@@ -24,6 +24,18 @@ public sealed partial class MainWindow
             if (state.Settings.Adaptive.Curve.Points[1].Brightness != 37) throw new InvalidOperationException("Adaptive numeric editing failed.");
             var stored = new UserStateStore(System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentControl", "test-user-state.json"));
             if (stored.State.Settings.Adaptive.Curve.Points[1].Brightness != 37) throw new InvalidOperationException("Adaptive edit not persisted.");
+            var local = new LightSourceSubscription { Id = "fixture-usb", Name = "Fixture probe", Url = "fc-usb://auto", DeviceId = "fixture-probe" };
+            state.Settings.Adaptive.LightSources.Add(local); state.Settings.Adaptive.ActiveSourceId = local.Id;
+            BuildSettings(); SelectSettingsSection("adaptive");
+            // Rebuilt ScrollViewer content enters the visual tree on the next layout pass.
+            await Task.Delay(100); SettingsPanel.UpdateLayout();
+            var interval = Descendants<NumberBox>(SettingsPanel).Single(x => AutomationProperties.GetAutomationId(x) == "light-sampling-seconds");
+            interval.Value = 600;
+            if (local.PollMilliseconds != 600000) throw new InvalidOperationException("Long light interval input failed.");
+            var intervalSlider = Descendants<Slider>(SettingsPanel).Single(x => AutomationProperties.GetAutomationId(x) == "light-sampling-slider");
+            intervalSlider.Value = 0;
+            if (local.PollMilliseconds != 200 || interval.Value != .2) throw new InvalidOperationException("Light interval slider/input synchronization failed.");
+            if (snapshot.Any(x => AllChannels()[x.Key].Value != x.Value)) throw new InvalidOperationException("Sensor settings changed hardware brightness.");
             state.Settings.Adaptive.Mode = "clock"; state.Settings.Adaptive.TimeCurve = AdaptivePresets.Default("clock"); BuildSettings(); SelectSettingsSection("adaptive");
             await Task.Delay(50); SettingsPanel.UpdateLayout();
             var first = Descendants<NumberBox>(SettingsPanel).Single(x => AutomationProperties.GetAutomationId(x) == "adaptive-y-0");

@@ -15,12 +15,19 @@ internal sealed class TransparentBackdrop : SystemBackdrop
     internal Windows.UI.Color TintColor { get => tint; set { tint = value; if (brush is not null) brush.Color = value; } }
     protected override void OnTargetConnected(ICompositionSupportsSystemBackdrop target, XamlRoot root)
     {
+        base.OnTargetConnected(target, root);
         Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread().EnsureSystemDispatcherQueue();
         compositor = new Windows.UI.Composition.Compositor();
         brush = compositor.CreateColorBrush(tint);
         target.SystemBackdrop = brush;
         native = new NativeBackdrop(Microsoft.UI.Win32Interop.GetWindowFromWindowId(root.ContentIslandEnvironment.AppWindowId));
-        base.OnTargetConnected(target, root);
+    }
+    protected override void OnDefaultSystemBackdropConfigurationChanged(ICompositionSupportsSystemBackdrop target, XamlRoot root)
+    {
+        // This custom color brush has no system backdrop controller/configuration.
+        // Keep its explicitly selected tint when XAML changes theme or activation.
+        // The base callback can receive a null target during these notifications.
+        if (brush is not null) brush.Color = tint;
     }
     protected override void OnTargetDisconnected(ICompositionSupportsSystemBackdrop target)
     {

@@ -70,6 +70,39 @@ public sealed partial class MainWindow
             var sources = new List<LightSourceSubscription> { new() { Id = "simulation", Name = T("内置模拟光照", "Built-in simulated light") } }; sources.AddRange(s.LightSources);
             var picker = new ComboBox { Header = T("光照数据订阅", "Light data subscription"), ItemsSource = sources, SelectedItem = sources.FirstOrDefault(x => x.Id == s.ActiveSourceId), MinWidth = 240 };
             picker.SelectionChanged += (_, _) => { if (picker.SelectedItem is LightSourceSubscription source) { s.ActiveSourceId = source.Id; SaveAdaptiveSettings(); BuildSettings(); } }; section.Children.Add(picker);
+            var localPort = new TextBox { Header = T("本地传感器端口", "Local sensor port"), Text = "auto", PlaceholderText = "auto / COM5", MaxLength = 16 };
+            section.Children.Add(localPort);
+            var discover = new Button { Content = T("发现并订阅本地传感器", "Discover and subscribe to local sensors"), IsEnabled = !uiTest && s.LightSources.Count < 32 };
+            discover.Click += async (_, _) =>
+            {
+                discover.IsEnabled = false;
+                var revision = adaptiveRevision;
+                using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+                localDiscovery?.Cancel(); localDiscovery = cancellation;
+                try
+                {
+                    var devices = await LocalLightSensor.DiscoverAsync(localPort.Text.Trim(), cancellation.Token);
+                    if (closed || revision != adaptiveRevision) return;
+                    if (devices.Count == 0) { ShowStatus(T("未发现兼容传感器，请关闭 Thonny 并检查主板程序和端口。", "No compatible sensor found. Close Thonny and check firmware and port."), InfoBarSeverity.Warning); return; }
+                    string? first = null;
+                    foreach (var device in devices)
+                    {
+                        var item = s.LightSources.FirstOrDefault(x => LocalLightProtocol.IsLocal(x.Url) && x.DeviceId == device.Identity);
+                        if (item is null && s.LightSources.Count < 32)
+                        {
+                            item = new LightSourceSubscription { Name = device.Identity, DeviceId = device.Identity,
+                                Url = "fc-usb://" + (localPort.Text.Trim().Equals("auto", StringComparison.OrdinalIgnoreCase) ? "auto" : device.Port.ToLowerInvariant()) };
+                            s.LightSources.Add(item);
+                        }
+                        first ??= item?.Id;
+                    }
+                    if (first is not null) { s.ActiveSourceId = first; s.RecordLightHistory = true; s.Enabled = false; SaveAdaptiveSettings(); BuildSettings(); }
+                }
+                catch (OperationCanceledException) { }
+                catch { if (!closed) ShowStatus(T("未发现兼容传感器，请关闭 Thonny 并检查主板程序和端口。", "No compatible sensor found. Close Thonny and check firmware and port."), InfoBarSeverity.Warning); }
+                finally { if (ReferenceEquals(localDiscovery, cancellation)) localDiscovery = null; if (!closed) discover.IsEnabled = s.LightSources.Count < 32; }
+            };
+            section.Children.Add(discover);
             var name = new TextBox { Header = T("名称", "Name"), MaxLength = 100 };
             var url = new TextBox { Header = T("数据链接（HTTP / HTTPS）", "Data URL (HTTP / HTTPS)"), PlaceholderText = "http://127.0.0.1:8765/light.json", MaxLength = 2048 };
             section.Children.Add(name); section.Children.Add(url);
@@ -81,17 +114,91 @@ public sealed partial class MainWindow
                     var uri = LightFeed.UriFor(url.Text.Trim());
                     if (s.LightSources.Any(x => x.Url == uri.AbsoluteUri) || string.IsNullOrWhiteSpace(name.Text)) throw new InvalidDataException();
                     var item = new LightSourceSubscription { Name = name.Text.Trim(), Url = uri.AbsoluteUri };
-                    s.LightSources.Add(item); s.ActiveSourceId = item.Id; s.Enabled = false; SaveAdaptiveSettings(); BuildSettings();
+                    s.LightSources.Add(item); s.ActiveSourceId = item.Id; s.RecordLightHistory = true; s.Enabled = false; SaveAdaptiveSettings(); BuildSettings();
                 }
                 catch { ShowStatus(T("请输入名称和有效且不重复的 HTTP/HTTPS 数据链接。", "Enter a name and a valid, unique HTTP/HTTPS data URL."), InfoBarSeverity.Error); }
             }; section.Children.Add(add);
             if (s.LightSources.FirstOrDefault(x => x.Id == s.ActiveSourceId) is { } selected)
             {
                 section.Children.Add(Text(selected.Url));
-                Number(T("订阅间隔（毫秒）", "Polling interval (ms)"), selected.PollMilliseconds, 500, 60000, x => selected.PollMilliseconds = (int)x);
+                BuildLightSamplingInterval(section, selected);
+                var record = new ToggleSwitch { Header = T("保存光照历史（关闭自动调节时仍采集）", "Save light history (collect even when adjustment is off)"), IsOn = s.RecordLightHistory };
+                record.Toggled += (_, _) => { s.RecordLightHistory = record.IsOn; SaveAdaptiveSettings(); };
+                section.Children.Add(record);
+                var history = new Button { Content = T("查看光照历史", "View light history") };
+                history.Click += async (_, _) => await ShowLightHistoryAsync(selected);
+                section.Children.Add(history);
                 var remove = new Button { Content = T("删除", "Delete") };
                 remove.Click += (_, _) => { s.LightSources.Remove(selected); s.ActiveSourceId = "simulation"; s.Enabled = false; SaveAdaptiveSettings(); BuildSettings(); }; section.Children.Add(remove);
             }
         }
+    }
+
+    private void BuildLightSamplingInterval(StackPanel section, LightSourceSubscription source)
+    {
+        bool updating = false;
+        var input = new NumberBox { Header = T("采样间隔（秒）", "Sampling interval (seconds)"),
+            Value = source.PollMilliseconds / 1000d, Minimum = .2, Maximum = 86400,
+            SmallChange = .1, LargeChange = 1, Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
+        var slider = new Slider { Minimum = 0, Maximum = 100, StepFrequency = .1,
+            Value = 100 * Math.Log(source.PollMilliseconds / 200d) / Math.Log(432000), MaxWidth = 520, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var intervals = new[] { 200, 1000, 5000, 10000, 60000, 600000 };
+        var presets = new ComboBox { Header = T("间隔预设", "Interval presets"), MinWidth = 240,
+            ItemsSource = new[] { T("最快（约 0.2 秒）", "Fastest (about 0.2 s)"), "1 s", "5 s", "10 s", "1 min", "10 min" },
+            SelectedIndex = Array.IndexOf(intervals, source.PollMilliseconds) };
+        void Apply(double milliseconds)
+        {
+            if (updating || !double.IsFinite(milliseconds)) return;
+            updating = true;
+            try
+            {
+                source.PollMilliseconds = (int)Math.Clamp(Math.Round(milliseconds), LightFeed.MinimumPollMilliseconds, LightFeed.MaximumPollMilliseconds);
+                input.Value = source.PollMilliseconds / 1000d;
+                slider.Value = 100 * Math.Log(source.PollMilliseconds / 200d) / Math.Log(432000);
+                presets.SelectedIndex = Array.IndexOf(intervals, source.PollMilliseconds);
+                SaveAdaptiveSettings();
+            }
+            finally { updating = false; }
+        }
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(input, "light-sampling-seconds");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(slider, "light-sampling-slider");
+        input.ValueChanged += (_, e) => Apply(e.NewValue * 1000);
+        slider.ValueChanged += (_, e) => Apply(200 * Math.Pow(432000, e.NewValue / 100));
+        presets.SelectionChanged += (_, _) => { if (presets.SelectedIndex >= 0) Apply(intervals[presets.SelectedIndex]); };
+        section.Children.Add(presets); section.Children.Add(input); section.Children.Add(slider);
+    }
+
+    private async Task ShowLightHistoryAsync(LightSourceSubscription source)
+    {
+        var panel = new StackPanel { Spacing = 8, MinWidth = 420 };
+        panel.Children.Add(new TextBlock { Text = T("仅保存在本机，所有来源合计最多 64 MiB，满后删除最早记录。断线不补造数据。", "Local only, up to 64 MiB across all sources. Oldest records are removed when full. Gaps are not filled."), TextWrapping = TextWrapping.Wrap });
+        var rows = new ListView { Height = 360, SelectionMode = ListViewSelectionMode.None };
+        var navigation = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var newer = new Button { Content = T("较新记录", "Newer records") };
+        var older = new Button { Content = T("较早记录", "Older records") };
+        var status = new TextBlock();
+        navigation.Children.Add(newer); navigation.Children.Add(older);
+        panel.Children.Add(rows); panel.Children.Add(navigation); panel.Children.Add(status);
+        int page = 0;
+        async Task Load()
+        {
+            newer.IsEnabled = older.IsEnabled = false;
+            try
+            {
+                var entries = await lightHistory.ReadPageAsync(source.Id, page);
+                rows.ItemsSource = entries.Select(x => $"{x.Timestamp.ToLocalTime():yyyy-MM-dd HH:mm:ss.fff}  ·  " +
+                    (x.Valid ? $"{x.Lux:0.##} lux" : T("数据中断", "Data gap")) +
+                    (x.Simulated ? " · " + T("模拟", "Simulated") : "")).ToArray();
+                status.Text = entries.Count == 0 ? T("暂无记录", "No records yet") : $"{page + 1} · {entries.Count}";
+                newer.IsEnabled = page > 0; older.IsEnabled = entries.Count == 100;
+            }
+            catch { status.Text = T("无法读取光照历史", "Cannot read light history"); newer.IsEnabled = page > 0; }
+        }
+        newer.Click += async (_, _) => { page--; await Load(); };
+        older.Click += async (_, _) => { page++; await Load(); };
+        var dialog = new ContentDialog { XamlRoot = ShellRoot.XamlRoot, Title = source.Name,
+            Content = panel, CloseButtonText = T("关闭", "Close"), RequestedTheme = ShellRoot.RequestedTheme };
+        await Load();
+        if (!closed) await dialog.ShowAsync();
     }
 }

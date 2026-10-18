@@ -8,6 +8,7 @@ public sealed class LightSourceSubscription
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Name { get; set; } = "";
     public string Url { get; set; } = "";
+    public string DeviceId { get; set; } = "";
     public int PollMilliseconds { get; set; } = 1000;
     public override string ToString() => Name;
 }
@@ -23,6 +24,17 @@ public sealed class LightSample
 }
 public static class LightFeed
 {
+    public const int MinimumPollMilliseconds = 200;
+    public const int MaximumPollMilliseconds = 86400000;
+    public static void ValidateSource(LightSourceSubscription source)
+    {
+        if (LocalLightProtocol.IsLocal(source.Url))
+        {
+            LocalLightProtocol.PortFor(source.Url);
+            if (string.IsNullOrWhiteSpace(source.DeviceId) || source.DeviceId.Length > 100) throw new InvalidDataException("Invalid device identity.");
+        }
+        else UriFor(source.Url);
+    }
     public const int MaximumBytes = 16 * 1024;
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow, MaxDepth = 8 };
@@ -41,7 +53,7 @@ public static class LightFeed
         var s = JsonSerializer.Deserialize<LightSample>(json, Json) ?? throw new InvalidDataException("Empty light sample.");
         if (s.Format != "fluentcontrol.light-sample" || s.Version != 1 || string.IsNullOrWhiteSpace(s.SourceId) || s.SourceId.Length > 100 || !s.Valid ||
             s.Lux is not double lux || !double.IsFinite(lux) || lux < 0 || lux > 200000 || s.Timestamp == default ||
-            now - s.Timestamp > TimeSpan.FromMilliseconds(Math.Max(5000, 3 * Math.Clamp(pollMilliseconds, 500, 60000))) || s.Timestamp - now > TimeSpan.FromSeconds(5))
+            now - s.Timestamp > TimeSpan.FromMilliseconds(Math.Max(5000, 3 * Math.Clamp(pollMilliseconds, MinimumPollMilliseconds, MaximumPollMilliseconds))) || s.Timestamp - now > TimeSpan.FromSeconds(5))
             throw new InvalidDataException("Invalid or stale light sample.");
         return s;
     }
