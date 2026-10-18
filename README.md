@@ -45,9 +45,9 @@ FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控�
 
 ### 下载与开始使用
 
-**v0.3.118 正式提供 Win11 风格离线 Setup.exe**：明暗主题、八种语言、自定义目录和自启动选项，完整安装包约 **53.5 MB**。相比首版现代安装器开发构建缩小约 52%，同时保留单独 MSI。
+**v0.3.135 新增本地 USB 光照订阅、可调采样与 64 MiB 历史记录**，并提供跟随应用主题的 Fluent 托盘菜单。包含 Windows WMI 内屏亮度与自动调节；实体传感器联动和笔记本仍需实测。提供 Windows x64 离线 Setup.exe 与 MSI。
 
-**[下载新版 Setup（推荐）](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/download/v0.3.118/FluentControl-0.3.118-x64-Setup.exe)** · [MSI / 校验文件](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · **v0.3.118** · [版本说明](docs/releases/v0.3.118.md)
+**[下载新版 Setup（推荐）](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/download/v0.3.135/FluentControl-0.3.135-x64-Setup.exe)** · [MSI / 校验文件](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · **v0.3.135** · [版本说明](docs/releases/v0.3.135.md)
 
 1. 下载并运行 Setup。新安装可选择有写入权限的本地目录，并决定是否随 Windows 启动；成功后点击“启动 FluentControl”。支持离线安装，无需管理员权限，单独 MSI 也继续提供。升级沿用原目录；迁移目录时先卸载再安装，个人配置保留。
 2. 在外接显示器的实体菜单中开启 **DDC/CI**，连接后读取设备。
@@ -129,9 +129,9 @@ Save a setup for work, gaming or late-night use and recall it when needed. Adjus
 
 ### Download and get started
 
-**v0.3.118 introduces the Fluent offline Setup.exe as a stable download**: themes, eight languages, folder and startup choices, in a complete **53.5 MB** package. It is about 52% smaller than the initial modern-installer development build; standalone MSI remains available.
+**v0.3.135 adds local USB light subscriptions, sampling controls and 64 MiB history**, plus a themed Fluent tray menu. Includes Windows WMI panel brightness and opt-in automation; physical sensor integration and notebook validation remain pending. Windows x64 offline Setup.exe and MSI are available.
 
-**[Download Setup (recommended)](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/download/v0.3.118/FluentControl-0.3.118-x64-Setup.exe)** · [MSI / checksums](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · **v0.3.118** · [Release notes](docs/releases/v0.3.118.md)
+**[Download Setup (recommended)](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/download/v0.3.135/FluentControl-0.3.135-x64-Setup.exe)** · [MSI / checksums](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · **v0.3.135** · [Release notes](docs/releases/v0.3.135.md)
 
 1. Run Setup, choose a writable local folder and whether to start with Windows, then explicitly launch after success. Installation works offline without administrator privileges; standalone MSI remains available. Upgrades keep the existing folder; uninstall and reinstall to move it. Personal settings are retained.
 2. Enable **DDC/CI** in your external monitor's physical menu, then let the app read your devices.
@@ -182,6 +182,6 @@ Licensed under the [MIT License](LICENSE), allowing commercial use, modification
 
 ### 光照传感器配套仓库 / Companion light-sensor repository
 
-[FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors) 按主板与传感器组合整理固件、接线、官方驱动/工具/说明书入口。当前为私有仓库，仅授权账户可访问。FC 内置 USB 订阅、采样间隔和本地历史功能仍在开发验证，未进入发布安装包。
+[FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors) 按主板与传感器组合整理固件、接线、官方驱动/工具/说明书入口。当前为私有仓库，仅授权账户可访问。FC v0.3.135 已包含 USB 订阅、采样间隔和本地历史；RP2040 使用兼容固件，实体联动待验证。C3/CH552 固件与 FC 刷写尚未实现。
 
-[FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors) organizes firmware, wiring and official setup resources by board/sensor combination. It is currently private and requires repository access. Native USB subscriptions, configurable sampling and local history remain under development and are not in released installers.
+[FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors) organizes firmware, wiring and official setup resources by board/sensor combination. It is currently private and requires repository access. FC v0.3.135 includes native USB subscriptions, configurable sampling and local history. RP2040 requires compatible firmware; physical integration remains unverified. C3/CH552 firmware and flashing from FC are not implemented.

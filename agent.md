@@ -182,22 +182,22 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 ## 开发状态与详细计划
 
-状态基线：**2026-10-13**。这里只列工程进度与后续验收；不因条目写入计划就宣称已完成或已发布。
+状态基线：**2026-10-18**。这里只列工程进度与后续验收；不因条目写入计划就宣称已完成或已发布。
 
-### 托盘菜单后续变更
+### 托盘菜单
 
-- `TrayMenuWindow.cs` 使用 WinUI MenuFlyout 和独立透明工具窗口；主窗隐藏时也能显示，菜单关闭隐藏宿主、退出销毁。`ShellIntegration` 只负责通知与托盘坐标，命令仍走 ShellCommand。主题同步覆盖浅色、深色和自动主题，沿用现有八语言文案；回归入口 `MainWindow.TrayChecks.cs`。此变更不在 v0.3.129-snap 安装包中。
+- `TrayMenuWindow.cs` 使用 WinUI MenuFlyout 和独立透明工具窗口；主窗隐藏时也能显示，菜单关闭隐藏宿主、退出销毁。`ShellIntegration` 只负责通知与托盘坐标，命令仍走 ShellCommand。主题同步覆盖浅色、深色和自动主题，沿用现有八语言文案；回归入口 `MainWindow.TrayChecks.cs`。此变更及透明背景主题回调修复收入 v0.3.135，通过原生托盘明暗主题回归；不在 v0.3.129-snap 安装包中。
 
-### 当前预览变更（尚未进入正式版）
+### 当前正式版 v0.3.135
 
-- 本地光照订阅开发分支：`Services/LocalLightSensor.cs` 与自动调节设置支持 RP2040 VID 限定的串口发现、READ/PING 身份握手、持久设备绑定及 0.2 秒至 24 小时输入/滑块/预设。`LightHistory.cs` 保存本地 64 MiB 分段历史，按来源分页查看；记录开关与自动亮度独立。固件在 `tools/light-source/rp2040/main.py`，配套私有仓库 `FluentControl-Sensors`；不依赖运行中的 Python 桥接。当前未执行 Windows 构建/实机验收，不宣称 C3/CH552 固件完成。
+- 本地光照订阅：`Services/LocalLightSensor.cs` 与自动调节设置支持 RP2040 VID 限定的串口发现、READ/PING 身份握手、持久设备绑定及 0.2 秒至 24 小时输入/滑块/预设。`LightHistory.cs` 保存本地 64 MiB 分段历史，按来源分页查看；记录开关与自动亮度独立。固件在 `tools/light-source/rp2040/main.py`，配套私有仓库 `FluentControl-Sensors`；不依赖运行中的 Python 桥接。v0.3.135 来源主干构建 #135 / `d7221cdfbca31a6a584da58aef250cb24d649021`，通过 Windows、MSI 与 Setup 自动化验收；实体传感器联动未验收，C3/CH552 固件和 FC 刷写未完成。
 
-- Snap 预览 `v0.3.129-snap` 使用主干构建 #129 / `dece26a38d476a28b109f74f18146a2ef31da2fd`。Windows、模拟自动调节界面、MSI 与 Setup 验收通过；正式通道保持 v0.3.118，实体硬件未验收。
+- Snap 预览 `v0.3.129-snap` 使用主干构建 #129 / `dece26a38d476a28b109f74f18146a2ef31da2fd`。Windows、模拟自动调节界面、MSI 与 Setup 验收通过；当时正式通道为 v0.3.118，现由 v0.3.135 收入上述功能；实体硬件未验收。
 
-- 自动亮度与光照订阅：`AdaptivePresets.cs` 保存独立 lux/clock 曲线；`AdaptiveAutomation.cs` 提供统一 `fluentcontrol.light-sample` JSON、过滤和平滑及 NOAA 本地太阳公式。`MainWindow.Automation*.cs` 提供运行时和设置，默认关闭；用户明确启用后允许定时亮度及 FC 主题（不修改系统主题/Gamma），持久启用可在下次运行继续。共用 gate/generation，手动保持 10 分钟，网络失败暂停、屏幕写入失败需重新开启，HDR/未知状态不自动写。订阅是动态数据源，不是远程预设安装器；导入曲线不自动开启；用户配置的源码不执行。`tools/light-source/server.py` 是独立本机模拟接口。实体硬件、串口/BLE 桥接及学习未完成。详见 `docs/adaptive-presets.md`。
+- 自动亮度与光照订阅：`AdaptivePresets.cs` 保存独立 lux/clock 曲线；`AdaptiveAutomation.cs` 提供统一 `fluentcontrol.light-sample` JSON、过滤和平滑及 NOAA 本地太阳公式。`MainWindow.Automation*.cs` 提供运行时和设置，默认关闭；用户明确启用后允许定时亮度及 FC 主题（不修改系统主题/Gamma），持久启用可在下次运行继续。共用 gate/generation，手动保持 10 分钟，网络失败暂停、屏幕写入失败需重新开启，HDR/未知状态不自动写。订阅是动态数据源，不是远程预设安装器；导入曲线不自动开启；用户配置的源码不执行。`tools/light-source/server.py` 是独立本机模拟接口。原生 RP2040 USB 订阅已接入；实体硬件联动、BLE 接入及学习未完成。详见 `docs/adaptive-presets.md`。
 
 - `Services/SystemBrightness.cs` 通过系统 WMI COM 自动化提供内屏亮度，不增加运行时依赖；只读发现 `WmiMonitorBrightness` 与 `WmiMonitorBrightnessMethods`，按完整 PnP 路径与 WMI 实例后缀匹配，歧义/无有效档位不开放写入。刷新销毁控制器，旧闭包拒绝写入；操作共用现有 gate，写前确认活动连接并重读，选最近支持档位，单次写入后由通用通道回读。Windows 亮度 `VcpCode` 为空；复用 `brightness` 通道接入现有界面/联动/桌面/场景/预设，匹配成功的屏幕不启动 DDC 探测。原生 WMI 查询失败不影响其他 DDC 显示器。WinUI 模拟回归位于 `MainWindow.SystemBrightnessChecks.cs`。尚未实机验证，不新增传感器采集、自动亮度或低蓝光自动化。
-- 用户计划：传感器组装后增加环境光自适应与本地偏好学习，参考追光护眼使用教程的交互，独立实现；具体边界见 [docs/adaptive-brightness-plan.md](docs/adaptive-brightness-plan.md)。已增加通用 HTTP 光照来源、模拟器与显式启用的自动调节；真实 USB/BLE 桥接、学习和实物验证仍待完成。
+- 用户计划：传感器组装后增加环境光自适应与本地偏好学习，参考追光护眼使用教程的交互，独立实现；具体边界见 [docs/adaptive-brightness-plan.md](docs/adaptive-brightness-plan.md)。已增加通用 HTTP 光照来源、模拟器与显式启用的自动调节；原生 RP2040 USB 订阅已接入；BLE、学习和实物联动验证仍待完成。
 
 - 应用主题保存于 `AppSettings.Theme`（`system/light/dark`，旧设置和未知值回退到 `system`）；设置 → 常规可立即切换。将 `RequestedTheme` 设置在 `ShellRoot`，覆盖导航及启动界面，窗口标题和已打开的 FC 菜单同步；桌面面板保留独立文字偏好。
 - 动态卡片、型号标记和识别背景经 `App.xaml` 的样式使用 `ThemeResource`；不要通过 `Application.Current.Resources` 一次性取出主题画刷并赋给动态控件。对话框显式继承宿主主题。原生主题回归在 `MainWindow.ThemeChecks.cs`，包含同一组设置卡片连续切换、文字对比度、已打开的 FC 菜单、持久化及恢复跟随系统。

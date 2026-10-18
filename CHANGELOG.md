@@ -2,13 +2,20 @@
 
 记录正式版与明确标记的预览版；普通开发构建由 GitHub Actions 单独提供。
 
-## 未发布 / Unreleased
+## [0.3.135](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.135) — 2026-10-18
 
-- 开发中：光照订阅新增本地 USB 传感器发现与设备身份绑定，直接读取兼容主板，无需 Python 桥接；采样间隔支持输入、滑块与预设（0.2 秒至 24 小时）。增加本机 64 MiB 滚动历史及分页查看，可在关闭自动亮度时独立采集；Windows 构建与实体设备待验证。
-- In development: discover and subscribe to compatible local USB light sensors without a Python bridge; bind device identity and configure sampling using input, slider or presets (0.2 s to 24 h). Add a local 64 MiB rolling history and paginated viewer, with recording independent of brightness adjustment. Windows build and physical-device validation remain pending.
+主干构建 #135 通过完整 Windows、MSI 与 Setup 验收；[中英文发布说明](docs/releases/v0.3.135.md)。
+
+Main build #135 passed full Windows, MSI and Setup validation.
+
+- 光照订阅新增本地 USB 传感器发现与设备身份绑定，直接读取兼容主板，无需 Python 桥接；采样间隔支持输入、滑块与预设（0.2 秒至 24 小时）。增加本机 64 MiB 滚动历史及分页查看，可在关闭自动亮度时独立采集；Windows 自动化验证通过，实体设备联动待验证。
+- Discover and subscribe to compatible local USB light sensors without a Python bridge; bind device identity and configure sampling using input, slider or presets (0.2 s to 24 h). Add a local 64 MiB rolling history and paginated viewer, with recording independent of brightness adjustment. Windows automation passed; physical-device integration remains unverified.
 
 - 托盘右键菜单改用 WinUI Fluent 菜单：圆角、图标、标准悬停/键盘交互及 FC 明暗主题；独立透明宿主允许主面板隐藏时弹出，关闭菜单后隐藏宿主，保留六项原有操作。
 - Replace the legacy tray context menu with a themed WinUI Fluent menu, icons and standard keyboard interaction. A separate transparent owner supports a hidden main panel and is hidden on dismissal; all six commands are retained.
+
+- 修复透明托盘宿主在应用主题切换时的崩溃，并验证明暗主题下的托盘操作。
+- Fix the transparent tray host crashing on app theme changes; validate tray actions in both themes.
 
 ## [0.3.129-snap](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.129-snap) — 2026-10-14 · Preview
 
