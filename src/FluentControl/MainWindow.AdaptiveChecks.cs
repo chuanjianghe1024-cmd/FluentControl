@@ -27,6 +27,8 @@ public sealed partial class MainWindow
             var local = new LightSourceSubscription { Id = "fixture-usb", Name = "Fixture probe", Url = "fc-usb://auto", DeviceId = "fixture-probe" };
             state.Settings.Adaptive.LightSources.Add(local); state.Settings.Adaptive.ActiveSourceId = local.Id;
             BuildSettings(); SelectSettingsSection("adaptive");
+            // Rebuilt ScrollViewer content enters the visual tree on the next layout pass.
+            await Task.Delay(100); SettingsPanel.UpdateLayout();
             var interval = Descendants<NumberBox>(SettingsPanel).Single(x => AutomationProperties.GetAutomationId(x) == "light-sampling-seconds");
             interval.Value = 600;
             if (local.PollMilliseconds != 600000) throw new InvalidOperationException("Long light interval input failed.");
