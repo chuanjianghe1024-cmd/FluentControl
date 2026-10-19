@@ -60,7 +60,7 @@ public sealed partial class MainWindow
             {
                 var devices = await LocalLightSensor.DiscoverAsync(port.Text.Trim(), cancel.Token);
                 if (devices.Count == 0) { ShowStatus(T("未发现兼容传感器，请关闭 Thonny 并检查主板程序和端口。", "No compatible sensor found. Close Thonny and check firmware and port."), InfoBarSeverity.Warning); return; }
-                if (!closed) await ShowSensorDeviceAsync(devices);
+                if (!closed) await ShowSensorDeviceAsync(devices, port.Text.Trim().Equals("auto", StringComparison.OrdinalIgnoreCase));
             }
             catch (OperationCanceledException) { }
             catch { if (!closed) ShowStatus(T("设备操作失败或结果未确认，请重新读取状态。", "Device operation failed or is unconfirmed. Read status again."), InfoBarSeverity.Warning); }
@@ -99,7 +99,7 @@ public sealed partial class MainWindow
         else { item.Url = incoming.Url; item.SignedDevice = incoming.SignedDevice; }
         s.ActiveSourceId = item.Id; s.RecordLightHistory = true; s.Enabled = false; SaveAdaptiveSettings();
     }
-    private async Task ShowSensorDeviceAsync(IReadOnlyList<LocalLightDevice> devices)
+    private async Task ShowSensorDeviceAsync(IReadOnlyList<LocalLightDevice> devices, bool automaticPort)
     {
         var panel = new StackPanel { Spacing = 10, MinWidth = 360 };
         panel.Children.Add(new TextBlock { Text = T("USB 直连拥有管理权限，无需绑定。无线读取需先保存绑定；本版本管理操作仅走 USB。", "USB grants management access without binding. Wireless reads require saved binding; management uses USB in this version."), TextWrapping = TextWrapping.Wrap });
@@ -162,7 +162,7 @@ public sealed partial class MainWindow
         Action(T("重启设备", "Restart device"), "reboot", confirm: true);
         Action(T("恢复出厂设置", "Factory reset"), "factory.reset", confirm: true);
         var subscribe = new Button { Content = T("添加 USB 订阅", "Add USB subscription") };
-        subscribe.Click += (_, _) => { if (picker.SelectedItem is LocalLightDevice d) { AddSensorSubscription(new() { Name = d.Identity, DeviceId = d.Identity, Url = "fc-usb://auto" }); status.Text = T("订阅已添加，自动调节保持关闭。", "Subscription added; automatic adjustment remains off."); } };
+        subscribe.Click += (_, _) => { if (picker.SelectedItem is LocalLightDevice d) { AddSensorSubscription(new() { Name = d.Identity, DeviceId = d.Identity, Url = "fc-usb://" + (automaticPort ? "auto" : d.Port.ToLowerInvariant()) }); status.Text = T("订阅已添加，自动调节保持关闭。", "Subscription added; automatic adjustment remains off."); } };
         actions.Children.Add(subscribe);
         void UpdateLink() { if (picker.SelectedItem is LocalLightDevice d) link.Text = DeviceSignals.SubscriptionLink(d.Identity); status.Text = ""; password.Password = ""; }
         picker.SelectionChanged += (_, _) => UpdateLink(); UpdateLink();

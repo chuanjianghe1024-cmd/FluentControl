@@ -94,6 +94,11 @@ public sealed partial class MainWindow
                                 Url = "fc-usb://" + (localPort.Text.Trim().Equals("auto", StringComparison.OrdinalIgnoreCase) ? "auto" : device.Port.ToLowerInvariant()) };
                             s.LightSources.Add(item);
                         }
+                        if (item is not null)
+                        {
+                            item.Url = "fc-usb://" + (localPort.Text.Trim().Equals("auto", StringComparison.OrdinalIgnoreCase) ? "auto" : device.Port.ToLowerInvariant());
+                            item.SignedDevice = false;
+                        }
                         first ??= item?.Id;
                     }
                     if (first is not null) { s.ActiveSourceId = first; s.RecordLightHistory = true; s.Enabled = false; SaveAdaptiveSettings(); BuildSettings(); }
