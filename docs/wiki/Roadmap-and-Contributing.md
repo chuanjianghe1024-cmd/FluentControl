@@ -6,9 +6,9 @@
 
 ### 已有能力与后续方向
 
-本手册描述 v0.3.92。显示器控制、系统音量与输入、鼠标、总配置和型号预设、桌面面板、软件色温、Windows HDR 以及本地 OSD 配对已提供；具体硬件效果以设备实测为准。
+本手册描述 v0.3.135。显示器控制、系统音量与输入、鼠标、总配置和型号预设、桌面面板、软件色温、Windows HDR 以及本地 OSD 配对已提供；另含 WMI 内屏亮度、原生 RP2040 USB / HTTP 光照订阅、采样设置、64 MiB 历史和按时间/日出日落调节亮度与 FC 主题；具体硬件效果以设备实测为准。
 
-后续重点包括更多型号的色温/场景与原厂导航适配、USB/HID 协议研究、WMI 内屏亮度与厂商接口评估、混合 DPI 和热插拔体验，以及在线配置分享与适配报告服务。应用自动联动、定时配置、ICC/MHC2 管理也尚未实现。计划不代表已有支持或承诺日期。
+后续重点包括更多型号的色温/场景与原厂导航适配、显示器 USB/HID 协议研究、WMI 实机验收与厂商接口评估、混合 DPI 和热插拔体验，以及在线配置分享与适配报告服务。应用自动联动、定时应用整套配置、ICC/MHC2、C3/CH552 固件、HID/BLE 光照接入、FC 刷写和偏好学习也尚未实现。光照相关 Windows/WinUI/MSI/Setup 自动化已通过；实体 RP2040 完整联调、真实显示器及混合 DPI 仍待确认。计划不代表已有支持或承诺日期。
 
 ### MIT 许可证
 
@@ -36,9 +36,9 @@
 
 ## English
 
-This guide covers v0.3.92. Current features include monitor controls, system Volume/Input, mouse settings, global profiles and model presets, a desktop panel, software temperature, Windows HDR and local OSD pairing. Hardware behavior still requires verification.
+This guide covers v0.3.135. Current features include monitor controls, system Volume/Input, mouse settings, global profiles and model presets, a desktop panel, software temperature, Windows HDR and local OSD pairing, plus WMI panel brightness, native RP2040 USB/HTTP light subscriptions, sampling controls, 64 MiB history and scheduled brightness/FC themes. Hardware behavior still requires verification.
 
-Planned work includes broader model adaptation, USB/HID research, WMI internal-panel brightness and OEM interfaces, mixed-DPI/hot-plug improvements, and online sharing/adaptation services. Automatic application rules, schedules and ICC/MHC2 management are also unimplemented. Plans are not support claims or delivery dates.
+Planned work includes broader model adaptation, monitor USB/HID research, physical WMI validation and OEM interfaces, mixed-DPI/hot-plug improvements, and online sharing/adaptation services. Automatic application rules, scheduled whole-profile application, ICC/MHC2 management, C3/CH552 firmware, HID/BLE light input, flashing and learning are unimplemented. Light-related Windows/WinUI/MSI/Setup automation passed; physical RP2040 integration, real displays and mixed DPI remain unverified. Plans are not support claims or delivery dates.
 
 ### MIT license
 

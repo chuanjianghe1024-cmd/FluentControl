@@ -2,9 +2,9 @@
 
 **把多屏、音量、输入和鼠标的常用调节放在一个面板里。**
 
-本手册按正式版 **v0.3.118** 的实际功能编写，更新于 **2026-10-13**。FluentControl（FC）面向 Windows x64，提供显示器 DDC/CI 控制、系统色温与 HDR、总配置、型号预设、桌面面板和本地 OSD 配对。
+本手册按正式版 **v0.3.135** 的实际功能编写，更新于 **2026-10-19**。FluentControl（FC）面向 Windows x64，提供显示器 DDC/CI 控制、系统色温与 HDR、总配置、型号预设、桌面面板和本地 OSD 配对。
 
-[下载最新正式版](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · [本版更新](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.118) · [反馈问题](https://github.com/chuanjianghe1024-cmd/FluentControl/issues)
+[下载最新正式版](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · [本版更新](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.135) · [反馈问题](https://github.com/chuanjianghe1024-cmd/FluentControl/issues)
 
 采用 [MIT 许可证](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE)。
 
@@ -16,6 +16,7 @@
 | --- | --- |
 | 安装、更新、设置自启动 | [安装与入门](Getting-Started.md) |
 | 单独或一起调节多块显示器 | [显示器与多屏控制](Monitor-Controls.md) |
+| 接入光照传感器、采样与历史 | [安装与入门](Getting-Started.md) |
 | 保存办公、游戏和夜间配置 | [总配置与型号预设](Profiles-and-Presets.md) |
 | 切换 HDR、调整软件色温 | [HDR 与系统色温](HDR-and-Color-Temperature.md) |
 | 使用桌面面板、音量与快捷键 | [桌面、音频与快捷操作](Desktop-Audio-and-Shortcuts.md) |
@@ -28,11 +29,11 @@
 
 - **按能力开放。** 型号、固件、视频连接、HDR 和当前画面模式都会影响可调项目；显示器有某个实体菜单选项，不一定允许软件遥控。
 - **三种菜单能力分别判断。** FC 软件菜单、原厂 OSD 启用状态、原厂菜单的方向键导航不是同一功能。能唤出原厂菜单，也不能保证能远程导航。
-- **本地功能可离线使用。** 配置、预设、配对和文件交换无需上传；在线分享站与在线型号适配服务尚未部署。USB/HID 控制、应用自动切换和定时配置仍是后续方向。
+- **本地功能可离线使用。** 配置、预设、配对和文件交换无需上传；在线分享站与在线型号适配服务尚未部署。原生 RP2040 USB 光照订阅、历史和定时亮度/FC 主题已发布；显示器 USB/HID 控制、应用自动切换和定时应用整套配置仍是后续方向。
 
 ## English
 
-FluentControl brings monitor controls, system audio, input and mouse settings into one Windows panel. This guide describes **v0.3.118**, updated **2026-10-13**. Start with [installation and setup](Getting-Started.md), or use the pages below.
+FluentControl brings monitor controls, system audio, input and mouse settings into one Windows panel. This guide describes **v0.3.135**, updated **2026-10-19**. Start with [installation and setup](Getting-Started.md), or use the pages below.
 
 - [Monitor and multi-display controls](Monitor-Controls.md)
 - [Global profiles and model presets](Profiles-and-Presets.md)
@@ -43,6 +44,6 @@ FluentControl brings monitor controls, system audio, input and mouse settings in
 - [Logs, diagnostics and compatibility reports](Diagnostics-and-Compatibility.md)
 - [Roadmap and contributing](Roadmap-and-Contributing.md)
 
-Licensed under the [MIT License](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE). Each page includes an English section. Available hardware controls depend on the display, firmware, connection and active mode. The FC software menu, native OSD enablement and native navigation are separate capabilities. Local profiles and pairing work offline; the online sharing service and adapter catalog are not deployed, and USB/HID control is not implemented.
+Licensed under the [MIT License](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE). Each page includes an English section. Available hardware controls depend on the display, firmware, connection and active mode. The FC software menu, native OSD enablement and native navigation are separate capabilities. Local profiles and pairing work offline; the online sharing service and adapter catalog are not deployed, and monitor USB/HID control is not implemented. Native RP2040 USB light subscriptions, history and scheduled brightness/FC themes are released; automatic app switching and scheduled whole-profile application remain future work.
 
 For source structure and engineering conventions, see [agent.md](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/agent.md). For changes after this guide's baseline, see the [changelog](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/CHANGELOG.md).

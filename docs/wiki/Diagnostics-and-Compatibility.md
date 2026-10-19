@@ -48,7 +48,7 @@ HDR / 节能 / 画面模式：
 
 ### USB 与 HDMI / DP
 
-有 USB 集线器或 Type-B 上行口，只能证明存在 USB 连接，不能证明提供显示器控制协议。更换 HDMI / DP 可能改变连接表现，但不能据此断言某个接口必然支持更多 OSD 操作。请在同一屏幕、固件和模式下记录对比结果。FC 目前未实现 USB/HID 控制；相关[研究步骤](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/usb-hid-adaptation.md)用于后续实机验证。
+有 USB 集线器或 Type-B 上行口，只能证明存在 USB 连接，不能证明提供显示器控制协议。更换 HDMI / DP 可能改变连接表现，但不能据此断言某个接口必然支持更多 OSD 操作。请在同一屏幕、固件和模式下记录对比结果。FC 目前未实现显示器 USB/HID 控制（与已发布的 RP2040 USB 光照订阅不同）；相关[研究步骤](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/usb-hid-adaptation.md)用于后续实机验证。
 
 ## English
 
@@ -60,4 +60,4 @@ Exports exclude system device instances, display paths and raw capabilities by d
 
 For an [issue report](https://github.com/chuanjianghe1024-cmd/FluentControl/issues), provide FC/Windows versions, GPU and driver, monitor model/PnP ID/firmware, connection and dock/KVM, HDR and picture mode, reproduction steps, expected and actual results, timestamps and relevant redacted evidence. Do not post credentials or a whole personal data folder. The online adaptation-report service is not deployed.
 
-A USB hub or upstream port does not prove a monitor-control protocol. Compare HDMI and DP under otherwise identical conditions rather than assuming universal differences. USB/HID control is not implemented in FC.
+A USB hub or upstream port does not prove a monitor-control protocol. Compare HDMI and DP under otherwise identical conditions rather than assuming universal differences. Monitor USB/HID control is not implemented in FC; it is separate from the released RP2040 USB light subscriptions.

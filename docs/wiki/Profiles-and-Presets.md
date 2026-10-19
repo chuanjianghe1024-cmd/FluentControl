@@ -48,6 +48,6 @@ Application/game labels are descriptive filters, not automatic app-switch rules.
 
 ## 自动亮度与数据来源 / Automatic brightness and data sources
 
-设置 → 自动调节预设：光照 JSON 订阅、独立的 lux/24 小时曲线、按地区/坐标计算日出日落，以及 FC 明暗主题。默认关闭，明确启用后会调整选定屏幕；支持相同协议的真实或模拟数据。参见[使用与格式](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/adaptive-presets.md)。
+v0.3.135 的设置 → 自动调节预设：原生 RP2040 USB / HTTP 光照订阅、独立的 lux/24 小时曲线、按地区/坐标计算日出日落，以及 FC 明暗主题。默认关闭，明确启用后会调整选定屏幕；HTTP 支持相同协议的真实或模拟数据。可设置 0.2 秒至 24 小时采样间隔，并独立保存最多 64 MiB 本地历史。Windows/WinUI/MSI/Setup 自动化已通过，实体联调、真实显示器和混合 DPI 未确认；C3/CH552 固件、HID/BLE、FC 刷写与偏好学习尚未实现。参见[使用与格式](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/adaptive-presets.md)。
 
-Settings → Adaptive presets supports live light-data subscriptions, lux/time curves, local sunrise/sunset calculation and FC themes. Off by default; enabling adjusts the selected display. Real and simulated feeds share one schema. USB/BLE bridges and physical validation remain pending.
+In v0.3.135, Settings → Adaptive presets supports native RP2040 USB and HTTP light-data subscriptions, lux/time curves, local sunrise/sunset calculation and FC themes. Off by default; enabling adjusts the selected display. Real and simulated HTTP feeds share one schema. Sampling supports 0.2 seconds to 24 hours, with independent local history capped at 64 MiB. Windows/WinUI/MSI/Setup automation passed; physical integration, real displays and mixed DPI remain unverified. C3/CH552 firmware, HID/BLE, flashing from FC and learning are not implemented.

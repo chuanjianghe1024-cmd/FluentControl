@@ -1,12 +1,18 @@
 # 环境光自适应与用户偏好学习（计划）
 
-状态：2026-10-14 用户希望接入，等待自制 USB 光照硬件完成后实施/实测；已提供动态 HTTP 光照订阅、独立光照/时间曲线、日出日落及显式启用的自动调节，详见 [adaptive-presets.md](adaptive-presets.md)；USB/BLE 桥接、硬件实测和偏好学习尚未实现。
+状态更新：2026-10-19（北京时间）。[v0.3.135 Release](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.135) 已提供原生 RP2040 USB / HTTP 光照订阅、0.2 秒至 24 小时采样设置、合计 64 MiB 本地历史，以及独立光照/时间曲线、日出日落和显式启用的自动调节；[Windows build #135](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/runs/39144637273) 的 Windows、WinUI、MSI 与 Setup 自动化验收通过。当前只运行一条规则/一个目标屏幕、一个活动光照来源，详见 [adaptive-presets.md](adaptive-presets.md)。实体 RP2040 与 FC 完整联调、真实显示器及混合 DPI 仍未确认；C3/CH552 固件、HID/BLE、FC 刷写、历史回灌和偏好学习未实现。
+
+Status: v0.3.135 ships native RP2040 USB and HTTP subscriptions, configurable 0.2-second–24-hour sampling and 64 MiB local history. Main build #135 passed Windows, WinUI and MSI/Setup automation. One active rule, target display and light source are supported. Physical RP2040 integration, real displays and mixed DPI remain unverified; C3/CH552 firmware, HID/BLE, flashing, hardware-history backfill and learning are not implemented.
 
 ## 参考证据
 
 [追光护眼使用教程](http://www.xabyb.com/2021/09/14/%e4%bd%bf%e7%94%a8%e6%95%99%e7%a8%8b/)说明手动调整可用于学习偏好；每 0.5 秒采样，连续三次近似才接受读数；模型可重置。教程没有公开学习算法、模型格式或源码许可。只参考交互与稳定性目标，不复制私有软件/固件，也不声称其算法就是以下设计。网页宣传的护眼效果不作为产品医疗承诺。
 
-## FC 拟采用的行为
+## 偏好学习与后续扩展（计划，不是 v0.3.135 功能清单）
+
+下列每屏学习、Windows ALS 接入和自动校准属于后续设想；已发布功能以使用文档为准。现有长采样间隔下，断线在下次读取时才发现，并非持续监测。
+
+The per-display learning, Windows ALS integration and calibration below are future designs, not released capabilities. Current long sampling intervals detect disconnection only on the next read.
 
 - 统一光照来源接口：Windows 内置 ALS 和用户自制 USB 设备；显式选择来源，读数带 lux、时间戳、有效性和传感器身份。无数据/断开立即暂停自动写入，保留当前亮度。
 - 默认关闭。开启后使用本地每屏独立的 lux→亮度曲线；初始可配置，不能将一台显示器百分比当另一台的实际亮度。SDR/HDR 分开记录；更换传感器或摆放位置后允许重置/校准。
