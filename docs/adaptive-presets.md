@@ -12,7 +12,7 @@
 
 两条曲线分别保存，切换不会重置。图表支持点击添加、拖动节点、数值编辑与 JSON 导入导出；导出文件只是曲线，不是光照数据来源。图表模拟输入只预览，不写屏幕；但选择“内置模拟光照”作为活动数据来源并打开自动调节，会实际写屏幕。
 
-**主题仅控制 FC 自身，不改变 Windows 系统/其他应用主题，也不调整 Gamma 或色温。** 手动在“常规”选择主题会关闭自动主题切换。原生 RP2040 USB 串口订阅已发布；C3/CH552 固件、HID/BLE 传输、FC 内刷写、硬件历史回灌及用户偏好学习尚未实现。
+**主题仅控制 FC 自身，不改变 Windows 系统/其他应用主题，也不调整 Gamma 或色温。** 手动在“常规”选择主题会关闭自动主题切换。原生 RP2040 USB 串口订阅已发布；v0.3.140 另提供未实机验收的 C3 配网与认证 Wi-Fi 读取参考程序；CH552 固件、HID/BLE 传输、FC 内刷写、硬件历史回灌及用户偏好学习尚未实现。
 
 ## 统一光照数据格式 v1
 
@@ -74,7 +74,7 @@ Release baseline: [v0.3.135 Release](https://github.com/chuanjianghe1024-cmd/Flu
 
 Three independent modes: illuminance from a compatible RP2040 USB subscription or a live HTTP(S) JSON feed, a fixed 24-hour brightness curve, or locally estimated sunrise/sunset using coordinates and a time zone. The two curves retain separate edits. Optional light/dark switching affects FC only, not Windows. The default is off; explicitly enabling applies real brightness changes to one chosen display and persists across app restarts.
 
-Real and simulated HTTP providers return the same `fluentcontrol.light-sample` document. Use `tools/light-source/server.py` with the configurable pattern for a local test endpoint. Default polling is 1Hz, configurable from 0.2 seconds to 24 hours for USB and HTTP sources; a three-sample median and EMA smooth readings, writes are limited to one per 2 seconds with a 2-point deadband and 5-point step limit. Manual changes hold automation for 10 minutes. Invalid/stale data, unavailable displays and HDR pause brightness; write failures require re-enabling. Native RP2040 serial subscriptions are released and need no running Python bridge. Network devices may implement the HTTP schema, but C3/CH552 firmware, HID/BLE transport, flashing from FC, hardware-history backfill and preference learning are not implemented. Adding a source enables history collection for the selected source in illuminance mode while leaving brightness automation off. Only one active source is polled; turn off both recording and automation to stop collection. The HTTP timestamp/freshness rules apply to HTTP feeds; local USB samples receive a host timestamp after a fresh READ response.
+Real and simulated HTTP providers return the same `fluentcontrol.light-sample` document. Use `tools/light-source/server.py` with the configurable pattern for a local test endpoint. Default polling is 1Hz, configurable from 0.2 seconds to 24 hours for USB and HTTP sources; a three-sample median and EMA smooth readings, writes are limited to one per 2 seconds with a 2-point deadband and 5-point step limit. Manual changes hold automation for 10 minutes. Invalid/stale data, unavailable displays and HDR pause brightness; write failures require re-enabling. Native RP2040 serial subscriptions are released and need no running Python bridge. Network devices may implement the HTTP schema, and v0.3.140 adds C3 provisioning/authenticated LAN reference firmware without physical validation; CH552 firmware, HID/BLE transport, flashing from FC, hardware-history backfill and preference learning are not implemented. Adding a source enables history collection for the selected source in illuminance mode while leaving brightness automation off. Only one active source is polled; turn off both recording and automation to stop collection. The HTTP timestamp/freshness rules apply to HTTP feeds; local USB samples receive a host timestamp after a fresh READ response.
 
 
 ## 本地 USB 订阅（v0.3.135 已发布） / Local USB subscription (released in v0.3.135)
@@ -93,7 +93,7 @@ Sampling supports a slider, numeric entry and fast/1s/5s/10s/1min/10min presets,
 
 当前原型固件：[RP2040 main.py](../tools/light-source/rp2040/main.py)。先用 Thonny 保存到 RP2040 根目录，再退出 Thonny 并正常重插 USB；不要同时运行旧桥接程序。FC 使用 `System.IO.Ports`，不需要用户安装 Python。READ/PING 协议沿用验证包，115200/8N1，每次请求包含 32 个十六进制字符的随机 ID，响应必须匹配。PING 返回 `protocol: fc-light-usb/1` 和 `sourceId`；READ 返回 `sourceId`、`valid`、`lux`。畸形、超时、错误身份与无效 lux 均不作为有效光照。
 
-Prototype firmware is in [RP2040 main.py](../tools/light-source/rp2040/main.py). Save it to the RP2040 with Thonny, close Thonny and reconnect normally. Do not run the standalone bridge concurrently. FC uses System.IO.Ports; Python is not required at runtime. The bounded READ/PING serial protocol uses a random 32-hex-character request ID, verified firmware identity and validated readings. A future C3 Wi-Fi implementation could provide the existing HTTP schema; C3/CH552 firmware and HID/BLE transport are not implemented here.
+Prototype firmware is in [RP2040 main.py](../tools/light-source/rp2040/main.py). Save it to the RP2040 with Thonny, close Thonny and reconnect normally. Do not run the standalone bridge concurrently. FC uses System.IO.Ports; Python is not required at runtime. The bounded READ/PING serial protocol uses a random 32-hex-character request ID, verified firmware identity and validated readings. The optional v0.3.140 C3 reference implementation uses the authenticated device-signals endpoint described below; CH552 firmware and HID/BLE transport remain unimplemented.
 
 验证边界：v0.3.135 已包含本地 USB 订阅、采样设置和本地历史。[Windows build #135](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/runs/39144637273) 的 Windows 编译、协议/配置回归、WinUI 界面及 MSI/Setup 安装验收已通过；实体 RP2040 与 FC 完整联调、真实显示器及混合 DPI 验收仍未确认。
 
@@ -111,8 +111,8 @@ History recording is enabled when adding a source, independently of brightness a
 
 Firmware and official setup resources are in the private [FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors) repository. The public RP2040 prototype is also linked above. Its 64-entry RAM diagnostic buffer is lost on power-off; HISTORY uses device ticks_ms, and FC does not backfill it into local history.
 
-## 后续设备接入 / Device integration update
+## v0.3.140 设备接入 / Device integration update
 
-新增设备管理和配套固件的实现范围见 [设备信号规范](device-signals.md)。这些改动不在 v0.3.135 安装包中，具体发布状态以新 Release 为准。
+新增设备管理和配套固件的实现范围见 [设备信号规范](device-signals.md)。这些改动不在 v0.3.135 安装包中，已随 v0.3.140 发布。
 
-See [device signals](device-signals.md) for new management and firmware scope; these changes are not included in the v0.3.135 installers.
+See [device signals](device-signals.md) for new management and firmware scope; these changes ship in v0.3.140, not the v0.3.135 installers.

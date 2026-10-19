@@ -2,7 +2,7 @@
 
 ## 本次实现范围
 
-开发中的设备接入版本（发布前不是 v0.3.135 的能力）：
+v0.3.140 设备接入版本（不属于旧 v0.3.135 安装包）：
 
 - FC 运行时每 5 秒检查串口列表变化，只对 RP2040 VID 和 Espressif 原生 USB Serial/JTAG VID/PID 进行只读 PING 身份握手；其他 USB-UART 端口需要手选。新增设备提示不自动开启亮度控制。
 - 设置 → 自动调节 → USB 设备设置与配网。USB 数据直连即管理权限，不要求绑定、密码或登录；危险操作的确认仅防误触。
@@ -47,7 +47,7 @@ USB 管理：`FC <ID> {"operation":"wifi.configure","arguments":{"ssid":"example
 
 ## English
 
-This implementation adds USB-authoritative management, capability-gated controls, C3 reference firmware for USB Wi-Fi setup, rollback/cancel/forget operations, signed LAN light reads, user-scoped DPAPI binding storage, and installer-registered subscription links. Device discovery never enables automatic brightness. Existing RP2040 firmware remains readable but requires the two-file reference firmware for management.
+Released in v0.3.140, this implementation adds USB-authoritative management, capability-gated controls, C3 reference firmware for USB Wi-Fi setup, rollback/cancel/forget operations, signed LAN light reads, user-scoped DPAPI binding storage, and installer-registered subscription links. Device discovery never enables automatic brightness. Existing RP2040 firmware remains readable but requires the two-file reference firmware for management.
 
 USB requires no binding; wireless access does not inherit USB privilege. The LAN endpoint is read-only. Same-device USB/LAN subscriptions retain their history ID; transport selection and rediscovery after IP changes are manual. The generic numeric signal contract rejects non-light types in the illuminance consumer.
 

@@ -1,20 +1,20 @@
 {
-  "version": "0.3.135",
-  "sourceCommit": "d7221cdfbca31a6a584da58aef250cb24d649021",
-  "runId": 39144637273,
-  "artifactId": 12143625525,
+  "version": "0.3.140",
+  "sourceCommit": "768fd670aab805833da8c28d9ee1a31bf3327e31",
+  "runId": 39218075603,
+  "artifactId": 12170982214,
   "artifactName": "FluentControl-MSI-x64",
-  "archiveSha256": "2604affab28a6326dd560fb6de4191ca119a4b2f3edd741b75d0428755bc8870",
-  "fileName": "FluentControl-0.3.135-x64.msi",
-  "bytes": 50815367,
-  "sha256": "a59ad14ff5025a511f5eb44540f0c4723bf12af22512df0f3383df7558e01e55",
-  "notes": "docs/releases/v0.3.135.md",
+  "archiveSha256": "250958f63bb4cfc4235023f739f48b50908c0a3c10db3f94162f4749b2125a3c",
+  "fileName": "FluentControl-0.3.140-x64.msi",
+  "bytes": 50770639,
+  "sha256": "ef350f05cb63c3fd3eb72df23930da194d327ea375c4fbee9d2b953eb304a341",
+  "notes": "docs/releases/v0.3.140.md",
   "setup": {
-    "artifactId": 12143197246,
+    "artifactId": 12170822749,
     "artifactName": "FluentControl-Setup-x64",
-    "archiveSha256": "8894cd6fe13394807f0ae6a49bdbc0a036abb6c739af673fd82dbd44bb523310",
-    "fileName": "FluentControl-0.3.135-x64-Setup.exe",
-    "bytes": 53597909,
-    "sha256": "93dee373a3b296a522da8345c576e13a2064740e5a0577c78dc0d4ab39e41511"
+    "archiveSha256": "75a9faacbcf8b9db5cf4026ff37efbf3545631b7e1a2a1affaade04abf03290c",
+    "fileName": "FluentControl-0.3.140-x64-Setup.exe",
+    "bytes": 53554129,
+    "sha256": "7de33c06fc98e6f48fd6c45a00c17f67854cfa839fb9f7e5b13ae47265035e96"
   }
 }

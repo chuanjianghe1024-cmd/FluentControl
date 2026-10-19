@@ -45,9 +45,9 @@ FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控�
 
 ### 下载与开始使用
 
-**v0.3.135 新增本地 USB 光照订阅、可调采样与 64 MiB 历史记录**，并提供跟随应用主题的 Fluent 托盘菜单。包含 Windows WMI 内屏亮度与自动调节；实体传感器联动和笔记本仍需实测。提供 Windows x64 离线 Setup.exe 与 MSI。
+**v0.3.140 新增 USB 设备管理、C3 配网参考程序与认证 Wi-Fi 光照订阅**，并提供跟随应用主题的 Fluent 托盘菜单。包含 Windows WMI 内屏亮度与自动调节；实体传感器联动和笔记本仍需实测。提供 Windows x64 离线 Setup.exe 与 MSI。
 
-**[下载新版 Setup（推荐）](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/download/v0.3.135/FluentControl-0.3.135-x64-Setup.exe)** · [MSI / 校验文件](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · **v0.3.135** · [版本说明](docs/releases/v0.3.135.md)
+**[下载新版 Setup（推荐）](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/download/v0.3.140/FluentControl-0.3.140-x64-Setup.exe)** · [MSI / 校验文件](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · **v0.3.140** · [版本说明](docs/releases/v0.3.140.md)
 
 1. 下载并运行 Setup。新安装可选择有写入权限的本地目录，并决定是否随 Windows 启动；成功后点击“启动 FluentControl”。支持离线安装，无需管理员权限，单独 MSI 也继续提供。升级沿用原目录；迁移目录时先卸载再安装，个人配置保留。
 2. 在外接显示器的实体菜单中开启 **DDC/CI**，连接后读取设备。
@@ -129,9 +129,9 @@ Save a setup for work, gaming or late-night use and recall it when needed. Adjus
 
 ### Download and get started
 
-**v0.3.135 adds local USB light subscriptions, sampling controls and 64 MiB history**, plus a themed Fluent tray menu. Includes Windows WMI panel brightness and opt-in automation; physical sensor integration and notebook validation remain pending. Windows x64 offline Setup.exe and MSI are available.
+**v0.3.140 adds USB device setup, C3 provisioning reference firmware and authenticated Wi-Fi light subscriptions**, plus a themed Fluent tray menu. Includes Windows WMI panel brightness and opt-in automation; physical sensor integration and notebook validation remain pending. Windows x64 offline Setup.exe and MSI are available.
 
-**[Download Setup (recommended)](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/download/v0.3.135/FluentControl-0.3.135-x64-Setup.exe)** · [MSI / checksums](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · **v0.3.135** · [Release notes](docs/releases/v0.3.135.md)
+**[Download Setup (recommended)](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/download/v0.3.140/FluentControl-0.3.140-x64-Setup.exe)** · [MSI / checksums](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · **v0.3.140** · [Release notes](docs/releases/v0.3.140.md)
 
 1. Run Setup, choose a writable local folder and whether to start with Windows, then explicitly launch after success. Installation works offline without administrator privileges; standalone MSI remains available. Upgrades keep the existing folder; uninstall and reinstall to move it. Personal settings are retained.
 2. Enable **DDC/CI** in your external monitor's physical menu, then let the app read your devices.
@@ -182,12 +182,12 @@ Licensed under the [MIT License](LICENSE), allowing commercial use, modification
 
 ### 光照传感器配套仓库 / Companion light-sensor repository
 
-[FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors) 按主板与传感器组合整理固件、接线、官方驱动/工具/说明书入口。当前为私有仓库，仅授权账户可访问。FC v0.3.135 已包含 USB 订阅、采样间隔和本地历史；RP2040 使用兼容固件，实体联动待验证。C3/CH552 固件与 FC 刷写尚未实现。
+[FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors) 按主板与传感器组合整理固件、接线、官方驱动/工具/说明书入口。当前为私有仓库，仅授权账户可访问。FC v0.3.135 已包含 USB 订阅、采样间隔和本地历史；RP2040 使用兼容固件，实体联动待验证。C3 新增未经实机验证的参考程序；CH552 固件与 FC 刷写尚未实现。
 
-[FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors) organizes firmware, wiring and official setup resources by board/sensor combination. It is currently private and requires repository access. FC v0.3.135 includes native USB subscriptions, configurable sampling and local history. RP2040 requires compatible firmware; physical integration remains unverified. C3/CH552 firmware and flashing from FC are not implemented.
+[FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors) organizes firmware, wiring and official setup resources by board/sensor combination. It is currently private and requires repository access. FC v0.3.135 includes native USB subscriptions, configurable sampling and local history. RP2040 requires compatible firmware; physical integration remains unverified. C3 reference firmware is available but not hardware-validated; CH552 firmware and flashing from FC are not implemented.
 
-### Device integration development / 设备接入开发
+### Device integration v0.3.140 / 设备接入 v0.3.140
 
-USB 设备管理、C3 配网参考固件与签名局域网光照订阅的范围、安装方法和未完成项见 [设备信号规范](docs/device-signals.md)。以对应新版 Release 为准，旧 v0.3.135 不包含这些改动。
+USB 设备管理、C3 配网参考固件与签名局域网光照订阅的范围、安装方法和未完成项见 [设备信号规范](docs/device-signals.md)。这些改动随 v0.3.140 发布；旧 v0.3.135 不包含。
 
-See the [device signals guide](docs/device-signals.md) for USB management, C3 provisioning reference firmware, signed LAN subscriptions and limitations. These additions are not part of v0.3.135; use the corresponding new release.
+See the [device signals guide](docs/device-signals.md) for USB management, C3 provisioning reference firmware, signed LAN subscriptions and limitations. These additions ship in v0.3.140 and are not part of v0.3.135.

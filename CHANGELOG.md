@@ -1,6 +1,8 @@
 # 更新记录
 
-## Unreleased — Device signals
+## [0.3.140](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.140) — 2026-10-19
+
+[中英文发布说明 / Release notes](docs/releases/v0.3.140.md)。Windows build #140 通过自动化验收；真实硬件仍待联调。
 
 - USB-authoritative device setup, Wi-Fi configuration/cancellation/reset reference firmware, signed LAN light subscriptions, stable device-history identity, and subscription URI activation. See [scope and limitations](docs/device-signals.md).
 - USB 直连管理、配网与取消/清除配置参考固件、签名局域网光照订阅、稳定历史身份和订阅链接启动；BLE、热点配网与实体硬件验收尚未完成。

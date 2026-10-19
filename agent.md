@@ -188,7 +188,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 - `TrayMenuWindow.cs` 使用 WinUI MenuFlyout 和独立透明工具窗口；主窗隐藏时也能显示，菜单关闭隐藏宿主、退出销毁。`ShellIntegration` 只负责通知与托盘坐标，命令仍走 ShellCommand。主题同步覆盖浅色、深色和自动主题，沿用现有八语言文案；回归入口 `MainWindow.TrayChecks.cs`。此变更及透明背景主题回调修复收入 v0.3.135，通过原生托盘明暗主题回归；不在 v0.3.129-snap 安装包中。
 
-### 当前正式版 v0.3.135
+### 既有正式版 v0.3.135
 
 - 本地光照订阅：`Services/LocalLightSensor.cs` 与自动调节设置支持 RP2040 VID 限定的串口发现、READ/PING 身份握手、持久设备绑定及 0.2 秒至 24 小时输入/滑块/预设。`LightHistory.cs` 保存本地 64 MiB 分段历史，按来源分页查看；记录开关与自动亮度独立。固件在 `tools/light-source/rp2040/main.py`，配套私有仓库 `FluentControl-Sensors`；不依赖运行中的 Python 桥接。v0.3.135 来源主干构建 #135 / `d7221cdfbca31a6a584da58aef250cb24d649021`，通过 Windows、MSI 与 Setup 自动化验收；实体传感器联动未验收，C3/CH552 固件和 FC 刷写未完成。
 
@@ -274,3 +274,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 ### 设备信号接入实现（待新版本发布）
 
 `MainWindow.SensorDevices.cs` / `DeviceSignals.cs` / `DeviceKeyStore.cs` / `DeviceLinkActivation.cs` 提供 USB 权限、设备能力、配网、签名 LAN 光照和链接激活。参考固件在 `tools/light-source/device-v1/`。USB 无绑定管理；LAN 当前只读，不能从 USB 连接状态继承权限。状态机、凭据隔离、UI 与发布边界见 [设备规范](docs/device-signals.md)。BLE、热点配网、自动传输切换和实机验证未完成，不可宣传为完整无线接入。
+
+### 当前正式版 v0.3.140
+
+设备管理与认证局域网读取使用 Windows build #140 / `768fd670aab805833da8c28d9ee1a31bf3327e31`。Repository CI、Windows 编译、控制逻辑、现有 WinUI 回归及 MSI/Setup 验收通过；13 项固件状态机模拟测试通过。C3/RP2040 实体联调、BLE、SoftAP、OTA/FC 刷写、自动连接切换及多信号通用界面仍未完成，详见 docs/device-signals.md。USB 管理不要求绑定；网络接口仅支持认证读取。
