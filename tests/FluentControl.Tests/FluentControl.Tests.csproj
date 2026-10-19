@@ -11,6 +11,8 @@
     <Compile Include="../../src/FluentControl/Services/Strings.cs" Link="Strings.cs" />
     <Compile Include="../../src/FluentControl/Services/WindowGeometry.cs" Link="WindowGeometry.cs" />
 
+    <Compile Include="../../src/FluentControl/Services/DeviceSignals.cs" Link="DeviceSignals.cs" />
+    <Compile Include="../../src/FluentControl/Services/DeviceKeyStore.cs" Link="DeviceKeyStore.cs" />
     <Compile Include="../../src/FluentControl/Services/LightHistory.cs" Link="LightHistory.cs" />
     <Compile Include="../../src/FluentControl/Services/LocalLightProtocol.cs" Link="LocalLightProtocol.cs" />
     <Compile Include="../../src/FluentControl/Services/LocalLightSensor.cs" Link="LocalLightSensor.cs" />

@@ -122,6 +122,7 @@ public sealed partial class MainWindow
                 case 5:
                     state.Settings.DesktopPanelEnabled = !state.Settings.DesktopPanelEnabled;
                     SaveState(); RefreshDesktopPanel(); BuildSettings(); break;
+                case 7: AppWindow.Show(); Activate(); Navigation.SelectedItem = Navigation.SettingsItem; selectedSettingsSection = "adaptive"; BuildSettings(); SelectSettingsSection("adaptive"); break;
                 case 6: await ExitWithColorRestoreAsync(); break;
             }
         }

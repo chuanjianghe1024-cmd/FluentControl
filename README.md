@@ -185,3 +185,9 @@ Licensed under the [MIT License](LICENSE), allowing commercial use, modification
 [FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors) 按主板与传感器组合整理固件、接线、官方驱动/工具/说明书入口。当前为私有仓库，仅授权账户可访问。FC v0.3.135 已包含 USB 订阅、采样间隔和本地历史；RP2040 使用兼容固件，实体联动待验证。C3/CH552 固件与 FC 刷写尚未实现。
 
 [FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors) organizes firmware, wiring and official setup resources by board/sensor combination. It is currently private and requires repository access. FC v0.3.135 includes native USB subscriptions, configurable sampling and local history. RP2040 requires compatible firmware; physical integration remains unverified. C3/CH552 firmware and flashing from FC are not implemented.
+
+### Device integration development / 设备接入开发
+
+USB 设备管理、C3 配网参考固件与签名局域网光照订阅的范围、安装方法和未完成项见 [设备信号规范](docs/device-signals.md)。以对应新版 Release 为准，旧 v0.3.135 不包含这些改动。
+
+See the [device signals guide](docs/device-signals.md) for USB management, C3 provisioning reference firmware, signed LAN subscriptions and limitations. These additions are not part of v0.3.135; use the corresponding new release.

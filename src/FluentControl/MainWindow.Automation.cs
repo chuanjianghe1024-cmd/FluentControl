@@ -22,12 +22,14 @@ public sealed partial class MainWindow
     private string? automaticTheme;
     private void InitializeAdaptiveAutomation()
     {
+        StartSensorArrival();
         ControlOperations.ManualBrightnessRequested += HoldAdaptiveBrightness;
         adaptiveTimer.Tick += async (_, _) => await TickAdaptiveAsync();
         if (!uiTest) adaptiveTimer.Start();
     }
     private void StopAdaptiveAutomation()
     {
+        sensorArrivalTimer.Stop(); sensorLifetime.Cancel();
         adaptiveTimer.Stop(); lightRequest?.Cancel(); localDiscovery?.Cancel();
         ControlOperations.ManualBrightnessRequested -= HoldAdaptiveBrightness;
         adaptiveRevision++; automaticTheme = null;
@@ -91,6 +93,7 @@ public sealed partial class MainWindow
                     using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(LocalLightProtocol.IsLocal(source.Url) ? 25 : 3)); lightRequest = cancellation;
                     try { sample = LocalLightProtocol.IsLocal(source.Url)
                         ? await LocalLightSensor.ReadAsync(source, cancellation.Token)
+                        : source.SignedDevice ? await NetworkSignalSensor.ReadAsync(lightClient, source, cancellation.Token)
                         : await LightFeed.ReadAsync(lightClient, source, cancellation.Token); }
                     finally { lightRequest = null; }
                 }

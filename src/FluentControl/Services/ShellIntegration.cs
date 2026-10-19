@@ -27,6 +27,12 @@ internal sealed class ShellIntegration : IDisposable
         };
         TrayAvailable = ShellNotifyIcon(0, ref icon);
     }
+    internal void NotifySensor(string message)
+    {
+        if (!TrayAvailable || disposed) return;
+        var notice = icon; notice.Flags |= 0x10; notice.Info = message.Length > 255 ? message[..255] : message;
+        notice.Title = "FluentControl"; notice.InfoFlags = 1; ShellNotifyIcon(1, ref notice);
+    }
     internal void UpdateLanguage() { icon.Tip = Strings.AppName; if (TrayAvailable) ShellNotifyIcon(1, ref icon); }
     internal List<string> ConfigureHotkeys(bool enabled)
     {
@@ -51,6 +57,7 @@ internal sealed class ShellIntegration : IDisposable
             if (message == TrayMessage)
             {
                 var mouse = (uint)(long)lParam & 0xffff;
+                if (mouse == 0x405) { command(7); return 0; }
                 if (mouse == 0x203 || mouse == 0x400 || mouse == 0x401) command(1);
                 else if (mouse == 0x205 || mouse == 0x7b) showMenu();
                 return 0;

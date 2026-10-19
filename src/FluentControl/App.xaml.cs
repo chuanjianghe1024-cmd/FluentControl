@@ -19,13 +19,13 @@ public partial class App : Application
             throw;
         }
     }
-    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
         try
         {
             var name = Environment.GetCommandLineArgs().Contains("--ui-test") ? @"Local\FluentControl.UiTest" : @"Local\FluentControl";
             instance = new Mutex(true, name, out var firstInstance);
-            if (!firstInstance) { Services.ShellIntegration.SignalExisting(); instance.Dispose(); instance = null; Exit(); return; }
+            if (!firstInstance) { if (Services.DeviceLinkActivation.Argument() is { } link) { try { await Services.DeviceLinkActivation.SendAsync(link); } catch { } } Services.ShellIntegration.SignalExisting(); instance.Dispose(); instance = null; Exit(); return; }
             StartupLog.Write("Creating main window");
             var main = new MainWindow();
             window = main;

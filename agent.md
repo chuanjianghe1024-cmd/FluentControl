@@ -270,3 +270,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 ## 仓库展示
 
 仓库简介、主页、Topics 的期望值在 `.github/repository-metadata.json`；分享图与可编辑源在 `docs/assets/`，操作与实际应用边界见 `docs/repository-presentation.md`。提交素材不等于 GitHub About 或 Social preview 已生效，必须读取页面核验；网站未部署前下载主页使用正式 Release 链接，许可证已按用户明确授权采用 MIT；变更许可仍需用户授权，不承诺搜索排名。
+
+### 设备信号接入实现（待新版本发布）
+
+`MainWindow.SensorDevices.cs` / `DeviceSignals.cs` / `DeviceKeyStore.cs` / `DeviceLinkActivation.cs` 提供 USB 权限、设备能力、配网、签名 LAN 光照和链接激活。参考固件在 `tools/light-source/device-v1/`。USB 无绑定管理；LAN 当前只读，不能从 USB 连接状态继承权限。状态机、凭据隔离、UI 与发布边界见 [设备规范](docs/device-signals.md)。BLE、热点配网、自动传输切换和实机验证未完成，不可宣传为完整无线接入。

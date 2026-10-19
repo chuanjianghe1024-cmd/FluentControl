@@ -16,6 +16,7 @@ Strings.ValidateCatalog();
 await AdaptivePresetTests.RunAsync();
 AdaptiveAutomationTests.Run();
 LocalLightSensorTests.Run();
+await DeviceSignalTests.RunAsync();
 await LightHistoryTests.RunAsync();
 DdcReliabilityTests.Run();
 SystemAudioTests.Run();

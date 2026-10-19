@@ -91,6 +91,11 @@
     <SetProperty Id="STARTUPCLEANUPDIR" Value="[StartupFolder]" Before="RemoveFiles" Sequence="execute"
                  Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
     <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="DeviceSubscriptionProtocol" Guid="*">
+        <RegistryValue Root="HKCU" Key="Software\Classes\fluentcontrol" Type="string" Value="URL:FluentControl subscription" KeyPath="yes" />
+        <RegistryValue Root="HKCU" Key="Software\Classes\fluentcontrol" Name="URL Protocol" Type="string" Value="" />
+        <RegistryValue Root="HKCU" Key="Software\Classes\fluentcontrol\shell\open\command" Type="string" Value="&quot;[INSTALLFOLDER]FluentControl.exe&quot; --device-link &quot;%1&quot;" />
+      </Component>
       <Component Id="InstallationRegistration" Guid="*">
         <RegistryValue Root="HKCU" Key="Software\FluentControl\Installer" Name="InstallDirectory" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
         <RemoveFile Id="RemoveStartupShortcut" Name="FluentControl.lnk" Property="STARTUPCLEANUPDIR" On="uninstall" />
@@ -101,6 +106,7 @@
     <Feature Id="Application" Title="FluentControl" Level="1">
       <ComponentGroupRef Id="ApplicationFiles" />
       <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="DeviceSubscriptionProtocol" />
       <ComponentRef Id="InstallationRegistration" />
       <ComponentRef Id="StartupShortcut" />
       <ComponentRef Id="DisabledStartup" />

@@ -110,3 +110,9 @@ History recording is enabled when adding a source, independently of brightness a
 固件、组合目录和官方资料入口：[FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors)。目前为私有仓库，仅授权账户可访问。RP2040 固件另有 64 条 RAM 诊断缓存，断电丢失，HISTORY 使用设备 ticks_ms，当前 FC 不自动回灌。
 
 Firmware and official setup resources are in the private [FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors) repository. The public RP2040 prototype is also linked above. Its 64-entry RAM diagnostic buffer is lost on power-off; HISTORY uses device ticks_ms, and FC does not backfill it into local history.
+
+## 后续设备接入 / Device integration update
+
+新增设备管理和配套固件的实现范围见 [设备信号规范](device-signals.md)。这些改动不在 v0.3.135 安装包中，具体发布状态以新 Release 为准。
+
+See [device signals](device-signals.md) for new management and firmware scope; these changes are not included in the v0.3.135 installers.

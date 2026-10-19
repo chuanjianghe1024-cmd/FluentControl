@@ -87,7 +87,7 @@ public sealed partial class MainWindow
                     string? first = null;
                     foreach (var device in devices)
                     {
-                        var item = s.LightSources.FirstOrDefault(x => LocalLightProtocol.IsLocal(x.Url) && x.DeviceId == device.Identity);
+                        var item = s.LightSources.FirstOrDefault(x => x.DeviceId == device.Identity);
                         if (item is null && s.LightSources.Count < 32)
                         {
                             item = new LightSourceSubscription { Name = device.Identity, DeviceId = device.Identity,
@@ -103,6 +103,7 @@ public sealed partial class MainWindow
                 finally { if (ReferenceEquals(localDiscovery, cancellation)) localDiscovery = null; if (!closed) discover.IsEnabled = s.LightSources.Count < 32; }
             };
             section.Children.Add(discover);
+            BuildSensorDeviceSettings(section, localPort);
             var name = new TextBox { Header = T("名称", "Name"), MaxLength = 100 };
             var url = new TextBox { Header = T("数据链接（HTTP / HTTPS）", "Data URL (HTTP / HTTPS)"), PlaceholderText = "http://127.0.0.1:8765/light.json", MaxLength = 2048 };
             section.Children.Add(name); section.Children.Add(url);

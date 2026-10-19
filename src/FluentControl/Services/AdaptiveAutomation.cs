@@ -9,6 +9,7 @@ public sealed class LightSourceSubscription
     public string Name { get; set; } = "";
     public string Url { get; set; } = "";
     public string DeviceId { get; set; } = "";
+    public bool SignedDevice { get; set; }
     public int PollMilliseconds { get; set; } = 1000;
     public override string ToString() => Name;
 }
@@ -33,7 +34,7 @@ public static class LightFeed
             LocalLightProtocol.PortFor(source.Url);
             if (string.IsNullOrWhiteSpace(source.DeviceId) || source.DeviceId.Length > 100) throw new InvalidDataException("Invalid device identity.");
         }
-        else UriFor(source.Url);
+        else { UriFor(source.Url); if (source.SignedDevice && string.IsNullOrWhiteSpace(source.DeviceId)) throw new InvalidDataException(); }
     }
     public const int MaximumBytes = 16 * 1024;
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
