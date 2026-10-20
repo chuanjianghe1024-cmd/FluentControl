@@ -12,9 +12,11 @@ v0.3.140 设备接入版本（不属于旧 v0.3.135 安装包）：
 - 同一设备切换 USB/局域网订阅复用原记录 ID，历史不因 COM/IP 改变而新建。当前需手动选择连接方式；IP 变化后再次发现。选中新来源默认只记录，自动调节关闭。
 - 安装包注册 `fluentcontrol://subscribe?device=<id>`；新实例通过当前用户命名管道通知已有实例。链接仅定位订阅页面，不执行管理命令，不自动订阅。
 
-**尚未实现：BLE 数据和配网、热点配网页、未安装 FC 时插入自动打开网页、USB/Wi-Fi 自动切换、OTA/FC 刷写、多信号的通用订阅界面。** 通用信号解析和规范已加入，目前产品消费仍只接光照。没有把纯供电首次配置或完整无线管理写成已完成。
+**以下指 FC v0.3.140 桌面应用及其发布时两文件参考固件尚未实现：BLE 数据和配网、热点配网页、未安装 FC 时插入自动打开网页、USB/Wi-Fi 自动切换、OTA/FC 刷写、多信号的通用订阅界面。** 通用信号解析和规范已加入，目前产品消费仍只接光照。没有把纯供电首次配置或完整无线管理写成已完成。
 
 ## 固件安装与真实验证
+
+本节两文件对应 FC 发布时参考实现；采用 FCS 后续 C3 功能时必须整套上传五文件，见下方兼容说明。不要混用两个来源的 main.py 和核心文件。
 
 参考程序：[main.py](../tools/light-source/device-v1/main.py) 与 [fc_device.py](../tools/light-source/device-v1/fc_device.py)，两文件一起复制到 MicroPython 文件系统根目录。保留原程序备份；FC 暂不负责刷写。
 
@@ -52,3 +54,18 @@ Released in v0.3.140, this implementation adds USB-authoritative management, cap
 USB requires no binding; wireless access does not inherit USB privilege. The LAN endpoint is read-only. Same-device USB/LAN subscriptions retain their history ID; transport selection and rediscovery after IP changes are manual. The generic numeric signal contract rejects non-light types in the illuminance consumer.
 
 BLE, SoftAP provisioning, firmware flashing, automatic transport failover, generic multi-signal subscription UI, and first-install USB auto-launch are not implemented. Charge-only first setup still needs a USB data connection. State-machine and desktop automated checks do not constitute physical C3/RP2040, radio, or monitor validation. Download both firmware files and verify board pinout before use.
+
+## 后续 FCS 五文件固件兼容说明（2026-10-20）
+
+FC 正式发布提交为 `768fd670aab805833da8c28d9ee1a31bf3327e31`。FCS 从 `e87e2750dc04e1265fd28c85490f519a09720ed5` 增加临时热点和 BLE；这些是板上参考固件能力，**不是 FC v0.3.140 新增界面功能**。
+
+- PING/READ、USB 管理、稳定 sourceId 与认证 LAN 的原请求/响应格式保留。新增 operations 不要求 FC 识别全部操作；FC 仍只开放本版十项管理指令。
+- 最新 C3 上传 main.py、fc_device.py、fc_wireless.py、fc_ble.py、setup.html 五文件。保留 fc-config.json 中原网络、bindingKey、wireless 设置，不需要为普通升级恢复出厂。setup.json 是可选的每设备热点密码配置，已有文件不要重新生成覆盖；缺省会生成密码，可由 FCS 控制台 USB status 查看。RP2040 仍用两文件。
+- 正式 FC 可做 USB 订阅、既有配网/取消/忘记、无线开关、重启、恢复出厂、保存绑定及认证 Wi-Fi 订阅。新增 ap.start/ap.stop、BLE 开关及 BLE 查询使用 FCS 调试台；首次热点网页配网用手机/电脑浏览器。
+- 网页首次配网后，**FC 仍需一次 USB 读取状态保存绑定**，然后发现局域网设备；本版不能导入网页导出的绑定 JSON，也不能订阅 BLE。
+- USB 不要求绑定且可接管网页配网；FCS 修正了网页覆盖/取消 USB 配网的冲突，USB 配网期间网页返回 usb_busy。恢复出厂仅实际 USB 入口接受；临时热点只有有限配置权限，不能借传输字段声明获得 USB 权限。
+- 原 v0.3.140 Release 中固定到发布提交的两文件安装链接仍正确，适用当时的功能。不要用最新 FCS 安装清单倒推旧 Release 文件缺失。
+
+完整安装、迁移、功能表和测试入口见 [FCS 兼容报告](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors/blob/main/docs/fc-v0.3.140-compatibility.md)（需要该仓库访问权限）。FCS 增加固定版本 C# 消费端回归：在 Windows 执行发布版原解析/HTTP 读取代码，传输及密钥存储为模拟；这不是新版固件的真实 COM、DPAPI、WinUI、手机或实体 C3 验收。既有 Windows build #140 的安装验收不扩大为无线硬件验收。本次不发布新的 FC 安装包。
+
+English: Later FCS C3 firmware adds SoftAP/BLE while preserving the v0.3.140 USB and signed-LAN contracts. Upload its five matching files together; preserve fc-config.json and existing setup.json. The latter is optional per-device setup data, not a mandatory sixth code file. No factory reset is needed for ordinary upgrades. Original release-pinned two-file instructions remain valid for the original feature set. FC v0.3.140 still requires one USB status read to save a binding after AP onboarding, cannot import binding JSON, and has no BLE subscription or AP-control UI. Use the FCS console for added operations. Pending USB provisioning takes precedence over AP changes; reset is USB-only. Pinned C# consumer tests on Windows use simulated transport/key storage and do not validate physical radios, serial ports, DPAPI, WinUI or phones. No new FC binary is released.
