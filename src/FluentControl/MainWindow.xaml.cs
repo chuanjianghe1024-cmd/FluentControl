@@ -100,7 +100,7 @@ public sealed partial class MainWindow : Window
     {
         if (refreshing || closed || hdrChanging || colorExiting) return;
         refreshing = true;
-        adaptiveRevision++; lightRequest?.Cancel(); adaptiveFilter.Reset(); adaptiveReadback = null;
+        adaptiveRevision++; lightRequest?.Cancel(); adaptiveFilter.Reset(); adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear();
         var refreshWatch = System.Diagnostics.Stopwatch.StartNew();
         RefreshButton.IsEnabled = false;
         IdentifyButton.IsEnabled = false;
