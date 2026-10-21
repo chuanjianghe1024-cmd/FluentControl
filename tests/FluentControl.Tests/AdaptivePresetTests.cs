@@ -13,7 +13,21 @@ internal static class AdaptivePresetTests
     }
     public static async Task RunAsync()
     {
-        var lux = AdaptivePresets.Default("ambient");
+        var bands = AdaptivePresets.Default("ambient");
+        Check(bands.Version == 2, "New ambient presets must use bands.");
+        Check(AdaptivePresets.Evaluate(bands, 100) == 40 && AdaptivePresets.Evaluate(bands, 499.99) == 40 && AdaptivePresets.Evaluate(bands, 500) == 65, "Band boundaries must be lower-inclusive and constant within each interval.");
+        Check(AdaptivePresets.Evaluate(bands, -1) == 10 && AdaptivePresets.Evaluate(bands, 200000) == 100, "Bands clamp at both ends.");
+        Check(AdaptivePresets.Copy(bands).Version == 2, "Band export/import must preserve semantics.");
+        var lux = AdaptivePresets.Default("ambient"); lux.Version = 1;
+        var migrated = new AdaptiveSettings { Enabled = true, Curve = lux, TargetDisplayId = "screen-a" };
+        AdaptivePresets.Normalize(migrated);
+        Check(!migrated.Enabled && migrated.Curve.Version == 2 && AdaptivePresets.Targets(migrated).SequenceEqual(new[] { "screen-a" }), "Legacy settings migrate without enabling changed output semantics.");
+        migrated.TargetDisplayIds = new() { "screen-a", "screen-b", "screen-a", "" };
+        AdaptivePresets.Normalize(migrated);
+        Check(AdaptivePresets.Targets(migrated).SequenceEqual(new[] { "screen-a", "screen-b" }), "Multiple targets survive normalization.");
+        migrated.TargetDisplayIds.Clear(); migrated.TargetDisplayId = "legacy";
+        AdaptivePresets.Normalize(migrated);
+        Check(AdaptivePresets.Targets(migrated).Count == 0, "Explicitly empty selection must not reselect legacy target.");
         Check(AdaptivePresets.Evaluate(lux, -3) == 10 && AdaptivePresets.Evaluate(lux, 20000) == 100, "Lux clamps to endpoints.");
         double midpoint = Math.Sqrt(11 * 101) - 1;
         Check(Math.Abs(AdaptivePresets.Evaluate(lux, midpoint) - 30) < .0001, "Lux interpolation must use log space.");
@@ -25,7 +39,7 @@ internal static class AdaptivePresetTests
         clock.Points[^1].Brightness++;
         Reject(() => AdaptivePresets.Validate(clock));
         Reject(() => AdaptivePresets.Evaluate(lux, double.NaN));
-        Reject(() => AdaptivePresets.Parse(AdaptivePresets.Export(lux).Replace("\"version\": 1", "\"version\": 2")));
+        Reject(() => AdaptivePresets.Parse(AdaptivePresets.Export(lux).Replace("\"version\": 1", "\"version\": 3")));
         Reject(() => AdaptivePresets.Parse(AdaptivePresets.Export(lux).Replace("\"name\":", "\"command\": \"run.exe\", \"name\":")));
         Reject(() => AdaptivePresets.Parse("null"));
         Reject(() => AdaptivePresets.Parse(new string(' ', AdaptivePresets.MaximumBytes + 1)));

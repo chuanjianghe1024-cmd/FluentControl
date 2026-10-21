@@ -43,7 +43,8 @@ public sealed class AdaptiveSettings
     public AdaptivePreset TimeCurve { get; set; } = AdaptivePresets.Default("clock");
     public bool PreviewEnabled { get; set; }
     public string Source { get; set; } = "simulation";
-    public string TargetDisplayId { get; set; } = "";
+    public string TargetDisplayId { get; set; } = ""; // Legacy single-target setting.
+    public List<string>? TargetDisplayIds { get; set; }
     public AdaptivePreset Curve { get; set; } = AdaptivePresets.Default("ambient");
     public List<AdaptiveSubscription> Subscriptions { get; set; } = new();
 }
@@ -59,14 +60,14 @@ public static class AdaptivePresets
     };
     public static AdaptivePreset Default(string axis) => new()
     {
-        Name = axis == "clock" ? "24h" : "Lux", Axis = axis,
+        Name = axis == "clock" ? "24h" : "Lux", Axis = axis, Version = axis == "clock" ? 1 : 2,
         Points = (axis == "clock" ? new[] { (0d, 20d), (7d, 40d), (12d, 65d), (18d, 45d), (22d, 25d), (24d, 20d) }
             : new[] { (0d, 10d), (10d, 20d), (100d, 40d), (500d, 65d), (2000d, 85d), (10000d, 100d) })
             .Select(x => new AdaptivePoint { X = x.Item1, Brightness = x.Item2 }).ToList()
     };
     public static void Validate(AdaptivePreset p)
     {
-        if (p is null || p.Format != "fluentcontrol.adaptive-preset" || p.Version != 1 || p.Axis is not ("ambient" or "clock") ||
+        if (p is null || p.Format != "fluentcontrol.adaptive-preset" || (p.Version != 1 && !(p.Version == 2 && p.Axis == "ambient")) || p.Axis is not ("ambient" or "clock") ||
             string.IsNullOrWhiteSpace(p.Name) || p.Name.Length > 100 || p.Points is null || p.Points.Count is < 2 or > 64)
             throw new InvalidDataException("Invalid adaptive preset.");
         var maximum = p.Axis == "clock" ? 24d : 10000d;
@@ -94,6 +95,8 @@ public static class AdaptivePresets
     {
         Validate(p);
         if (!double.IsFinite(input)) throw new ArgumentOutOfRangeException(nameof(input));
+        if (p.Version == 2)
+            return p.Points.LastOrDefault(point => point.X <= input)?.Brightness ?? p.Points[0].Brightness;
         input = p.Axis == "clock" ? ((input % 24) + 24) % 24 : Math.Clamp(input, 0, 10000);
         for (var i = 1; i < p.Points.Count; i++)
         {
@@ -126,11 +129,28 @@ public static class AdaptivePresets
         }
         return Parse(new System.Text.UTF8Encoding(false, true).GetString(output.ToArray()));
     }
+    // V1 remains readable with its original interpolation semantics; editing/activation
+    // explicitly upgrades ambient presets to V2 bands. Preserve every original threshold.
+    public static AdaptivePreset AsBands(AdaptivePreset p)
+    {
+        var copy = Copy(p);
+        if (copy.Axis == "ambient") copy.Version = 2;
+        return copy;
+    }
+    public static IReadOnlyList<string> Targets(AdaptiveSettings s) => s.TargetDisplayIds
+        ?? (string.IsNullOrWhiteSpace(s.TargetDisplayId) ? new List<string>() : new List<string> { s.TargetDisplayId });
     public static void Normalize(AdaptiveSettings s)
     {
         try { Validate(s.Curve); } catch { s.Curve = Default("ambient"); s.PreviewEnabled = false; s.Enabled = false; }
         try { Validate(s.TimeCurve); if (s.TimeCurve.Axis != "clock") throw new InvalidDataException(); } catch { s.TimeCurve = Default("clock"); s.Enabled = false; }
         if (s.Curve.Axis == "clock") { s.TimeCurve = s.Curve; s.Curve = Default("ambient"); }
+        if (s.Curve.Version == 1)
+        {
+            s.Curve = AsBands(s.Curve);
+            if (s.Mode == "ambient") s.Enabled = false; // Review changed output semantics before writing hardware.
+        }
+        s.TargetDisplayIds = Targets(s).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().Take(64).ToList();
+        s.TargetDisplayId = "";
         if (s.Mode is not ("ambient" or "clock" or "solar")) { s.Mode = "ambient"; s.Enabled = false; }
         try { TimeZoneInfo.FindSystemTimeZoneById(s.TimeZoneId); } catch { s.TimeZoneId = TimeZoneInfo.Local.Id; s.Enabled = false; }
         if (!double.IsFinite(s.Latitude) || !double.IsFinite(s.Longitude) || Math.Abs(s.Latitude) > 90 || Math.Abs(s.Longitude) > 180) { s.Latitude = 30.5928; s.Longitude = 114.3055; s.Enabled = false; }

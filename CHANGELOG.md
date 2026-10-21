@@ -1,5 +1,13 @@
 # 更新记录
 
+## 未发布 / Unreleased
+
+- 光照自动调节改为固定区间档位：区间内不插值，跨阈值后一次写入目标亮度；3 点中值过滤短暂遮挡。目标显示器支持多选，独立保留各屏读回和失败状态。
+- 光照历史新增按时间排列的折线图，断线和长时间缺测处留空，保留分页数值列表；调光编辑器用柱形显示区间亮度。
+- 旧单屏配置迁移为多选列表；旧光照曲线保留原阈值转换为 v2 档位，备份迁移前配置并暂停自动调节，需检查后重新开启。时间曲线保持原有插值和渐变。
+- Ambient adjustment now uses constant brightness bands, with one target-level write per band change and a 3-sample median for brief shadows. Multiple selected displays retain independent readback/fault state.
+- Add a time-series light-history chart with explicit gaps and paginated values; show ambient editing as bars. Back up legacy settings, migrate single targets and ambient curves, and pause migrated ambient automation for review. Clock curves retain interpolation and bounded transitions.
+
 ## [0.3.140](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.140) — 2026-10-19
 
 [中英文发布说明 / Release notes](docs/releases/v0.3.140.md)。Windows build #140 通过自动化验收；真实硬件仍待联调。

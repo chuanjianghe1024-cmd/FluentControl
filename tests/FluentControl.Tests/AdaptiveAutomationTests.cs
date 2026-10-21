@@ -23,6 +23,10 @@ internal static class AdaptiveAutomationTests
         Check(smoothing.Add(Sample(9999,2)) == 100, "Duplicate timestamp must not advance smoothing");
         var other = Sample(100,3); other.SourceId = "other"; Reject(() => smoothing.Add(other));
         smoothing.Reset(); Check(smoothing.Add(Sample(100,4)) is null, "Reconnection needs warmup");
+        smoothing.Reset();
+        smoothing.Add(Sample(100, 5), smooth: false); smoothing.Add(Sample(100, 6), smooth: false);
+        Check(smoothing.Add(Sample(500, 7), smooth: false) == 100, "Band filter rejects one-frame shadows/spikes.");
+        Check(smoothing.Add(Sample(500, 8), smooth: false) == 500, "Band filter must not interpolate through intermediate light levels.");
         Check(SolarSchedule.NextBrightness(50, 51) is null && SolarSchedule.NextBrightness(50, 80) == 55 && SolarSchedule.NextBrightness(50, 10) == 45, "Brightness deadband and slew rate");
         Check(SolarSchedule.InDayRange(23,22,6) && SolarSchedule.InDayRange(3,22,6) && !SolarSchedule.InDayRange(12,22,6), "Wrapping theme schedule");
         var wuhan = SolarSchedule.Calculate(new DateTime(2026,10,14),30.5928,114.3055);

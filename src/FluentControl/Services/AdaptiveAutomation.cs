@@ -83,7 +83,7 @@ public sealed class LightSmoothing
     private string identity = "";
     private double? filtered;
     public void Reset() { samples.Clear(); last = default; identity = ""; filtered = null; }
-    public double? Add(LightSample sample)
+    public double? Add(LightSample sample, bool smooth = true)
     {
         if (identity.Length > 0 && identity != sample.SourceId) throw new InvalidDataException("Light source identity changed.");
         identity = sample.SourceId;
@@ -93,7 +93,7 @@ public sealed class LightSmoothing
         samples.Enqueue(sample.Lux!.Value); while (samples.Count > 3) samples.Dequeue();
         if (samples.Count < 3) return null;
         var median = samples.Order().ElementAt(1);
-        filtered = filtered is double previous ? previous + .25 * (median - previous) : median;
+        filtered = smooth && filtered is double previous ? previous + .25 * (median - previous) : median;
         return filtered;
     }
 }

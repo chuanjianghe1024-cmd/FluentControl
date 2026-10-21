@@ -63,7 +63,13 @@ public sealed class UserStateStore
         this.path = path;
         State = File.Exists(path) ? JsonSerializer.Deserialize<UserState>(File.ReadAllText(path)) ?? new() : new();
         State.Settings ??= new(); State.Profiles ??= new();
-        State.Settings.Adaptive ??= new(); AdaptivePresets.Normalize(State.Settings.Adaptive);
+        State.Settings.Adaptive ??= new();
+        if (File.Exists(path) && (State.Settings.Adaptive.TargetDisplayIds is null || State.Settings.Adaptive.Curve?.Version == 1))
+        {
+            var backup = path + ".before-adaptive-bands-v2.bak";
+            if (!File.Exists(backup)) File.Copy(path, backup, false);
+        }
+        AdaptivePresets.Normalize(State.Settings.Adaptive);
         if (State.Settings.Theme is not ("system" or "light" or "dark")) State.Settings.Theme = "system";
         ProfileGroups.Normalize(State);
         if (State.ProfileOrganizationVersion < 1)

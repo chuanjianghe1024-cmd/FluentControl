@@ -693,7 +693,11 @@
     "Set up Wi-Fi and save binding over USB first, then search the same LAN.": "請先透過 USB 配網並儲存綁定，再搜尋相同區域網路。",
     "USB grants management access without binding. Wireless reads require saved binding; management uses USB in this version.": "USB 直連可管理，無需綁定。無線讀取需儲存綁定；此版本僅透過 USB 管理。",
     "USB signal device found. Open Settings → Automatic adjustment to subscribe or configure.": "發現 USB 訊號裝置，請到設定 → 自動調節新增訂閱或設定。",
-    "Select the device and confirm subscription: ": "請選擇裝置並確認新增訂閱："
+    "Select the device and confirm subscription: ": "請選擇裝置並確認新增訂閱：",
+    "Target displays (multiple selection)": "目標顯示器（可多選）",
+    "Brightness stays fixed within each light band and jumps at the next threshold. A 3-sample median rejects brief shadows; switches are at least 2 s apart. Manual changes hold for 10 minutes.": "光照按區間固定亮度，達到下一閾值才跳檔；3 點中值過濾瞬時遮擋，最多每 2 秒切換一次。手動調整後保持 10 分鐘。",
+    "Each bar sets a fixed brightness for a light band; reaching the next threshold switches bands. Click to add a threshold, drag or edit values. The last band includes higher light levels.": "每根柱表示一個光照區間的固定亮度；達到下一閾值時跳檔。點擊新增閾值，拖曳或輸入數值調整。最後一檔包含更高光照。",
+    "Light history (current page; gaps left blank)": "光照歷史（目前頁面，斷線處留空）"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -1389,7 +1393,11 @@
     "Set up Wi-Fi and save binding over USB first, then search the same LAN.": "USB で Wi-Fi と認証を設定してから同じ LAN を検索してください。",
     "USB grants management access without binding. Wireless reads require saved binding; management uses USB in this version.": "USB 管理に登録は不要です。無線読取には認証の保存が必要です。この版の管理は USB のみです。",
     "USB signal device found. Open Settings → Automatic adjustment to subscribe or configure.": "USB 信号デバイスを検出しました。設定 → 自動調整で登録または設定してください。",
-    "Select the device and confirm subscription: ": "デバイスを選択して購読を確認："
+    "Select the device and confirm subscription: ": "デバイスを選択して購読を確認：",
+    "Target displays (multiple selection)": "対象ディスプレイ（複数選択）",
+    "Brightness stays fixed within each light band and jumps at the next threshold. A 3-sample median rejects brief shadows; switches are at least 2 s apart. Manual changes hold for 10 minutes.": "照度の各範囲内では明るさを固定し、次のしきい値で切り替えます。3 サンプルの中央値で一時的な影を除去し、切り替え間隔は最低 2 秒です。手動変更後は 10 分間保持します。",
+    "Each bar sets a fixed brightness for a light band; reaching the next threshold switches bands. Click to add a threshold, drag or edit values. The last band includes higher light levels.": "各棒は照度範囲ごとの固定輝度です。次のしきい値で切り替わります。クリックでしきい値を追加し、ドラッグまたは数値入力で調整します。最後の範囲はそれ以上の照度を含みます。",
+    "Light history (current page; gaps left blank)": "照度履歴（現在のページ、欠測は空白）"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -2085,7 +2093,11 @@
     "Set up Wi-Fi and save binding over USB first, then search the same LAN.": "먼저 USB로 Wi-Fi와 바인딩을 설정한 후 같은 LAN을 검색하세요.",
     "USB grants management access without binding. Wireless reads require saved binding; management uses USB in this version.": "USB 관리는 바인딩이 필요 없습니다. 무선 읽기에는 저장된 바인딩이 필요하며 이 버전의 관리는 USB만 사용합니다.",
     "USB signal device found. Open Settings → Automatic adjustment to subscribe or configure.": "USB 신호 장치를 찾았습니다. 설정 → 자동 조절에서 구독하거나 설정하세요.",
-    "Select the device and confirm subscription: ": "장치를 선택하고 구독을 확인하세요: "
+    "Select the device and confirm subscription: ": "장치를 선택하고 구독을 확인하세요: ",
+    "Target displays (multiple selection)": "대상 디스플레이(복수 선택)",
+    "Brightness stays fixed within each light band and jumps at the next threshold. A 3-sample median rejects brief shadows; switches are at least 2 s apart. Manual changes hold for 10 minutes.": "조도 구간 내 밝기를 유지하고 다음 임계값에서 전환합니다. 3개 샘플의 중앙값으로 일시적인 그림자를 걸러내며 최소 2초 간격으로 전환합니다. 수동 변경 후 10분간 유지합니다.",
+    "Each bar sets a fixed brightness for a light band; reaching the next threshold switches bands. Click to add a threshold, drag or edit values. The last band includes higher light levels.": "각 막대는 조도 구간의 고정 밝기를 나타내며 다음 임계값에서 전환됩니다. 클릭하여 임계값을 추가하고 드래그하거나 값을 입력하세요. 마지막 구간은 더 높은 조도도 포함합니다.",
+    "Light history (current page; gaps left blank)": "조도 기록(현재 페이지, 누락 구간은 공백)"
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -2781,7 +2793,11 @@
     "Set up Wi-Fi and save binding over USB first, then search the same LAN.": "Zuerst WLAN und Bindung über USB einrichten, dann im selben LAN suchen.",
     "USB grants management access without binding. Wireless reads require saved binding; management uses USB in this version.": "USB-Verwaltung benötigt keine Bindung. Funk-Lesezugriffe benötigen eine gespeicherte Bindung; Verwaltung erfolgt hier nur per USB.",
     "USB signal device found. Open Settings → Automatic adjustment to subscribe or configure.": "USB-Signalgerät gefunden. Unter Einstellungen → Automatische Anpassung abonnieren oder konfigurieren.",
-    "Select the device and confirm subscription: ": "Gerät auswählen und Abonnement bestätigen: "
+    "Select the device and confirm subscription: ": "Gerät auswählen und Abonnement bestätigen: ",
+    "Target displays (multiple selection)": "Zielbildschirme (Mehrfachauswahl)",
+    "Brightness stays fixed within each light band and jumps at the next threshold. A 3-sample median rejects brief shadows; switches are at least 2 s apart. Manual changes hold for 10 minutes.": "Die Helligkeit bleibt je Lichtbereich konstant und springt am nächsten Schwellenwert. Der Median aus 3 Messungen filtert kurze Schatten; Wechsel erfolgen frühestens nach 2 s. Manuelle Änderungen gelten 10 Minuten.",
+    "Each bar sets a fixed brightness for a light band; reaching the next threshold switches bands. Click to add a threshold, drag or edit values. The last band includes higher light levels.": "Jeder Balken legt die Helligkeit eines Lichtbereichs fest. Am nächsten Schwellenwert wechselt der Bereich. Zum Hinzufügen klicken, zum Ändern ziehen oder Werte eingeben. Der letzte Bereich umfasst höhere Lichtwerte.",
+    "Light history (current page; gaps left blank)": "Lichtverlauf (aktuelle Seite; Datenlücken bleiben leer)"
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -3477,7 +3493,11 @@
     "Set up Wi-Fi and save binding over USB first, then search the same LAN.": "Configurez le Wi-Fi et l’association par USB, puis recherchez sur le même LAN.",
     "USB grants management access without binding. Wireless reads require saved binding; management uses USB in this version.": "La gestion USB ne nécessite pas d’association. La lecture sans fil exige une association ; cette version se gère par USB uniquement.",
     "USB signal device found. Open Settings → Automatic adjustment to subscribe or configure.": "Périphérique de signal USB détecté. Ouvrez Paramètres → Réglage automatique pour l’abonner ou le configurer.",
-    "Select the device and confirm subscription: ": "Sélectionnez le périphérique et confirmez l’abonnement : "
+    "Select the device and confirm subscription: ": "Sélectionnez le périphérique et confirmez l’abonnement : ",
+    "Target displays (multiple selection)": "Écrans cibles (sélection multiple)",
+    "Brightness stays fixed within each light band and jumps at the next threshold. A 3-sample median rejects brief shadows; switches are at least 2 s apart. Manual changes hold for 10 minutes.": "La luminosité reste fixe dans chaque plage et change au seuil suivant. La médiane de 3 mesures filtre les ombres brèves ; les changements sont espacés d’au moins 2 s. Les réglages manuels sont conservés 10 minutes.",
+    "Each bar sets a fixed brightness for a light band; reaching the next threshold switches bands. Click to add a threshold, drag or edit values. The last band includes higher light levels.": "Chaque barre fixe la luminosité d’une plage ; le seuil suivant change de plage. Cliquez pour ajouter un seuil, faites glisser ou modifiez les valeurs. La dernière plage inclut les éclairements supérieurs.",
+    "Light history (current page; gaps left blank)": "Historique lumineux (page actuelle ; lacunes laissées vides)"
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -4173,6 +4193,10 @@
     "Set up Wi-Fi and save binding over USB first, then search the same LAN.": "Configure Wi-Fi y la vinculación por USB y busque en la misma LAN.",
     "USB grants management access without binding. Wireless reads require saved binding; management uses USB in this version.": "La gestión USB no requiere vinculación. La lectura inalámbrica sí; esta versión se administra solo por USB.",
     "USB signal device found. Open Settings → Automatic adjustment to subscribe or configure.": "Dispositivo de señal USB detectado. Abra Ajustes → Ajuste automático para suscribirse o configurarlo.",
-    "Select the device and confirm subscription: ": "Seleccione el dispositivo y confirme la suscripción: "
+    "Select the device and confirm subscription: ": "Seleccione el dispositivo y confirme la suscripción: ",
+    "Target displays (multiple selection)": "Pantallas de destino (selección múltiple)",
+    "Brightness stays fixed within each light band and jumps at the next threshold. A 3-sample median rejects brief shadows; switches are at least 2 s apart. Manual changes hold for 10 minutes.": "El brillo permanece fijo en cada intervalo y cambia en el siguiente umbral. La mediana de 3 muestras filtra sombras breves; los cambios se separan al menos 2 s. Los ajustes manuales se mantienen 10 minutos.",
+    "Each bar sets a fixed brightness for a light band; reaching the next threshold switches bands. Click to add a threshold, drag or edit values. The last band includes higher light levels.": "Cada barra fija el brillo de un intervalo; al alcanzar el siguiente umbral cambia de intervalo. Haga clic para añadir un umbral, arrastre o edite valores. El último intervalo incluye niveles superiores.",
+    "Light history (current page; gaps left blank)": "Historial de luz (página actual; huecos sin datos)"
   }
 }

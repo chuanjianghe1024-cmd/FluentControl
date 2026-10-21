@@ -17,7 +17,9 @@ public sealed partial class MainWindow
     private long manualBrightnessHold;
     private bool adaptiveBusy, adaptiveOutputFault;
     private DateTimeOffset adaptiveDue, adaptiveLastTick, adaptiveLastWrite;
-    private double? adaptiveReadback;
+    private readonly Dictionary<string, double> adaptiveReadbacks = new();
+    private readonly Dictionary<string, double> adaptiveAppliedTargets = new();
+    private readonly HashSet<string> adaptiveFailedTargets = new();
     private TextBlock? adaptiveLiveStatus;
     private string? automaticTheme;
     private void InitializeAdaptiveAutomation()
@@ -37,7 +39,7 @@ public sealed partial class MainWindow
     private void HoldAdaptiveBrightness() => Interlocked.Exchange(ref manualBrightnessHold, DateTimeOffset.UtcNow.AddMinutes(10).UtcTicks);
     private void SaveAdaptiveSettings()
     {
-        adaptiveRevision++; lightRequest?.Cancel(); adaptiveFilter.Reset(); adaptiveDue = default; adaptiveReadback = null; adaptiveOutputFault = false;
+        adaptiveRevision++; lightRequest?.Cancel(); adaptiveFilter.Reset(); adaptiveDue = default; adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); adaptiveOutputFault = false; adaptiveFailedTargets.Clear();
         if (!state.Settings.Adaptive.Enabled || !state.Settings.Adaptive.ThemeEnabled || state.Settings.Adaptive.Mode == "ambient") { automaticTheme = null; ApplyAppTheme(); }
         SaveState();
     }
@@ -50,7 +52,7 @@ public sealed partial class MainWindow
         if (adaptiveLastTick != default && (now < adaptiveLastTick || now - adaptiveLastTick > TimeSpan.FromSeconds(10)))
         {
             // Sleep/resume and wall-clock changes invalidate all pre-sleep samples.
-            adaptiveFilter.Reset(); adaptiveReadback = null; adaptiveDue = default; adaptiveLastWrite = now;
+            adaptiveFilter.Reset(); adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); adaptiveDue = default; adaptiveLastWrite = now;
         }
         adaptiveLastTick = now;
         var s = state.Settings.Adaptive;
@@ -60,7 +62,7 @@ public sealed partial class MainWindow
         var period = s.Mode == "ambient" ? source?.PollMilliseconds ?? 1000 : 1000;
         adaptiveDue = now.AddMilliseconds(period);
         var revision = adaptiveRevision; var version = generation;
-        var targetId = s.TargetDisplayId; var mode = s.Mode;
+        var targetIds = AdaptivePresets.Targets(s).ToArray(); var mode = s.Mode;
         var curve = AdaptivePresets.Copy(mode == "clock" ? s.TimeCurve : s.Curve);
         adaptiveBusy = true;
         bool outputStage = false;
@@ -101,7 +103,7 @@ public sealed partial class MainWindow
                 if (s.RecordLightHistory && !uiTest) await RecordLightSampleAsync(s.ActiveSourceId, sample);
                 if (closed || revision != adaptiveRevision || version != generation) return;
                 if (!s.Enabled || adaptiveOutputFault) { AdaptiveStatus($"{sample.SourceId} · {sample.Lux:0.##} lux"); return; }
-                double? lux = adaptiveFilter.Add(sample);
+                double? lux = adaptiveFilter.Add(sample, smooth: false);
                 if (lux is null) { AdaptiveStatus(T("等待 3 个有效样本…", "Waiting for 3 valid samples…")); return; }
                 target = AdaptivePresets.Evaluate(curve, lux.Value);
                 info = $"{sample.SourceId} · {lux:0.##} lux" + (sample.Simulated ? " · " + T("模拟", "Simulated") : "");
@@ -113,40 +115,63 @@ public sealed partial class MainWindow
                 if (automaticTheme != next) { automaticTheme = next; ApplyAppTheme(); }
             }
             AdaptiveStatus(info + $" → {target:0.#}%");
-            if (now.UtcTicks < Interlocked.Read(ref manualBrightnessHold)) { AdaptiveStatus(info + " · " + T("手动调整保持中", "Manual adjustment hold")); return; }
+            if (now.UtcTicks < Interlocked.Read(ref manualBrightnessHold)) { adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); AdaptiveStatus(info + " · " + T("手动调整保持中", "Manual adjustment hold")); return; }
             if (now - adaptiveLastWrite < TimeSpan.FromSeconds(2) || pendingWrites > 0) return;
             if (!await gate.WaitAsync(0)) return;
             outputStage = true;
             try
             {
                 if (closed || refreshing || hdrChanging || colorExiting || revision != adaptiveRevision || version != generation || !s.Enabled || pendingWrites > 0) return;
-                var device = displayDevices.FirstOrDefault(x => x.Id == targetId);
-                var channel = device?.Channels.FirstOrDefault(x => x.PropertyKey == "brightness" && x.IsAvailable && x.Options is null && x.Read is not null && x.Maximum > x.Minimum);
-                if (device is null || channel is null) { AdaptiveStatus(T("目标屏幕不可用", "Target display unavailable")); return; }
-                // Re-resolve HDR immediately before each automatic write, not from stale UI metadata.
-                var previousReadback = adaptiveReadback;
-                var result = await Task.Run(() =>
+                var messages = new List<string>();
+                foreach (var targetId in targetIds)
                 {
-                    var states = hdr.ReadAll();
-                    if (!states.TryGetValue(device.Id, out var value) || value.Active == true || value.Enabled == true ||
-                        !(value.Availability == HdrAvailability.Unsupported || value.Availability == HdrAvailability.Available && value.Active == false && value.Enabled == false)) return "HDR";
-                    double current = channel.Read!();
-                    if (!double.IsFinite(current)) throw new InvalidDataException();
-                    if (previousReadback is double previous && Math.Abs(current - previous) > 1) { HoldAdaptiveBrightness(); return "manual"; }
-                    if (Math.Abs((DateTimeOffset.UtcNow - now).TotalSeconds) > 5 || DateTimeOffset.UtcNow.UtcTicks < Interlocked.Read(ref manualBrightnessHold) || revision != adaptiveRevision || version != generation || closed || !s.Enabled || pendingWrites > 0 || applyingProfile) return "manual";
-                    channel.Value = current; channel.ReadbackUnconfirmed = false;
-                    double percent = (current - channel.Minimum) / (channel.Maximum - channel.Minimum) * 100;
-                    var next = SolarSchedule.NextBrightness(percent, target);
-                    if (next is null) return "";
-                    var errors = ControlOperations.Apply(new[] { channel }, channel.Minimum + next.Value / 100 * (channel.Maximum - channel.Minimum), automatic: true);
-                    if (errors.Count != 0) throw new IOException(string.Join("; ", errors));
-                    return "";
-                });
+                    if (closed || refreshing || hdrChanging || revision != adaptiveRevision || version != generation || !s.Enabled || pendingWrites > 0) break;
+                    var device = displayDevices.FirstOrDefault(x => x.Id == targetId);
+                    var channel = device?.Channels.FirstOrDefault(x => x.PropertyKey == "brightness" && x.IsAvailable && x.Options is null && x.Read is not null && x.Maximum > x.Minimum);
+                    if (device is null || channel is null) { messages.Add(T("目标屏幕不可用", "Target display unavailable")); continue; }
+                    if (adaptiveFailedTargets.Contains(targetId)) { messages.Add(device.DisplayName + " · " + T("屏幕写入失败，重新启用后再试", "Display write failed; re-enable to retry")); continue; }
+                    double? previousReadback = adaptiveReadbacks.TryGetValue(targetId, out var readback) ? readback : null;
+                    bool sameBand = mode == "ambient" && adaptiveAppliedTargets.TryGetValue(targetId, out var applied) && applied == target;
+                    try
+                    {
+                        var result = await Task.Run(() =>
+                        {
+                            // Re-resolve HDR for each target; a blocked/failed screen must not block another.
+                            var states = hdr.ReadAll();
+                            if (!states.TryGetValue(device.Id, out var value) || value.Active == true || value.Enabled == true ||
+                                !(value.Availability == HdrAvailability.Unsupported || value.Availability == HdrAvailability.Available && value.Active == false && value.Enabled == false)) return "HDR";
+                            double current = channel.Read!();
+                            if (!double.IsFinite(current)) throw new InvalidDataException();
+                            if (previousReadback is double previous && Math.Abs(current - previous) > 1) { HoldAdaptiveBrightness(); return "manual"; }
+                            if (Math.Abs((DateTimeOffset.UtcNow - now).TotalSeconds) > 5 || DateTimeOffset.UtcNow.UtcTicks < Interlocked.Read(ref manualBrightnessHold) || revision != adaptiveRevision || version != generation || closed || !s.Enabled || pendingWrites > 0 || applyingProfile) return "manual";
+                            channel.Value = current; channel.ReadbackUnconfirmed = false;
+                            double percent = (current - channel.Minimum) / (channel.Maximum - channel.Minimum) * 100;
+                            // Ambient bands jump once to the selected level, never interpolate or ramp within it.
+                            double? next = mode == "ambient" ? (sameBand || Math.Abs(percent - target) < .01 ? null : target)
+                                : SolarSchedule.NextBrightness(percent, target);
+                            if (next is null) return "";
+                            var errors = ControlOperations.Apply(new[] { channel }, channel.Minimum + next.Value / 100 * (channel.Maximum - channel.Minimum), automatic: true);
+                            if (errors.Count != 0) throw new IOException(string.Join("; ", errors));
+                            return "";
+                        });
+                        if (closed || revision != adaptiveRevision || version != generation) return;
+                        if (result == "HDR") messages.Add(device.DisplayName + " · " + T("HDR 或显示状态未确认，暂停亮度调节", "HDR or display state unconfirmed; brightness paused"));
+                        else if (result == "manual") messages.Add(T("手动调整保持中", "Manual adjustment hold"));
+                        else { adaptiveReadbacks[targetId] = channel.Value; adaptiveAppliedTargets[targetId] = target; }
+                    }
+                    catch (Exception ex)
+                    {
+                        if (closed || revision != adaptiveRevision || version != generation) return;
+                        adaptiveFailedTargets.Add(targetId);
+                        adaptiveReadbacks.Remove(targetId); adaptiveAppliedTargets.Remove(targetId);
+                        messages.Add(device.DisplayName + " · " + T("屏幕写入失败，重新启用后再试", "Display write failed; re-enable to retry"));
+                        StartupLog.Write("Adaptive target: " + ex.GetType().Name);
+                    }
+                }
                 adaptiveLastWrite = DateTimeOffset.UtcNow;
-                if (closed || version != generation) return;
-                if (result == "HDR") AdaptiveStatus(T("HDR 或显示状态未确认，暂停亮度调节", "HDR or display state unconfirmed; brightness paused"));
-                else if (result == "manual") AdaptiveStatus(T("手动调整保持中", "Manual adjustment hold"));
-                else { adaptiveReadback = channel.Value; SynchronizeValues(); }
+                if (targetIds.Length == 0) messages.Add(T("目标屏幕不可用", "Target display unavailable"));
+                if (messages.Count > 0) AdaptiveStatus(info + " · " + string.Join("; ", messages.Distinct()));
+                SynchronizeValues();
             }
             finally { gate.Release(); }
         }
@@ -154,7 +179,7 @@ public sealed partial class MainWindow
         catch (Exception ex)
         {
             if (revision == adaptiveRevision && s.RecordLightHistory && mode == "ambient" && !outputStage && !uiTest) await RecordLightSampleAsync(s.ActiveSourceId, null);
-            adaptiveFilter.Reset(); adaptiveReadback = null; adaptiveDue = DateTimeOffset.UtcNow.AddSeconds(10);
+            adaptiveFilter.Reset(); adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); adaptiveDue = DateTimeOffset.UtcNow.AddSeconds(10);
             if (outputStage) adaptiveOutputFault = true;
             AdaptiveStatus(outputStage ? T("屏幕写入失败，重新启用后再试", "Display write failed; re-enable to retry") : T("数据或屏幕不可用，已暂停；稍后重试", "Data or display unavailable; paused, retrying later"));
             StartupLog.Write("Adaptive automation: " + ex.GetType().Name); // no source URL, token or location in logs

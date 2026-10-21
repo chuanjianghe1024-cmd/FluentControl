@@ -20,7 +20,9 @@ public sealed partial class MainWindow
         var name = new TextBox { Header = T("名称", "Name"), Text = curve.Name, MaxLength = 100 };
         name.LostFocus += (_, _) => { if (!string.IsNullOrWhiteSpace(name.Text)) { curve.Name = name.Text.Trim(); SaveAdaptiveSettings(); } else name.Text = curve.Name; };
         section.Children.Add(name);
-        section.Children.Add(Text(T("点击图表添加节点，拖动节点调整；下方可输入精确数值。", "Click the chart to add a point, drag points to adjust, or enter exact values below.")));
+        section.Children.Add(Text(curve.Axis == "ambient"
+            ? T("每根柱表示一个光照区间的固定亮度；达到下一阈值时跳档。点击添加阈值，拖动或输入数值调整。最后一档包含更高光照。", "Each bar sets a fixed brightness for a light band; reaching the next threshold switches bands. Click to add a threshold, drag or edit values. The last band includes higher light levels.")
+            : T("点击图表添加节点，拖动节点调整；下方可输入精确数值。", "Click the chart to add a point, drag points to adjust, or enter exact values below.")));
         var canvas = new Canvas { Height = 250, HorizontalAlignment = HorizontalAlignment.Stretch, Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(canvas, "adaptive-curve");
         section.Children.Add(canvas);
@@ -34,9 +36,9 @@ public sealed partial class MainWindow
         void Draw()
         {
             if (dragging) return;
-            canvas.Children.Clear(); double w = Math.Max(100, canvas.ActualWidth - 48), h = 200;
+            canvas.Children.Clear(); double w = Math.Max(100, canvas.ActualWidth - (curve.Axis == "ambient" ? 76 : 48)), h = 200;
             // Plot uses log lux or linear local hours. Background is an illustration, not recorded data.
-            for (int i = 0; i < 24; i++)
+            for (int i = 0; curve.Axis == "clock" && i < 24; i++)
             {
                 bool dark = curve.Axis == "clock" ? !SolarSchedule.InDayRange(i + .5, settings.LightThemeHour, settings.DarkThemeHour) : i < 9;
                 var band = new Rectangle { Width = w / 24 + .5, Height = h, Fill = new SolidColorBrush(dark ? Microsoft.UI.Colors.SlateBlue : Microsoft.UI.Colors.Goldenrod), Opacity = dark ? .16 : .10, IsHitTestVisible = false };
@@ -53,8 +55,32 @@ public sealed partial class MainWindow
                 Canvas.SetLeft(label, Math.Clamp(32 + AdaptivePresets.Position(curve.Axis, x) * w - 18, 0, w)); Canvas.SetTop(label, 207); canvas.Children.Add(label);
             }
             var path = new Polyline { Stroke = new SolidColorBrush(Microsoft.UI.Colors.DodgerBlue), StrokeThickness = 3, IsHitTestVisible = false };
-            foreach (var p in curve.Points) path.Points.Add(new Point(32 + AdaptivePresets.Position(curve.Axis, p.X) * w, h * (1 - p.Brightness / 100)));
-            canvas.Children.Add(path);
+            var bars = new List<Rectangle>();
+            if (curve.Axis == "clock") canvas.Children.Add(path);
+            else foreach (var point in curve.Points)
+            {
+                var bar = new Rectangle { Fill = new SolidColorBrush(Microsoft.UI.Colors.DodgerBlue), Opacity = .65, IsHitTestVisible = false, Tag = "adaptive-band" };
+                canvas.Children.Add(bar); bars.Add(bar);
+            }
+            void UpdatePlot()
+            {
+                if (curve.Axis == "clock")
+                {
+                    path.Points.Clear();
+                    foreach (var p in curve.Points) path.Points.Add(new Point(32 + AdaptivePresets.Position(curve.Axis, p.X) * w, h * (1 - p.Brightness / 100)));
+                }
+                else for (int i = 0; i < bars.Count; i++)
+                {
+                    var p = curve.Points[i];
+                    double left = 32 + AdaptivePresets.Position(curve.Axis, p.X) * w;
+                    double right = i + 1 < bars.Count ? 32 + AdaptivePresets.Position(curve.Axis, curve.Points[i + 1].X) * w : 32 + w + 28;
+                    bars[i].Width = Math.Max(.5, right - left - 1); bars[i].Height = h * p.Brightness / 100;
+                    Canvas.SetLeft(bars[i], left); Canvas.SetTop(bars[i], h - bars[i].Height);
+                }
+                var input = AdaptivePresets.Input(curve.Axis, preview.Value / 100);
+                readout.Text = $"{input:0.##} {(curve.Axis == "clock" ? "h" : "lux")} → {AdaptivePresets.Evaluate(curve, input):0.#}%";
+            }
+            UpdatePlot();
             foreach (var point in curve.Points)
             {
                 var dot = new Ellipse { Width = 14, Height = 14, Fill = new SolidColorBrush(Microsoft.UI.Colors.DodgerBlue), Stroke = new SolidColorBrush(Microsoft.UI.Colors.White), StrokeThickness = 2 };
@@ -75,7 +101,7 @@ public sealed partial class MainWindow
                     }
                     if (curve.Axis == "clock" && (index == 0 || index == curve.Points.Count - 1)) curve.Points[0].Brightness = curve.Points[^1].Brightness = point.Brightness;
                     Canvas.SetLeft(dot, 25 + AdaptivePresets.Position(curve.Axis, point.X) * w); Canvas.SetTop(dot, h * (1 - point.Brightness / 100) - 7);
-                    path.Points.Clear(); foreach (var p in curve.Points) path.Points.Add(new Point(32 + AdaptivePresets.Position(curve.Axis, p.X) * w, h * (1 - p.Brightness / 100)));
+                    UpdatePlot();
                     e.Handled = true;
                 };
                 dot.PointerCaptureLost += (_, _) => { if (!dragging) return; dragging = false; SaveAdaptiveSettings(); Draw(); BuildRows(); };
@@ -93,7 +119,7 @@ public sealed partial class MainWindow
             {
                 var index = curve.Points.IndexOf(point); bool endpoint = index == 0 || index == curve.Points.Count - 1;
                 var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-                var x = new NumberBox { Header = curve.Axis == "clock" ? T("小时", "Hours") : "lux", Value = point.X, Width = 140, IsEnabled = !endpoint, Minimum = 0, Maximum = curve.Axis == "clock" ? 24 : 10000 };
+                var x = new NumberBox { Header = curve.Axis == "clock" ? T("小时", "Hours") : "lux ≥", Value = point.X, Width = 140, IsEnabled = !endpoint, Minimum = 0, Maximum = curve.Axis == "clock" ? 24 : 10000 };
                 var y = new NumberBox { Header = T("亮度", "Brightness") + " %", Value = point.Brightness, Width = 140, Minimum = 0, Maximum = 100 };
                 Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(y, "adaptive-y-" + index);
                 x.ValueChanged += (_, e) =>
@@ -119,8 +145,8 @@ public sealed partial class MainWindow
         {
             if (dragging || curve.Points.Count >= 64) return;
             var at = e.GetCurrentPoint(canvas).Position;
-            if (at.Y < 0 || at.Y > 200 || at.X <= 32 || at.X >= canvas.ActualWidth - 16) return;
-            var x = AdaptivePresets.Input(curve.Axis, (at.X - 32) / Math.Max(100, canvas.ActualWidth - 48));
+            if (at.Y < 0 || at.Y > 200 || at.X <= 32 || at.X >= canvas.ActualWidth - (curve.Axis == "ambient" ? 44 : 16)) return;
+            var x = AdaptivePresets.Input(curve.Axis, (at.X - 32) / Math.Max(100, canvas.ActualWidth - (curve.Axis == "ambient" ? 76 : 48)));
             if (curve.Points.Any(p => Math.Abs(p.X - x) < .01)) return;
             curve.Points.Add(new() { X = x, Brightness = Math.Round(Math.Clamp(100 * (1 - at.Y / 200), 0, 100)) });
             curve.Points.Sort((a, b) => a.X.CompareTo(b.X)); SaveAdaptiveSettings(); BuildRows(); Draw();
@@ -137,7 +163,7 @@ public sealed partial class MainWindow
                 var dialog = new ContentDialog { Title = button.Content, Content = input, PrimaryButtonText = importing ? T("导入", "Import") : "",
                     CloseButtonText = T("关闭", "Close"), XamlRoot = Root.XamlRoot, RequestedTheme = ShellRoot.RequestedTheme };
                 if (await dialog.ShowAsync() != ContentDialogResult.Primary || !importing) return;
-                try { var imported = AdaptivePresets.Parse(input.Text); if (imported.Axis == "clock") settings.TimeCurve = imported; else settings.Curve = imported; settings.Mode = imported.Axis; SaveAdaptiveSettings(); BuildSettings(); }
+                try { var imported = AdaptivePresets.Parse(input.Text); if (imported.Axis == "clock") settings.TimeCurve = imported; else settings.Curve = AdaptivePresets.AsBands(imported); settings.Mode = imported.Axis; settings.Enabled = false; SaveAdaptiveSettings(); BuildSettings(); }
                 catch { ShowStatus(T("预设无效，请检查格式和节点范围。", "Invalid preset. Check its format and point ranges."), InfoBarSeverity.Error); }
             };
             exchange.Children.Add(button);

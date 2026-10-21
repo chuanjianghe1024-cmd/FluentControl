@@ -1,6 +1,9 @@
 using FluentControl.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Shapes;
+using Windows.Foundation;
 using static FluentControl.Services.Strings;
 namespace FluentControl;
 public sealed partial class MainWindow
@@ -17,12 +20,24 @@ public sealed partial class MainWindow
             ItemsSource = new[] { T("光照强度", "Illuminance"), T("指定时间", "Fixed times"), T("日出日落", "Sunrise and sunset") }, SelectedIndex = s.Mode switch { "clock" => 1, "solar" => 2, _ => 0 } };
         mode.SelectionChanged += (_, _) => { if (mode.SelectedIndex < 0) return; s.Mode = mode.SelectedIndex switch { 1 => "clock", 2 => "solar", _ => "ambient" }; automaticTheme = null; ApplyAppTheme(); SaveAdaptiveSettings(); BuildSettings(); };
         section.Children.Add(mode);
-        var target = new ComboBox { Header = T("目标显示器", "Target display"), ItemsSource = displayDevices, DisplayMemberPath = "DisplayName",
-            SelectedItem = displayDevices.FirstOrDefault(x => x.Id == s.TargetDisplayId), MinWidth = 240 };
-        target.SelectionChanged += (_, _) => { if (target.SelectedItem is MonitorDevice d) { s.TargetDisplayId = d.Id; SaveAdaptiveSettings(); } };
-        section.Children.Add(target);
+        section.Children.Add(Text(T("目标显示器（可多选）", "Target displays (multiple selection)")));
+        var selectedTargets = AdaptivePresets.Targets(s).ToHashSet();
+        foreach (var device in displayDevices)
+        {
+            var target = new CheckBox { Content = device.DisplayName, IsChecked = selectedTargets.Contains(device.Id) };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(target, "adaptive-target-" + device.Id);
+            void SelectTarget()
+            {
+                if (target.IsChecked == true) selectedTargets.Add(device.Id); else selectedTargets.Remove(device.Id);
+                s.TargetDisplayIds = selectedTargets.ToList(); s.TargetDisplayId = ""; SaveAdaptiveSettings();
+            }
+            target.Checked += (_, _) => SelectTarget(); target.Unchecked += (_, _) => SelectTarget();
+            section.Children.Add(target);
+        }
         adaptiveLiveStatus = Text(s.Enabled ? T("等待数据…", "Waiting for data…") : T("自动调节已关闭", "Automatic adjustment is off")); section.Children.Add(adaptiveLiveStatus);
-        section.Children.Add(Text(T("默认 1 秒采样，3 点中值与平滑；屏幕最多每 2 秒写一次，每次最多 5%，差异不足 2% 不写。手动调整后保持 10 分钟。", "Default: 1 s sampling, 3-sample median and smoothing; display writes at most every 2 s, up to 5% per step, with a 2% deadband. Manual changes hold for 10 minutes.")));
+        section.Children.Add(Text(s.Mode == "ambient"
+            ? T("光照按区间固定亮度，达到下一阈值才跳档；3 点中值过滤瞬时遮挡，最多每 2 秒切换一次。手动调整后保持 10 分钟。", "Brightness stays fixed within each light band and jumps at the next threshold. A 3-sample median rejects brief shadows; switches are at least 2 s apart. Manual changes hold for 10 minutes.")
+            : T("默认 1 秒采样，3 点中值与平滑；屏幕最多每 2 秒写一次，每次最多 5%，差异不足 2% 不写。手动调整后保持 10 分钟。", "Default: 1 s sampling, 3-sample median and smoothing; display writes at most every 2 s, up to 5% per step, with a 2% deadband. Manual changes hold for 10 minutes.")));
         void Number(string title, double value, double min, double max, Action<double> changed)
         {
             var box = new NumberBox { Header = title, Value = value, Minimum = min, Maximum = max, Width = 220, HorizontalAlignment = HorizontalAlignment.Left };
@@ -178,7 +193,13 @@ public sealed partial class MainWindow
     {
         var panel = new StackPanel { Spacing = 8, MinWidth = 420 };
         panel.Children.Add(new TextBlock { Text = T("仅保存在本机，所有来源合计最多 64 MiB，满后删除最早记录。断线不补造数据。", "Local only, up to 64 MiB across all sources. Oldest records are removed when full. Gaps are not filled."), TextWrapping = TextWrapping.Wrap });
-        var rows = new ListView { Height = 360, SelectionMode = ListViewSelectionMode.None };
+        var chart = new Canvas { Height = 185, HorizontalAlignment = HorizontalAlignment.Stretch };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(chart, "light-history-chart");
+        IReadOnlyList<LightHistoryEntry> chartEntries = Array.Empty<LightHistoryEntry>();
+        chart.SizeChanged += (_, _) => DrawLightHistory(chart, chartEntries, source.PollMilliseconds);
+        panel.Children.Add(new TextBlock { Text = T("光照历史（当前页，断线处留空）", "Light history (current page; gaps left blank)") });
+        panel.Children.Add(chart);
+        var rows = new ListView { Height = 180, SelectionMode = ListViewSelectionMode.None };
         var navigation = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         var newer = new Button { Content = T("较新记录", "Newer records") };
         var older = new Button { Content = T("较早记录", "Older records") };
@@ -192,13 +213,15 @@ public sealed partial class MainWindow
             try
             {
                 var entries = await lightHistory.ReadPageAsync(source.Id, page);
+                chartEntries = entries;
+                DrawLightHistory(chart, chartEntries, source.PollMilliseconds);
                 rows.ItemsSource = entries.Select(x => $"{x.Timestamp.ToLocalTime():yyyy-MM-dd HH:mm:ss.fff}  ·  " +
                     (x.Valid ? $"{x.Lux:0.##} lux" : T("数据中断", "Data gap")) +
                     (x.Simulated ? " · " + T("模拟", "Simulated") : "")).ToArray();
                 status.Text = entries.Count == 0 ? T("暂无记录", "No records yet") : $"{page + 1} · {entries.Count}";
                 newer.IsEnabled = page > 0; older.IsEnabled = entries.Count == 100;
             }
-            catch { status.Text = T("无法读取光照历史", "Cannot read light history"); newer.IsEnabled = page > 0; }
+            catch { chartEntries = Array.Empty<LightHistoryEntry>(); chart.Children.Clear(); rows.ItemsSource = null; status.Text = T("无法读取光照历史", "Cannot read light history"); newer.IsEnabled = page > 0; }
         }
         newer.Click += async (_, _) => { page--; await Load(); };
         older.Click += async (_, _) => { page++; await Load(); };
@@ -207,4 +230,49 @@ public sealed partial class MainWindow
         await Load();
         if (!closed) await dialog.ShowAsync();
     }
+    private static void DrawLightHistory(Canvas canvas, IReadOnlyList<LightHistoryEntry> entries, int pollMilliseconds)
+    {
+        canvas.Children.Clear();
+        if (entries.Count == 0) return;
+        var ordered = entries.OrderBy(x => x.Timestamp).ToArray();
+        double width = Math.Max(100, canvas.ActualWidth - 64), height = 140;
+        var start = ordered[0].Timestamp; var end = ordered[^1].Timestamp;
+        double duration = Math.Max(1, (end - start).TotalMilliseconds);
+        var valid = ordered.Where(x => x.Valid && x.Lux is double n && double.IsFinite(n) && n >= 0 && n <= 200000).ToArray();
+        double maximum = Math.Max(1, valid.Select(x => x.Lux!.Value).DefaultIfEmpty(1).Max());
+        void Label(string text, double left, double top)
+        {
+            var label = new TextBlock { Text = text, FontSize = 10 };
+            Canvas.SetLeft(label, left); Canvas.SetTop(label, top); canvas.Children.Add(label);
+        }
+        for (int i = 0; i <= 2; i++)
+        {
+            double y = height * i / 2;
+            canvas.Children.Add(new Line { X1 = 48, X2 = 48 + width, Y1 = y, Y2 = y,
+                Stroke = new SolidColorBrush(Microsoft.UI.Colors.Gray), Opacity = .35 });
+            Label((maximum * (1 - i / 2d)).ToString("0.#"), 0, Math.Max(0, y - 7));
+        }
+        Label("lux", 0, 153);
+        Label(start.ToLocalTime().ToString("MM-dd HH:mm:ss"), 48, 153);
+        Label(end.ToLocalTime().ToString("MM-dd HH:mm:ss"), Math.Max(48, width - 60), 169);
+        Polyline? segment = null; DateTimeOffset? previous = null;
+        foreach (var entry in ordered)
+        {
+            if (!entry.Valid || entry.Lux is not double lux || !double.IsFinite(lux) || lux < 0 || lux > 200000)
+            { segment = null; previous = null; continue; }
+            if (previous is { } time && (entry.Timestamp - time).TotalMilliseconds > Math.Max(5000d, pollMilliseconds * 3d)) segment = null;
+            if (segment is null)
+            {
+                segment = new Polyline { Stroke = new SolidColorBrush(Microsoft.UI.Colors.DodgerBlue), StrokeThickness = 2 };
+                canvas.Children.Add(segment);
+            }
+            var point = new Point(48 + (entry.Timestamp - start).TotalMilliseconds / duration * width, height * (1 - lux / maximum));
+            segment.Points.Add(point);
+            var dot = new Ellipse { Width = 4, Height = 4, Fill = new SolidColorBrush(Microsoft.UI.Colors.DodgerBlue) };
+            Canvas.SetLeft(dot, point.X - 2); Canvas.SetTop(dot, point.Y - 2); canvas.Children.Add(dot);
+            ToolTipService.SetToolTip(dot, $"{entry.Timestamp.ToLocalTime():yyyy-MM-dd HH:mm:ss} · {lux:0.##} lux");
+            previous = entry.Timestamp;
+        }
+    }
+
 }
