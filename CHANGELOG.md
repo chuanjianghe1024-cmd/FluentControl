@@ -2,6 +2,10 @@
 
 ## 未发布 / Unreleased
 
+## [0.3.145](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.145) — 2026-10-22
+
+[中英文发布说明 / Release notes](docs/releases/v0.3.145.md)。Windows build #145 全部自动化验证通过；真实 Wi-Fi 和显示器联动仍需实机复测。
+
 - 自动调节提升为独立侧栏入口，包含预设与调节、设备与接入、历史记录；提供连接、发现、Wi-Fi 向导和硬件选购兼容说明。
 - 已保存设备逐条显示，支持重命名和确认删除。同名设备以 ID/地址区分；重命名保留身份和历史，删除非当前设备不打断当前规则，删除当前设备停止自动调节。删除不重置硬件、不清除历史或无线绑定。
 - AUTO 增加 CH55xDuino USB 标识（1209:C550）候选，仍须通过 FC 身份握手才接受；不同 USB 标识可手动指定 COM 端口。
