@@ -29,7 +29,7 @@ public sealed partial class MainWindow
         ShellRoot.Loaded += (_, _) => { if (DeviceLinkActivation.Argument() is { } link) OpenSensorLink(link); };
         sensorArrivalTimer.Tick += async (_, _) =>
         {
-            if (closed || sensorArrivalBusy) return;
+            if (closed || sensorArrivalBusy || sensorSetupActive) return;
             sensorArrivalBusy = true;
             try
             {
@@ -51,22 +51,39 @@ public sealed partial class MainWindow
     }
     private void BuildSensorDeviceSettings(StackPanel section, TextBox port)
     {
-        var button = new Button { Content = T("USB 设备设置与配网", "USB device setup and Wi-Fi"), IsEnabled = !uiTest };
+        var button = new Button { Content = T("Wi-Fi 配网向导", "Wi-Fi setup wizard"), IsEnabled = !uiTest };
         button.Click += async (_, _) =>
         {
-            button.IsEnabled = false;
+            button.IsEnabled = false; sensorSetupActive = true;
             using var cancel = CancellationTokenSource.CreateLinkedTokenSource(sensorLifetime.Token); cancel.CancelAfter(TimeSpan.FromSeconds(30));
             try
             {
                 var devices = await LocalLightSensor.DiscoverAsync(port.Text.Trim(), cancel.Token);
                 if (devices.Count == 0) { ShowStatus(T("未发现兼容传感器，请关闭 Thonny 并检查主板程序和端口。", "No compatible sensor found. Close Thonny and check firmware and port."), InfoBarSeverity.Warning); return; }
-                if (!closed) await ShowSensorDeviceAsync(devices, port.Text.Trim().Equals("auto", StringComparison.OrdinalIgnoreCase));
+                if (!closed) await ShowWifiWizardAsync(devices);
             }
             catch (OperationCanceledException) { }
             catch { if (!closed) ShowStatus(T("设备操作失败或结果未确认，请重新读取状态。", "Device operation failed or is unconfirmed. Read status again."), InfoBarSeverity.Warning); }
-            finally { if (!closed) button.IsEnabled = true; }
+            finally { sensorSetupActive = false; if (!closed) button.IsEnabled = true; }
         };
         section.Children.Add(button);
+        var advanced = new Button { Content = T("USB 设备设置与配网", "USB device setup and Wi-Fi"), IsEnabled = !uiTest };
+        advanced.Click += async (_, _) =>
+        {
+            if (sensorSetupActive) return;
+            advanced.IsEnabled = false; sensorSetupActive = true;
+            using var cancel = CancellationTokenSource.CreateLinkedTokenSource(sensorLifetime.Token); cancel.CancelAfter(TimeSpan.FromSeconds(30));
+            try
+            {
+                var devices = await LocalLightSensor.DiscoverAsync(port.Text.Trim(), cancel.Token);
+                if (!closed && devices.Count > 0) await ShowSensorDeviceAsync(devices, port.Text.Trim().Equals("auto", StringComparison.OrdinalIgnoreCase));
+                else if (!closed) ShowStatus(T("未发现兼容传感器，请关闭 Thonny 并检查主板程序和端口。", "No compatible sensor found. Close Thonny and check firmware and port."), InfoBarSeverity.Warning);
+            }
+            catch (OperationCanceledException) { }
+            catch { if (!closed) ShowStatus(T("设备操作失败或结果未确认，请重新读取状态。", "Device operation failed or is unconfirmed. Read status again."), InfoBarSeverity.Warning); }
+            finally { sensorSetupActive = false; if (!closed) advanced.IsEnabled = true; }
+        };
+        section.Children.Add(advanced);
         var network = new Button { Content = T("发现已绑定的局域网设备", "Discover bound LAN devices"), IsEnabled = !uiTest };
         network.Click += async (_, _) =>
         {

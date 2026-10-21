@@ -57,3 +57,7 @@ In v0.3.135, Settings → Adaptive presets supports native RP2040 USB and HTTP l
 光照调节改为区间固定亮度，达到下一阈值才跳档；柱状编辑器对应档位，历史记录另有按时间排列的折线图及数值列表，断线处留空。可勾选多台显示器共用规则。升级会备份旧配置，保留阈值和目标，暂停旧光照自动调节供检查后重新开启；时间曲线不变。
 
 Ambient adjustment uses fixed bands and jumps at the next threshold. Bars edit those bands; a separate history line chart and value list show recorded samples with gaps. Multiple displays can share a rule. Migration backs up existing settings, preserves thresholds and targets, and pauses legacy ambient automation for review; clock curves are unchanged.
+
+开发版配网入口为「Wi-Fi 配网向导」：保持 USB 连接、关闭 Thonny，选择设备和 2.4 GHz 网络，输入密码后点下一步。向导自动保存绑定、等候 IP 并验证签名光照读数，成功后点完成切换到无线订阅。失败时提供重试；不会自动开启调光。旧「USB 设备设置与配网」保留用于管理。
+
+The unreleased Wi-Fi setup wizard guides device selection, 2.4 GHz network and password entry, connection polling and authenticated light-read verification. Keep USB connected and Thonny closed. Finish selects the wireless subscription without enabling brightness automation. Verification failures can be retried; the original USB management dialog remains available.

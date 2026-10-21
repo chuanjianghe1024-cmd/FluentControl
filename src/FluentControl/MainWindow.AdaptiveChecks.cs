@@ -122,6 +122,7 @@ public sealed partial class MainWindow
             }, 1000);
             if (historyCanvas.Children.OfType<Polyline>().Count() != 2 || historyCanvas.Children.OfType<Ellipse>().Count() != 3)
                 throw new InvalidOperationException("History chart filled a data gap or lost samples.");
+            await CheckWifiWizardAsync();
             StartupLog.Write("PASS: simulated automatic schedule output, slew rate, write interval, manual hold and disable gate.");
             StartupLog.Write("PASS: adaptive curve rendering, numeric edits, persistence, midnight endpoints and no channel mutation.");
         }

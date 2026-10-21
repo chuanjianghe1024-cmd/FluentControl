@@ -95,3 +95,18 @@ public static class NetworkSignalSensor
         return found.Select(x => (x.Key, x.Value)).ToArray();
     }
 }
+
+// A USB-reported, connected IPv4 address is only a candidate endpoint.
+// Setup succeeds only after NetworkSignalSensor verifies a signed, valid sample.
+public static class WifiSetupNetwork
+{
+    public static string? TryUrl(JsonElement status)
+    {
+        if (!status.TryGetProperty("state", out var state) || state.ValueKind != JsonValueKind.String || state.GetString() != "connected" ||
+            !status.TryGetProperty("ip", out var ip) || ip.ValueKind != JsonValueKind.String ||
+            !IPAddress.TryParse(ip.GetString(), out var address) || address.AddressFamily != AddressFamily.InterNetwork) return null;
+        var bytes = address.GetAddressBytes();
+        if (bytes[0] == 0 || bytes[0] == 127 || bytes[0] >= 224 || (bytes[0] == 169 && bytes[1] == 254)) return null;
+        return $"http://{address}:8766/v1/sample";
+    }
+}

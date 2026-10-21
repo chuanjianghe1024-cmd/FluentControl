@@ -47,7 +47,7 @@ public sealed partial class MainWindow
     private async Task TickAdaptiveAsync(bool fixture = false)
     {
         if (fixture && !uiTest) throw new InvalidOperationException("Automation fixture requires simulated devices.");
-        if (closed || (uiTest && !fixture) || adaptiveBusy) return;
+        if (closed || sensorSetupActive || (uiTest && !fixture) || adaptiveBusy) return;
         var now = DateTimeOffset.UtcNow;
         if (adaptiveLastTick != default && (now < adaptiveLastTick || now - adaptiveLastTick > TimeSpan.FromSeconds(10)))
         {

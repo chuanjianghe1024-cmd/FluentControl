@@ -2,6 +2,9 @@
 
 ## 未发布 / Unreleased
 
+- 新增六步 Wi-Fi 配网向导：设备检查、网络选择、密码、自动等待连接、签名光照读取验证、完成。自动保存绑定并在完成后选择无线订阅；失败可原步重试，连接期间暂停后台串口采集。保留原有 USB 管理入口。
+- Add a six-step Wi-Fi wizard with automatic binding, connection polling, authenticated light-read verification and final subscription selection. Retry LAN verification without re-entering credentials; pause background serial collection during setup. Existing USB management remains available.
+
 - 光照自动调节改为固定区间档位：区间内不插值，跨阈值后一次写入目标亮度；3 点中值过滤短暂遮挡。目标显示器支持多选，独立保留各屏读回和失败状态。
 - 光照历史新增按时间排列的折线图，断线和长时间缺测处留空，保留分页数值列表；调光编辑器用柱形显示区间亮度。
 - 旧单屏配置迁移为多选列表；旧光照曲线保留原阈值转换为 v2 档位，备份迁移前配置并暂停自动调节，需检查后重新开启。时间曲线保持原有插值和渐变。

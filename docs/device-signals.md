@@ -69,3 +69,11 @@ FC 正式发布提交为 `768fd670aab805833da8c28d9ee1a31bf3327e31`。FCS 从 `e
 完整安装、迁移、功能表和测试入口见 [FCS 兼容报告](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors/blob/main/docs/fc-v0.3.140-compatibility.md)（需要该仓库访问权限）。FCS 增加固定版本 C# 消费端回归：在 Windows 执行发布版原解析/HTTP 读取代码，传输及密钥存储为模拟；这不是新版固件的真实 COM、DPAPI、WinUI、手机或实体 C3 验收。既有 Windows build #140 的安装验收不扩大为无线硬件验收。本次不发布新的 FC 安装包。
 
 English: Later FCS C3 firmware adds SoftAP/BLE while preserving the v0.3.140 USB and signed-LAN contracts. Upload its five matching files together; preserve fc-config.json and existing setup.json. The latter is optional per-device setup data, not a mandatory sixth code file. No factory reset is needed for ordinary upgrades. Original release-pinned two-file instructions remain valid for the original feature set. FC v0.3.140 still requires one USB status read to save a binding after AP onboarding, cannot import binding JSON, and has no BLE subscription or AP-control UI. Use the FCS console for added operations. Pending USB provisioning takes precedence over AP changes; reset is USB-only. Pinned C# consumer tests on Windows use simulated transport/key storage and do not validate physical radios, serial ports, DPAPI, WinUI or phones. No new FC binary is released.
+
+## 开发版 Wi-Fi 配网向导（未发布） / Unreleased Wi-Fi wizard
+
+设置提供独立的六步配网向导：选择设备、选择 2.4 GHz 网络、输入密码、等待联网、验证无线光照、完成。通过 USB 自动读取和保存本机绑定；只有已联网的有效 IP 和通过认证的真实光照样本均成功后，才能完成并选择 Wi-Fi 订阅。自动调光保持关闭。
+
+配网期间暂停后台采样和端口发现，避免竞争同一串口。隐藏 SSID 可手输，无密码网络需明确勾选。等待阶段自动刷新；无线读取失败可单独重试，不重复提交密码。取消未完成配网会尽力发送 wifi.cancel，结果未确认时明确提示，不宣称取消成功。旧固件 20 秒失败后可能重连旧网络，因此向导在 18 秒内确认新连接，否则取消并要求重试，避免把旧网络当成本次成功。当前固件未报告具体认证错误，界面只提示检查网络、密码及信号，不断言密码错误。
+
+The six-step wizard saves USB binding automatically, polls connection state and requires an authenticated valid light sample before Finish selects Wi-Fi. It keeps automatic brightness off, pauses competing background serial work, supports hidden/open networks and retries LAN verification separately. Pending setup cancellation is best-effort and reports uncertainty. An 18-second confirmation window avoids mistaking older firmware's 20-second fallback to a previous network for successful setup. Firmware does not expose a precise authentication-failure reason; messages do not claim that the password is wrong.

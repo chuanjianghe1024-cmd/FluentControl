@@ -7,6 +7,11 @@ internal static class DeviceSignalTests
     private static void Check(bool b) { if (!b) throw new Exception("Device signal regression"); }
     internal static async Task RunAsync()
     {
+        Check(WifiSetupNetwork.TryUrl(JsonSerializer.SerializeToElement(new { state = "connected", ip = "192.168.1.25" })) == "http://192.168.1.25:8766/v1/sample");
+        foreach (var status in new[] { "configuring", "idle", "failed_restored", "disabled" })
+            Check(WifiSetupNetwork.TryUrl(JsonSerializer.SerializeToElement(new { state = status, ip = "192.168.1.25" })) is null);
+        foreach (var ip in new[] { "", "0.0.0.0", "127.0.0.1", "224.0.0.1", "169.254.1.1", "::1", "http://evil.test/" })
+            Check(WifiSetupNetwork.TryUrl(JsonSerializer.SerializeToElement(new { state = "connected", ip })) is null);
         var key = new string('1', 64); var nonce = new string('a', 32);
         Check(DeviceSignals.Verify(key, "message", DeviceSignals.Mac(key, "message")));
         Check(!DeviceSignals.Verify(key, "changed", DeviceSignals.Mac(key, "message")));
