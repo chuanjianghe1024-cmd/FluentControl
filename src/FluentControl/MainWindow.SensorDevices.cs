@@ -16,8 +16,7 @@ public sealed partial class MainWindow
         if (id is null || closed) return;
         requestedSensorId = id;
         AppWindow.Show(); Activate();
-        Navigation.SelectedItem = Navigation.SettingsItem;
-        selectedSettingsSection = "adaptive"; BuildSettings(); SelectSettingsSection("adaptive");
+        OpenAdaptivePage("devices");
         ShowStatus(T("请选择设备并确认添加订阅：", "Select the device and confirm subscription: ") + id, InfoBarSeverity.Informational);
     }
     private string lastSensorPorts = "";
@@ -39,8 +38,8 @@ public sealed partial class MainWindow
                 var devices = await LocalLightSensor.DiscoverAsync("auto", sensorLifetime.Token);
                 if (!closed && devices.Any(d => !state.Settings.Adaptive.LightSources.Any(s => s.DeviceId == d.Identity)))
                 {
-                    shell?.NotifySensor(T("发现 USB 信号设备，请到设置 → 自动调节添加订阅或配置设备。", "USB signal device found. Open Settings → Automatic adjustment to subscribe or configure."));
-                    ShowStatus(T("发现 USB 信号设备，请到设置 → 自动调节添加订阅或配置设备。", "USB signal device found. Open Settings → Automatic adjustment to subscribe or configure."), InfoBarSeverity.Informational);
+                    shell?.NotifySensor(T("发现 USB 信号设备，请到自动调节 → 设备与接入添加订阅或配置设备。", "USB signal device found. Open Automatic adjustment → Devices & setup to subscribe or configure."));
+                    ShowStatus(T("发现 USB 信号设备，请到自动调节 → 设备与接入添加订阅或配置设备。", "USB signal device found. Open Automatic adjustment → Devices & setup to subscribe or configure."), InfoBarSeverity.Informational);
                 }
             }
             catch (OperationCanceledException) { }
@@ -88,16 +87,18 @@ public sealed partial class MainWindow
         network.Click += async (_, _) =>
         {
             network.IsEnabled = false;
+            var listRevision = lightSourceListRevision;
             using var cancel = CancellationTokenSource.CreateLinkedTokenSource(sensorLifetime.Token); cancel.CancelAfter(TimeSpan.FromSeconds(15));
             try
             {
                 bool added = false;
                 foreach (var found in await NetworkSignalSensor.DiscoverAsync(cancel.Token))
                 {
-                    if (closed) return;
+                    if (closed || listRevision != lightSourceListRevision) return;
                     var source = new LightSourceSubscription { Name = found.Id, DeviceId = found.Id, Url = found.Url, SignedDevice = true };
                     try { await NetworkSignalSensor.ReadAsync(lightClient, source, cancel.Token); }
                     catch (Exception ex) when (ex is not OperationCanceledException) { continue; }
+                    if (closed || listRevision != lightSourceListRevision) return;
                     AddSensorSubscription(source); added = true;
                 }
                 if (!closed) { if (added) BuildSettings(); else ShowStatus(T("请先通过 USB 配网并保存绑定，再搜索同一局域网。", "Set up Wi-Fi and save binding over USB first, then search the same LAN."), InfoBarSeverity.Informational); }

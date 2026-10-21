@@ -11,7 +11,7 @@ public static class LocalLightSensor
 {
     private static readonly SemaphoreSlim SerialGate = new(1, 1);
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> KnownPorts = new();
-    // Enumeration alone sends nothing. Automatic probes are limited to RP2040 USB VID.
+    // Enumeration alone sends nothing. Candidates must still pass the FC protocol handshake.
     // Other boards require an explicitly selected port and compatible firmware.
     public static string[] CandidatePorts(string selection)
     {
@@ -20,7 +20,7 @@ public static class LocalLightSensor
         if (!OperatingSystem.IsWindows()) return Array.Empty<string>();
         using var usb = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Enum\USB");
         if (usb is null) return Array.Empty<string>();
-        foreach (var device in usb.GetSubKeyNames().Where(x => (x.StartsWith("VID_2E8A&", StringComparison.OrdinalIgnoreCase) || x.StartsWith("VID_303A&PID_1001", StringComparison.OrdinalIgnoreCase))))
+        foreach (var device in usb.GetSubKeyNames().Where(IsAutomaticCandidate))
         {
             using var key = usb.OpenSubKey(device);
             if (key is null) continue;
@@ -31,6 +31,13 @@ public static class LocalLightSensor
             }
         }
         return SerialPort.GetPortNames().Where(found.Contains).Order(StringComparer.OrdinalIgnoreCase).Take(8).ToArray();
+    }
+    public static bool IsAutomaticCandidate(string hardwareId)
+    {
+        var parts = hardwareId.Split('&');
+        return parts.Length >= 2 && (parts[0].Equals("VID_2E8A", StringComparison.OrdinalIgnoreCase) ||
+            (parts[0].Equals("VID_303A", StringComparison.OrdinalIgnoreCase) && parts[1].Equals("PID_1001", StringComparison.OrdinalIgnoreCase)) ||
+            (parts[0].Equals("VID_1209", StringComparison.OrdinalIgnoreCase) && parts[1].Equals("PID_C550", StringComparison.OrdinalIgnoreCase)));
     }
     private static SerialPort Open(string port)
     {

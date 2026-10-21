@@ -2,6 +2,12 @@
 
 ## 未发布 / Unreleased
 
+- 自动调节提升为独立侧栏入口，包含预设与调节、设备与接入、历史记录；提供连接、发现、Wi-Fi 向导和硬件选购兼容说明。
+- 已保存设备逐条显示，支持重命名和确认删除。同名设备以 ID/地址区分；重命名保留身份和历史，删除非当前设备不打断当前规则，删除当前设备停止自动调节。删除不重置硬件、不清除历史或无线绑定。
+- AUTO 增加 CH55xDuino USB 标识（1209:C550）候选，仍须通过 FC 身份握手才接受；不同 USB 标识可手动指定 COM 端口。
+- Promote automatic adjustment to its own sidebar page with presets, device onboarding and history. Rename or remove individual sources, preserving identity/history on rename and stopping automation when its active source is removed. Inactive deletion leaves the current rule running; removal does not reset hardware or erase bindings/history.
+- AUTO includes CH55xDuino USB 1209:C550 candidates, still requiring a valid FC handshake. Other USB identifiers require an explicit COM port.
+
 - 新增六步 Wi-Fi 配网向导：设备检查、网络选择、密码、自动等待连接、签名光照读取验证、完成。自动保存绑定并在完成后选择无线订阅；失败可原步重试，连接期间暂停后台串口采集。保留原有 USB 管理入口。
 - Add a six-step Wi-Fi wizard with automatic binding, connection polling, authenticated light-read verification and final subscription selection. Retry LAN verification without re-entering credentials; pause background serial collection during setup. Existing USB management remains available.
 

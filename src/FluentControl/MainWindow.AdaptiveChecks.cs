@@ -33,6 +33,7 @@ public sealed partial class MainWindow
             var local = new LightSourceSubscription { Id = "fixture-usb", Name = "Fixture probe", Url = "fc-usb://auto", DeviceId = "fixture-probe" };
             state.Settings.Adaptive.LightSources.Add(local); state.Settings.Adaptive.ActiveSourceId = local.Id;
             BuildSettings(); SelectSettingsSection("adaptive");
+            SelectSettingsSection("devices");
             // Rebuilt ScrollViewer content enters the visual tree on the next layout pass.
             await Task.Delay(100); SettingsPanel.UpdateLayout();
             var interval = Descendants<NumberBox>(SettingsPanel).Single(x => AutomationProperties.GetAutomationId(x) == "light-sampling-seconds");
@@ -123,6 +124,7 @@ public sealed partial class MainWindow
             if (historyCanvas.Children.OfType<Polyline>().Count() != 2 || historyCanvas.Children.OfType<Ellipse>().Count() != 3)
                 throw new InvalidOperationException("History chart filled a data gap or lost samples.");
             await CheckWifiWizardAsync();
+            await CheckLightSourceManagementAsync();
             StartupLog.Write("PASS: simulated automatic schedule output, slew rate, write interval, manual hold and disable gate.");
             StartupLog.Write("PASS: adaptive curve rendering, numeric edits, persistence, midnight endpoints and no channel mutation.");
         }

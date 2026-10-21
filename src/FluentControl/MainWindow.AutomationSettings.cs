@@ -85,6 +85,19 @@ public sealed partial class MainWindow
             var sources = new List<LightSourceSubscription> { new() { Id = "simulation", Name = T("内置模拟光照", "Built-in simulated light") } }; sources.AddRange(s.LightSources);
             var picker = new ComboBox { Header = T("光照数据订阅", "Light data subscription"), ItemsSource = sources, SelectedItem = sources.FirstOrDefault(x => x.Id == s.ActiveSourceId), MinWidth = 240 };
             picker.SelectionChanged += (_, _) => { if (picker.SelectedItem is LightSourceSubscription source) { s.ActiveSourceId = source.Id; SaveAdaptiveSettings(); BuildSettings(); } }; section.Children.Add(picker);
+            var devices = new Button { Content = T("管理与接入设备", "Manage and connect devices") };
+            devices.Click += (_, _) => OpenAdaptivePage("devices"); section.Children.Add(devices);
+        }
+    }
+
+    private void BuildLightDeviceSettings(StackPanel section)
+    {
+        var s = state.Settings.Adaptive;
+        TextBlock Text(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap };
+            var sources = new List<LightSourceSubscription> { new() { Id = "simulation", Name = T("内置模拟光照", "Built-in simulated light") } }; sources.AddRange(s.LightSources);
+            var picker = new ComboBox { Header = T("光照数据订阅", "Light data subscription"), ItemsSource = sources, SelectedItem = sources.FirstOrDefault(x => x.Id == s.ActiveSourceId), MinWidth = 240 };
+            picker.SelectionChanged += (_, _) => { if (picker.SelectedItem is LightSourceSubscription source) { s.ActiveSourceId = source.Id; SaveAdaptiveSettings(); BuildSettings(); } }; section.Children.Add(picker);
+            BuildSavedLightSources(section);
             var localPort = new TextBox { Header = T("本地传感器端口", "Local sensor port"), Text = "auto", PlaceholderText = "auto / COM5", MaxLength = 16 };
             section.Children.Add(localPort);
             var discover = new Button { Content = T("发现并订阅本地传感器", "Discover and subscribe to local sensors"), IsEnabled = !uiTest && s.LightSources.Count < 32 };
@@ -149,10 +162,7 @@ public sealed partial class MainWindow
                 var history = new Button { Content = T("查看光照历史", "View light history") };
                 history.Click += async (_, _) => await ShowLightHistoryAsync(selected);
                 section.Children.Add(history);
-                var remove = new Button { Content = T("删除", "Delete") };
-                remove.Click += (_, _) => { s.LightSources.Remove(selected); s.ActiveSourceId = "simulation"; s.Enabled = false; SaveAdaptiveSettings(); BuildSettings(); }; section.Children.Add(remove);
             }
-        }
     }
 
     private void BuildLightSamplingInterval(StackPanel section, LightSourceSubscription source)

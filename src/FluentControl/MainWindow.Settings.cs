@@ -12,12 +12,14 @@ public sealed partial class MainWindow
     private readonly Dictionary<string, StackPanel> settingsSections = new();
     private void SelectSettingsSection(string id)
     {
+        if (id == "adaptive") { OpenAdaptivePage(); return; }
         if (settingsNavigation is null) return;
         settingsNavigation.SelectedItem = settingsNavigation.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(x => (string)x.Tag == id)
             ?? settingsNavigation.MenuItems[0];
     }
     private void BuildSettings()
     {
+        if ((Navigation.SelectedItem as NavigationViewItem)?.Tag as string == "adaptive") { BuildAdaptivePage(); return; }
         SettingsPanel.Children.Clear(); settingsSections.Clear();
         settingsNavigation = new NavigationView
         {
@@ -91,8 +93,6 @@ public sealed partial class MainWindow
             finally { if (!closed) rescanDisplays.IsEnabled = true; }
         };
         section.Children.Add(SettingsRow(T("显示器功能检测", "Display capability scan"), T("通常复用能力缓存；更换连接或显示器模式后，可重新完整检测", "Normally reuses cached capabilities. Detect again after changing connections or monitor modes."), rescanDisplays));
-        Section("adaptive", T("自动调节预设", "Adaptive presets"));
-        BuildAdaptiveSettings(section);
         Section("shortcuts", T("全局快捷键", "Global shortcuts"));
         Toggle(T("启用快捷键", "Enable shortcuts"), T("若组合已被占用，会显示冲突而不抢占", "Conflicts are reported without taking over other shortcuts"), state.Settings.HotkeysEnabled, value =>
         {

@@ -1,5 +1,14 @@
 # 自动亮度、时间主题与光照数据订阅
 
+## 新版入口与设备管理 / Updated navigation and devices
+
+- 自动调节提升为独立侧栏入口，包含预设与调节、设备与接入、历史记录；提供连接、发现、Wi-Fi 向导和硬件选购兼容说明。
+- 已保存设备逐条显示，支持重命名和确认删除。同名设备以 ID/地址区分；重命名保留身份和历史，删除非当前设备不打断当前规则，删除当前设备停止自动调节。删除不重置硬件、不清除历史或无线绑定。
+- AUTO 增加 CH55xDuino USB 标识（1209:C550）候选，仍须通过 FC 身份握手才接受；不同 USB 标识可手动指定 COM 端口。
+- Promote automatic adjustment to its own sidebar page with presets, device onboarding and history. Rename or remove individual sources, preserving identity/history on rename and stopping automation when its active source is removed. Inactive deletion leaves the current rule running; removal does not reset hardware or erase bindings/history.
+- AUTO includes CH55xDuino USB 1209:C550 candidates, still requiring a valid FC handshake. Other USB identifiers require an explicit COM port.
+
+
 ## 开发版变更（尚未发布） / Unreleased changes
 
 光照调节采用 **固定档位**：每个节点的 lux 是该档下限，达到下一下限进入下一档；例如 100–不足 500 lux 固定为 40%，500 lux 起为 65%。低于首阈值和超过 10000 lux 使用首/末档。区间内不会随 lux 插值，也不会为了渐变反复发送中间亮度。保留 3 点中值过滤和至少 2 秒的切档间隔，手动调整仍保持 10 分钟。时间与日出日落模式保留原有渐变。

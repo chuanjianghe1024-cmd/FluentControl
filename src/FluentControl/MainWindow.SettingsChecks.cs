@@ -30,7 +30,7 @@ public sealed partial class MainWindow
         try
         {
             Navigation.SelectedItem = Navigation.SettingsItem; BuildSettings();
-            if (settingsSections.Count != 7 || handler.Requests != 0 || updateCancellation is not null) throw new InvalidOperationException("Opening settings must expose seven sections without checking updates.");
+            if (settingsSections.Count != 6 || handler.Requests != 0 || updateCancellation is not null) throw new InvalidOperationException("Opening settings must expose six sections without checking updates.");
             foreach (var id in settingsSections.Keys.ToArray())
             {
                 SelectSettingsSection(id); SettingsPanel.UpdateLayout();

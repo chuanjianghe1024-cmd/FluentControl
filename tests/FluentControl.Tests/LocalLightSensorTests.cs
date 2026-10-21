@@ -12,6 +12,10 @@ internal static class LocalLightSensorTests
     private static JsonElement Frame(object value) => JsonSerializer.SerializeToElement(value);
     internal static void Run()
     {
+        foreach (var id in new[] { "VID_2E8A&PID_0005", "VID_303A&PID_1001&MI_00", "vid_1209&pid_c550" })
+            Check(LocalLightSensor.IsAutomaticCandidate(id), "Known USB candidate");
+        foreach (var id in new[] { "VID_1209&PID_C551", "VID_303A&PID_10010", "VID_1A86&PID_7523", "VID_1209", "" })
+            Check(!LocalLightSensor.IsAutomaticCandidate(id), "Unrelated USB device excluded");
         Check(LocalLightProtocol.PortFor("fc-usb://auto") == "AUTO", "Automatic port selection");
         Check(LocalLightProtocol.PortFor("fc-usb://com5") == "COM5", "Explicit port selection");
         foreach (var url in new[] { "fc-usb://com0", "fc-usb://auto/run", "fc-usb://user@auto", "fc-usb://auto?command=READ", "http://auto", "fc-usb://auto:123" })

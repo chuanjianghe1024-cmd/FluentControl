@@ -18,6 +18,9 @@
             <NavigationViewItem Content="型号配置库" Tag="library" AutomationProperties.AutomationId="nav-library">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE8F1;"/></NavigationViewItem.Icon>
             </NavigationViewItem>
+            <NavigationViewItem Content="自动调节" Tag="adaptive" AutomationProperties.AutomationId="nav-adaptive">
+                <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;"/></NavigationViewItem.Icon>
+            </NavigationViewItem>
         </NavigationView.MenuItems>
         <Grid x:Name="Root" Padding="28,24,28,20" RowSpacing="20">
             <Grid.RowDefinitions>
