@@ -21,6 +21,12 @@ Voicemeeter、虚拟声卡或 NVIDIA Broadcast 等线路由你在系统或对应
 - **Win+D**：支持系统“显示桌面”；返回桌面后仍可双击解锁。
 - 锁定状态不会通过点击写入设备。若遇到前置或 DPI 问题，请记录 Windows 版本和缩放比例后[反馈](Diagnostics-and-Compatibility.md)。
 
+桌面组件在整体和单独模式下都显示 HDR 屏幕名称与调节限制。HDR 下部分显示器会锁定亮度等参数；关闭 HDR 后重新读取设备可更新提示。
+
+组件的“自动调节”开关与主界面共用同一规则和目标屏幕，不会因切换整体/单独模式而改变目标；先在自动调节页面配置好规则，解锁组件后即可切换。手动调整仍保留原有 10 分钟保持逻辑。
+
+选择已接入的光照来源后，组件显示 lux 与采样时间。即使关闭自动调光，也会按该来源的采样周期刷新，不强制开启历史记录；失联或过期时显示不可用。锁定组件不影响只读采样。外部更改显示器 HDR 后需刷新设备状态。
+
 ### 默认全局快捷键
 
 | 快捷键 | 动作 |
@@ -42,5 +48,9 @@ Unavailable input stays unavailable, and updating a profile preserves previously
 ### Desktop panel and shortcuts
 
 Enable the panel under **Settings → Desktop controls**, choose linked or individual controls, and adjust position, size and opacity (10%–85%). Extra rows scroll. Double-click to unlock and bring it to the foreground; losing focus or pressing Esc locks it at the desktop layer. Win+D is supported. Locked clicks do not write to devices.
+
+Both desktop modes show affected display names and HDR limitations; refresh devices after changing HDR externally. The automatic-adjustment switch shares the main window's configured rule and targets, independently of desktop grouping. Unlock before toggling; manual brightness changes retain the existing ten-minute hold.
+
+The selected light subscription shows lux and sample time at its configured polling interval, including with automatic brightness off. This does not enable history recording. Failed or stale readings show unavailable; locking does not stop read-only sampling.
 
 Default shortcuts are `Ctrl+Alt+Shift+Space` to open the main panel, `Ctrl+Alt+Shift+Left/Right` to switch global profiles across groups, and `Ctrl+Alt+Shift+Down` to hide the panel. They can be disabled together; registration conflicts are reported. Profile switching applies saved settings, while opening or hiding the window does not.

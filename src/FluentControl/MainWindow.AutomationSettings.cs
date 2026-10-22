@@ -13,7 +13,8 @@ public sealed partial class MainWindow
         var s = state.Settings.Adaptive;
         TextBlock Text(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap };
         var enable = new ToggleSwitch { Header = T("启用自动调节", "Enable automatic adjustment"), IsOn = s.Enabled };
-        enable.Toggled += (_, _) => { s.Enabled = enable.IsOn; Interlocked.Exchange(ref manualBrightnessHold, 0); SaveAdaptiveSettings(); };
+        adaptiveEnableToggle = enable;
+        enable.Toggled += (_, _) => { if (s.Enabled == enable.IsOn) return; s.Enabled = enable.IsOn; Interlocked.Exchange(ref manualBrightnessHold, 0); SaveAdaptiveSettings(); };
         section.Children.Add(enable);
         section.Children.Add(Text(T("订阅光照数据，或按时间/日出日落调节。首次启用会实际调整选中的屏幕；模拟来源也会生效。", "Subscribe to light data or schedule by time/sunrise. Enabling adjusts the selected display, including when using simulated data.")));
         var mode = new ComboBox { Header = T("调节依据", "Adjustment basis"), MinWidth = 240,

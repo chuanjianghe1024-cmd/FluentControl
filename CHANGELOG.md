@@ -2,6 +2,11 @@
 
 ## 未发布 / Unreleased
 
+- 桌面组件在整体和单独模式下均显示受 HDR 影响的屏幕及调节限制，增加与主界面同步的自动调节开关；沿用已配置的规则和目标屏幕。
+- 已接入的当前光照来源在桌面组件显示 lux 与采样时间，自动调光关闭后仍按订阅周期刷新，不强制开启历史记录；失联或样本过期不显示旧值为实时数据。
+- Desktop panels show per-display HDR limitations in both modes and share the automatic-adjustment switch and configured targets with the main window. Selected light subscriptions refresh lux and sample time even with automatic brightness off, without enabling history; stale/failed samples are not shown as live.
+
+
 ## [0.3.145](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.145) — 2026-10-22
 
 [中英文发布说明 / Release notes](docs/releases/v0.3.145.md)。Windows build #145 全部自动化验证通过；真实 Wi-Fi 和显示器联动仍需实机复测。

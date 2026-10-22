@@ -742,7 +742,9 @@
     "Viewing history does not switch the active light source.": "查看歷史不會切換目前使用的光照來源。",
     "Automatic adjustment": "自動調節",
     "Adjust displays by light or time; manage presets, devices and history.": "按光照或時間調節螢幕，管理預設、裝置與歷史。",
-    "USB signal device found. Open Automatic adjustment → Devices & setup to subscribe or configure.": "發現 USB 訊號裝置，請至自動調節 → 裝置與接入新增訂閱或設定。"
+    "USB signal device found. Open Automatic adjustment → Devices & setup to subscribe or configure.": "發現 USB 訊號裝置，請至自動調節 → 裝置與接入新增訂閱或設定。",
+    "Uses automatic adjustment rule · {0}": "沿用自動調節規則 · {0}",
+    "Light unavailable; waiting to retry": "光照無法取得，等待重試"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -1487,7 +1489,9 @@
     "Viewing history does not switch the active light source.": "履歴の表示で使用中の照度ソースは切り替わりません。",
     "Automatic adjustment": "自動調整",
     "Adjust displays by light or time; manage presets, devices and history.": "照度や時間で画面を調整し、プリセット、デバイス、履歴を管理します。",
-    "USB signal device found. Open Automatic adjustment → Devices & setup to subscribe or configure.": "USB信号デバイスを検出しました。自動調整 → デバイスと接続で購読または設定してください。"
+    "USB signal device found. Open Automatic adjustment → Devices & setup to subscribe or configure.": "USB信号デバイスを検出しました。自動調整 → デバイスと接続で購読または設定してください。",
+    "Uses automatic adjustment rule · {0}": "自動調整ルールを使用 · {0}",
+    "Light unavailable; waiting to retry": "照度を取得できません。再試行を待機中"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -2232,7 +2236,9 @@
     "Viewing history does not switch the active light source.": "기록을 봐도 현재 조도 소스는 바뀌지 않습니다.",
     "Automatic adjustment": "자동 조절",
     "Adjust displays by light or time; manage presets, devices and history.": "조도나 시간에 따라 화면을 조절하고 프리셋, 장치와 기록을 관리하세요.",
-    "USB signal device found. Open Automatic adjustment → Devices & setup to subscribe or configure.": "USB 신호 장치를 발견했습니다. 자동 조절 → 장치 및 연결에서 구독하거나 설정하세요."
+    "USB signal device found. Open Automatic adjustment → Devices & setup to subscribe or configure.": "USB 신호 장치를 발견했습니다. 자동 조절 → 장치 및 연결에서 구독하거나 설정하세요.",
+    "Uses automatic adjustment rule · {0}": "자동 조절 규칙 사용 · {0}",
+    "Light unavailable; waiting to retry": "조도를 사용할 수 없습니다. 재시도 대기 중"
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -2977,7 +2983,9 @@
     "Viewing history does not switch the active light source.": "Die Verlaufsanzeige wechselt die aktive Lichtquelle nicht.",
     "Automatic adjustment": "Automatische Anpassung",
     "Adjust displays by light or time; manage presets, devices and history.": "Displays nach Licht oder Zeit anpassen; Voreinstellungen, Geräte und Verlauf verwalten.",
-    "USB signal device found. Open Automatic adjustment → Devices & setup to subscribe or configure.": "USB-Signalgerät gefunden. Unter Automatische Anpassung → Geräte & Einrichtung abonnieren oder konfigurieren."
+    "USB signal device found. Open Automatic adjustment → Devices & setup to subscribe or configure.": "USB-Signalgerät gefunden. Unter Automatische Anpassung → Geräte & Einrichtung abonnieren oder konfigurieren.",
+    "Uses automatic adjustment rule · {0}": "Verwendet automatische Anpassungsregel · {0}",
+    "Light unavailable; waiting to retry": "Lichtwert nicht verfügbar; erneuter Versuch ausstehend"
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -3722,7 +3730,9 @@
     "Viewing history does not switch the active light source.": "Consulter l’historique ne change pas la source lumineuse active.",
     "Automatic adjustment": "Réglage automatique",
     "Adjust displays by light or time; manage presets, devices and history.": "Réglez les écrans selon la lumière ou l’heure ; gérez préréglages, appareils et historique.",
-    "USB signal device found. Open Automatic adjustment → Devices & setup to subscribe or configure.": "Appareil USB détecté. Ouvrez Réglage automatique → Appareils et connexion pour vous abonner ou le configurer."
+    "USB signal device found. Open Automatic adjustment → Devices & setup to subscribe or configure.": "Appareil USB détecté. Ouvrez Réglage automatique → Appareils et connexion pour vous abonner ou le configurer.",
+    "Uses automatic adjustment rule · {0}": "Utilise la règle de réglage automatique · {0}",
+    "Light unavailable; waiting to retry": "Luminosité indisponible ; nouvelle tentative en attente"
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -4467,6 +4477,8 @@
     "Viewing history does not switch the active light source.": "Ver el historial no cambia la fuente de luz activa.",
     "Automatic adjustment": "Ajuste automático",
     "Adjust displays by light or time; manage presets, devices and history.": "Ajusta pantallas según la luz o la hora; gestiona preajustes, dispositivos e historial.",
-    "USB signal device found. Open Automatic adjustment → Devices & setup to subscribe or configure.": "Dispositivo USB detectado. Abre Ajuste automático → Dispositivos y conexión para suscribirte o configurarlo."
+    "USB signal device found. Open Automatic adjustment → Devices & setup to subscribe or configure.": "Dispositivo USB detectado. Abre Ajuste automático → Dispositivos y conexión para suscribirte o configurarlo.",
+    "Uses automatic adjustment rule · {0}": "Usa la regla de ajuste automático · {0}",
+    "Light unavailable; waiting to retry": "Iluminancia no disponible; esperando reintento"
   }
 }

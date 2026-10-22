@@ -367,7 +367,7 @@ public sealed partial class MainWindow
     }
     private void SynchronizeValues()
     {
-        foreach (var refresh in refreshRows) refresh(); desktopPanel?.RefreshValues();
+        foreach (var refresh in refreshRows) refresh(); desktopPanel?.RefreshValues(); UpdateDesktopStatus();
     }
     private List<PanelRow> DesktopCandidates()
     {
@@ -432,17 +432,18 @@ public sealed partial class MainWindow
     {
         try
         {
-            if (!state.Settings.DesktopPanelEnabled || closed) { desktopPanel?.Close(); desktopPanel = null; return; }
+            if (!state.Settings.DesktopPanelEnabled || closed) { desktopPanel?.Close(); desktopPanel = null; desktopLightRequest?.Cancel(); return; }
             // A live theme change on this transparent secondary WinUI window can
             // invalidate theme resources during layout. Recreate with its final theme.
             if (desktopPanel is not null && desktopPanel.UsesLightText != state.Settings.DesktopLightText)
             { desktopPanel.Close(); desktopPanel = null; }
-            desktopPanel ??= new DesktopPanelWindow(state.Settings, delta => _ = SwitchDesktopGroupAsync(delta), delta => _ = SwitchDesktopProfileAsync(delta), linked => _ = SetDesktopMonitorModeAsync(linked), () =>
+            desktopPanel ??= new DesktopPanelWindow(state.Settings, delta => _ = SwitchDesktopGroupAsync(delta), delta => _ = SwitchDesktopProfileAsync(delta), linked => _ = SetDesktopMonitorModeAsync(linked), SetDesktopAutomatic, () =>
             {
                 pendingStateTimer.Stop(); pendingStateTimer.Start();
             });
             var version = generation;
             var selected = DesktopCandidates().Where(x => state.Settings.DesktopRows.Contains(x.Key)).ToList();
+            UpdateDesktopStatus();
             desktopPanel.UpdateRows(selected, state.Settings, async (targets, value, linked) =>
             {
                 var page = notificationContext;
@@ -572,6 +573,7 @@ public sealed partial class MainWindow
             await Task.Delay(250);
             if (desktopPanel is null || desktopPanel.RowCount != 2 || desktopPanel.IsUnlocked) throw new InvalidOperationException("Desktop panel did not start locked with two rows.");
             await CheckDesktopLinkedControlsAsync();
+            await CheckDesktopStatusAsync();
             await CheckPanelTextSwitchAsync();
             await CheckDesktopNavigationAsync();
             desktopPanel!.SetUnlocked(true);

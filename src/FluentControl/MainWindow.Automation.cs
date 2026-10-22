@@ -32,31 +32,33 @@ public sealed partial class MainWindow
     private void StopAdaptiveAutomation()
     {
         sensorArrivalTimer.Stop(); sensorLifetime.Cancel();
-        adaptiveTimer.Stop(); lightRequest?.Cancel(); localDiscovery?.Cancel();
+        adaptiveTimer.Stop(); lightRequest?.Cancel(); localDiscovery?.Cancel(); desktopLightRequest?.Cancel();
         ControlOperations.ManualBrightnessRequested -= HoldAdaptiveBrightness;
         adaptiveRevision++; automaticTheme = null;
     }
     private void HoldAdaptiveBrightness() => Interlocked.Exchange(ref manualBrightnessHold, DateTimeOffset.UtcNow.AddMinutes(10).UtcTicks);
     private void SaveAdaptiveSettings()
     {
-        adaptiveRevision++; lightRequest?.Cancel(); adaptiveFilter.Reset(); adaptiveDue = default; adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); adaptiveOutputFault = false; adaptiveFailedTargets.Clear();
+        adaptiveRevision++; lightRequest?.Cancel(); desktopLightRequest?.Cancel(); desktopLightSample = null; desktopLightDue = default; desktopLightFailed = false; adaptiveFilter.Reset(); adaptiveDue = default; adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); adaptiveOutputFault = false; adaptiveFailedTargets.Clear();
         if (!state.Settings.Adaptive.Enabled || !state.Settings.Adaptive.ThemeEnabled || state.Settings.Adaptive.Mode == "ambient") { automaticTheme = null; ApplyAppTheme(); }
-        SaveState();
+        SaveState(); UpdateDesktopStatus();
     }
     private void AdaptiveStatus(string text) { if (adaptiveLiveStatus is not null) adaptiveLiveStatus.Text = text; }
     private async Task TickAdaptiveAsync(bool fixture = false)
     {
         if (fixture && !uiTest) throw new InvalidOperationException("Automation fixture requires simulated devices.");
+        UpdateDesktopStatus();
         if (closed || sensorSetupActive || (uiTest && !fixture) || adaptiveBusy) return;
+        if (state.Settings.Adaptive.Mode != "ambient") _ = RefreshDesktopLightAsync();
         var now = DateTimeOffset.UtcNow;
         if (adaptiveLastTick != default && (now < adaptiveLastTick || now - adaptiveLastTick > TimeSpan.FromSeconds(10)))
         {
             // Sleep/resume and wall-clock changes invalidate all pre-sleep samples.
-            adaptiveFilter.Reset(); adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); adaptiveDue = default; adaptiveLastWrite = now;
+            adaptiveFilter.Reset(); desktopLightSample = null; desktopLightDue = default; adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); adaptiveDue = default; adaptiveLastWrite = now;
         }
         adaptiveLastTick = now;
         var s = state.Settings.Adaptive;
-        bool collectOnly = (!s.Enabled || adaptiveOutputFault) && s.RecordLightHistory && s.Mode == "ambient" && s.ActiveSourceId != "simulation";
+        bool collectOnly = (!s.Enabled || adaptiveOutputFault) && (s.RecordLightHistory || desktopPanel is not null) && s.Mode == "ambient" && s.ActiveSourceId != "simulation";
         if ((!s.Enabled && !collectOnly) || (adaptiveOutputFault && !collectOnly) || refreshing || hdrChanging || colorExiting || pendingWrites > 0 || applyingProfile || monitorAdaptationDialog is not null || now < adaptiveDue) return;
         var source = s.LightSources.FirstOrDefault(x => x.Id == s.ActiveSourceId);
         var period = s.Mode == "ambient" ? source?.PollMilliseconds ?? 1000 : 1000;
@@ -100,6 +102,7 @@ public sealed partial class MainWindow
                     finally { lightRequest = null; }
                 }
                 if (closed || revision != adaptiveRevision || version != generation) return;
+                PublishDesktopLight(s.ActiveSourceId, sample);
                 if (s.RecordLightHistory && !uiTest) await RecordLightSampleAsync(s.ActiveSourceId, sample);
                 if (closed || revision != adaptiveRevision || version != generation) return;
                 if (!s.Enabled || adaptiveOutputFault) { AdaptiveStatus($"{sample.SourceId} · {sample.Lux:0.##} lux"); return; }
@@ -175,9 +178,18 @@ public sealed partial class MainWindow
             }
             finally { gate.Release(); }
         }
-        catch (OperationCanceledException) { if (revision == adaptiveRevision && s.RecordLightHistory && mode == "ambient" && !uiTest) await RecordLightSampleAsync(s.ActiveSourceId, null); adaptiveFilter.Reset(); if (revision == adaptiveRevision) adaptiveDue = DateTimeOffset.UtcNow.AddSeconds(10); AdaptiveStatus(T("光照来源超时或已取消", "Light source timed out or canceled")); }
+        catch (OperationCanceledException)
+        {
+            if (closed || revision != adaptiveRevision || version != generation) return;
+            if (mode == "ambient") FailDesktopLight();
+            if (s.RecordLightHistory && mode == "ambient" && !uiTest) await RecordLightSampleAsync(s.ActiveSourceId, null);
+            adaptiveFilter.Reset(); adaptiveDue = DateTimeOffset.UtcNow.AddSeconds(10);
+            AdaptiveStatus(T("光照来源超时或已取消", "Light source timed out or canceled"));
+        }
         catch (Exception ex)
         {
+            if (closed || revision != adaptiveRevision || version != generation) return;
+            if (mode == "ambient" && !outputStage) FailDesktopLight();
             if (revision == adaptiveRevision && s.RecordLightHistory && mode == "ambient" && !outputStage && !uiTest) await RecordLightSampleAsync(s.ActiveSourceId, null);
             adaptiveFilter.Reset(); adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); adaptiveDue = DateTimeOffset.UtcNow.AddSeconds(10);
             if (outputStage) adaptiveOutputFault = true;

@@ -14,6 +14,15 @@ internal sealed class DesktopPanelWindow : Window
     private readonly Grid root = new() { Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
     private readonly Grid body = new() { Margin = new Thickness(10), RowSpacing = 6 };
     private readonly StackPanel rows = new();
+    private readonly StackPanel statusRows = new() { Spacing = 4, Margin = new Thickness(0, 0, 0, 6) };
+    private readonly ToggleSwitch automaticBrightness = new() { MinWidth = 0 };
+    private readonly TextBlock lightReading = new() { FontSize = 12, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock automaticTargets = new() { FontSize = 11, Opacity = .75, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock hdrNotice = new() { FontSize = 11, TextWrapping = TextWrapping.Wrap };
+    private bool syncingAutomatic;
+    internal bool AutomaticEnabled => automaticBrightness.IsOn;
+    internal string LightReadingText => lightReading.Text;
+    internal string HdrNoticeText => hdrNotice.Text;
     private readonly Grid header = new() { ColumnSpacing = 4, RowSpacing = 2 };
     private readonly Grid footer = new() { ColumnSpacing = 6, Margin = new Thickness(0, 0, 24, 0) };
     private readonly Button monitorMode = new() { FontSize = 11, MinHeight = 28, Padding = new Thickness(7, 2, 7, 2), VerticalAlignment = VerticalAlignment.Center, Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
@@ -49,7 +58,7 @@ internal sealed class DesktopPanelWindow : Window
     internal byte BackdropAlpha => backdrop.TintColor.A;
     internal nint Handle => hwnd;
     internal string LayerDiagnosticState => layer.DiagnosticState;
-    internal DesktopPanelWindow(AppSettings settings, Action<int> switchGroup, Action<int> switchProfile, Action<bool> setMonitorMode, Action changed)
+    internal DesktopPanelWindow(AppSettings settings, Action<int> switchGroup, Action<int> switchProfile, Action<bool> setMonitorMode, Action<bool> setAutomatic, Action changed)
     {
         this.settings = settings; this.changed = changed;
         root.RequestedTheme = settings.DesktopLightText ? ElementTheme.Dark : ElementTheme.Light;
@@ -81,7 +90,19 @@ internal sealed class DesktopPanelWindow : Window
         Grid.SetColumn(groupName, 1); header.Children.Add(groupName);
         Grid.SetRow(profileName, 1); Grid.SetColumn(profileName, 1); header.Children.Add(profileName);
         body.Children.Add(header);
-        var scroll = new ScrollViewer { Content = rows, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, HorizontalContentAlignment = HorizontalAlignment.Stretch, MinHeight = 32 };
+        automaticBrightness.Toggled += (_, _) =>
+        {
+            if (syncingAutomatic) return;
+            if (!active || closing) { SetAutomaticState(this.settings.Adaptive.Enabled); return; }
+            setAutomatic(automaticBrightness.IsOn);
+        };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(automaticBrightness, "desktop-automatic-brightness");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(lightReading, "desktop-lux");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(hdrNotice, "desktop-hdr-notice");
+        statusRows.Children.Add(automaticBrightness); statusRows.Children.Add(automaticTargets);
+        statusRows.Children.Add(lightReading); statusRows.Children.Add(hdrNotice);
+        var scrollingRows = new StackPanel(); scrollingRows.Children.Add(statusRows); scrollingRows.Children.Add(rows);
+        var scroll = new ScrollViewer { Content = scrollingRows, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, HorizontalContentAlignment = HorizontalAlignment.Stretch, MinHeight = 32 };
         Grid.SetRow(scroll, 1); body.Children.Add(scroll);
         footer.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
         footer.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
@@ -293,14 +314,33 @@ internal sealed class DesktopPanelWindow : Window
         if (source.Count == 0) rows.Children.Add(new TextBlock { Text = Strings.T("请在设置中选择控制项", "Choose rows in Settings"), FontSize = 12 });
         var width = Math.Clamp(settings.DesktopWidth, 280, 900);
         rows.Measure(new Windows.Foundation.Size(width - 20, double.PositiveInfinity));
+        statusRows.Measure(new Windows.Foundation.Size(width - 20, double.PositiveInfinity));
         footer.Measure(new Windows.Foundation.Size(width - 20, double.PositiveInfinity));
         header.Measure(new Windows.Foundation.Size(width - 20, double.PositiveInfinity));
         var minimum = Math.Max(MinimumHeight, 20 + header.DesiredSize.Height + 12 + 32 + footer.DesiredSize.Height);
         var visibleRowsHeight = rows.Children.OfType<FrameworkElement>().Take(settings.DesktopMaxRows).Sum(row => row.DesiredSize.Height);
-        var automaticHeight = Math.Max(minimum, 20 + header.DesiredSize.Height + 12 + visibleRowsHeight + footer.DesiredSize.Height);
+        var automaticHeight = Math.Max(minimum, 20 + header.DesiredSize.Height + 12 + statusRows.DesiredSize.Height + visibleRowsHeight + footer.DesiredSize.Height);
         var height = Math.Clamp(settings.DesktopHeight ?? automaticHeight, minimum, 1000);
         AppWindow.ResizeClient(new SizeInt32((int)Math.Ceiling(width * Scale), (int)Math.Ceiling(height * Scale)));
         ClampPosition();
+    }
+    private void SetAutomaticState(bool enabled)
+    {
+        syncingAutomatic = true;
+        try { automaticBrightness.IsOn = enabled; }
+        finally { syncingAutomatic = false; }
+    }
+    internal void UpdateStatus(bool enabled, string targets, string lux, string hdr)
+    {
+        automaticBrightness.Header = Strings.T("自动调节", "Automatic adjustment");
+        automaticBrightness.OnContent = Strings.T("开启", "On");
+        automaticBrightness.OffContent = Strings.T("关闭", "Off");
+        SetAutomaticState(enabled);
+        automaticTargets.Text = targets;
+        lightReading.Text = lux;
+        lightReading.Visibility = lux.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        hdrNotice.Text = hdr;
+        hdrNotice.Visibility = hdr.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
     }
     internal void SetNavigation(string group, string profile, bool canSwitchGroup, bool canSwitchProfile)
     {
