@@ -72,7 +72,7 @@ internal static class FcsGatewayCommands
                         registry.ReportUsbSample(sample, port);
                         transport = "usb";
                     }
-                    catch (Exception ex) when (ex is IOException or TimeoutException or UnauthorizedAccessException)
+                    catch (Exception ex) when (ex is IOException or TimeoutException or UnauthorizedAccessException or InvalidDataException)
                     {
                         sample = await registry.ReadPublicAsync(identity, cancel);
                         transport = "lan";
@@ -85,10 +85,10 @@ internal static class FcsGatewayCommands
                     return new(new { protocol = Protocol, error = "unsupported" });
             }
         }
-        catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
+        catch (OperationCanceledException)
         { return new(new { protocol = Protocol, error = "timeout" }); }
         catch (Exception ex) when (ex is InvalidDataException or IOException or TimeoutException or UnauthorizedAccessException
-             or JsonException or InvalidOperationException or KeyNotFoundException)
+             or JsonException or InvalidOperationException or KeyNotFoundException or HttpRequestException)
         { return new(new { protocol = Protocol, error = "device_unavailable" }); }
     }
 }

@@ -150,7 +150,7 @@ internal sealed class FcsUsb : IDisposable
                             throw new InvalidDataException("Device rejected USB command.");
                         return result;
                     }
-                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TimeoutException or JsonException or InvalidOperationException or KeyNotFoundException) { }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TimeoutException or InvalidDataException or JsonException or InvalidOperationException or KeyNotFoundException) { }
                 }
                 throw new IOException("USB management device unavailable.");
             }, cancel);
@@ -179,7 +179,7 @@ internal sealed class FcsUsb : IDisposable
                         known[deviceId] = candidate;
                         return new UsbReading(deviceId, lux, DateTimeOffset.UtcNow);
                     }
-                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TimeoutException or JsonException or InvalidOperationException or KeyNotFoundException) { }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TimeoutException or InvalidDataException or JsonException or InvalidOperationException or KeyNotFoundException) { }
                 }
                 throw new IOException("USB sensor unavailable.");
             }, cancel);

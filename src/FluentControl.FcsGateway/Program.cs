@@ -251,6 +251,19 @@ internal static class GatewayChecks
         if (!FcsUsb.ValidPort("AUTO") || !FcsUsb.ValidPort("com12") ||
             FcsUsb.ValidPort("../COM1") || FcsUsb.ValidPort("COM0"))
             throw new InvalidOperationException("USB port validation failed");
-        Console.WriteLine("PASS: FCS gateway LAN/USB identity, private subnet and IPC serialization.");
+        using var registry = new GatewayRegistry();
+        using var serial = new FcsUsb();
+        var capabilities = FcsGatewayCommands.RunAsync("{\"operation\":\"capabilities\"}",
+            registry, serial, CancellationToken.None).GetAwaiter().GetResult();
+        var cap = JsonSerializer.SerializeToElement(capabilities.Payload);
+        if (cap.GetProperty("pluginRuntime").GetString() != "not-implemented" ||
+            cap.GetProperty("deviceCodeInstall").GetString() != "usb-only")
+            throw new InvalidOperationException("Gateway plugin capability boundary invalid.");
+        var unsafePort = FcsGatewayCommands.RunAsync("{\"operation\":\"usb.discover\",\"port\":\"../COM1\"}",
+            registry, serial, CancellationToken.None).GetAwaiter().GetResult();
+        var rejected = JsonSerializer.SerializeToElement(unsafePort.Payload);
+        if (!rejected.TryGetProperty("error", out _))
+            throw new InvalidOperationException("Unsafe serial port selection not rejected.");
+        Console.WriteLine("PASS: FCS gateway LAN/USB identity, IPC serialization and plugin management boundaries.");
     }
 }
