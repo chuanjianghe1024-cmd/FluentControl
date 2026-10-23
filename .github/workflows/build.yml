@@ -61,6 +61,8 @@ jobs:
           dotnet run --project src/FluentControl.FcsGateway/FluentControl.FcsGateway.csproj -c Release -- --self-test
       - name: Build WinUI application
         run: dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
+      - name: Publish portable standalone FCS Gateway
+        run: dotnet publish src/FluentControl.FcsGateway/FluentControl.FcsGateway.csproj -c Release -p:RuntimeIdentifier=win-x64 -p:SelfContained=true -o artifacts/fcs-gateway
       - name: Publish application folder
         run: dotnet publish src/FluentControl/FluentControl.csproj -c Release -p:PublishProfile=Installer -p:Platform=x64 -p:Version=$env:PACKAGE_VERSION -o publish
       - name: Verify application XAML resources are published
@@ -92,6 +94,11 @@ jobs:
         timeout-minutes: 12
         shell: pwsh
         run: ./scripts/Test-Setup.ps1 -Version $env:PACKAGE_VERSION
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: FCS-Gateway-x64
+          path: artifacts/fcs-gateway/
+          if-no-files-found: error
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: FluentControl-MSI-x64

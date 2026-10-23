@@ -56,3 +56,7 @@ Device → Sensor → Signal → Endpoint，并配套 Event、Rule、Action、Pl
 6. Windows 构建/安装验收、C3 实机测试、插件故障注入与恢复验收。
 
 每阶段区分模拟验证、CI 验证和真实硬件验证；计划不能被写成已交付能力。
+
+## 当前最小可运行版（实施说明）
+
+最小 Gateway 工程已位于 FC 仓库 `src/FluentControl.FcsGateway/`，由 FC 默认安装包捆绑。Windows build 将生成可解压独立运行的 Gateway Artifact，未来再设计正式独立安装器和将公共代码迁移到 FCS 独立分发项目。现有 FC 设备发现、USB 配网向导、USB 管理和生产读取入口逐步改为通过网关 IPC；UI 仍由 FC 提供，旧签名/订阅模型为兼容保留。通用插件运行时、无线规则与云端依旧只是协议规划，见 [插件契约](fcs-plugin-contract.md)。

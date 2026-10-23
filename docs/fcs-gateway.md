@@ -38,3 +38,7 @@ IPC 操作：
 若 Gateway 是独立启动，本机 IPC 仍仅允许同一 Windows 用户；这是单用户管理信任边界。返回 USB 绑定密钥仅允许同用户本机请求，不通过公开 LAN 接口返回。私有网络中的公开传感器接口仅用于读取，仍不提供管理写入。
 
 **当前局限**：没有独立 MSI 安装器（Gateway 二进制可独立执行），当前源码暂在 FC 解决方案中并捆绑 FC 安装包；计划在稳定协议和 CI 验证后抽出可复用 FCS 独立工程与发行包。旧签名 LAN 客户端保留兼容读取，不能由 Gateway 的新匿名读取冒充验证通过。BLE Wi-Fi 安全配网、插件安装/规则引擎仍未实现，参见 [插件清单设计](fcs-plugin-contract.md)。
+
+## 独立部署（便携预览）
+
+Windows build 成功通过完整验证后额外上传 `FCS-Gateway-x64` Artifact，内含 Gateway 独立自包含 .NET 8 运行时、依赖和配置文件。解压后可执行 `FluentControl.FcsGateway.exe --serve`；关闭前使用 `--stop`，或在控制台按 Ctrl+C。无需安装 FC、网站登录或网关级管理员权限。**这是便携预览，不是独立 MSI/Setup 安装器**；目前仅提供 Named Pipe 控制面，没有独立桌面 UI。一个用户同时运行 FC 捆绑的 Gateway 与独立版时，同名互斥锁保证只能有一个实例；请避免版本不一致，切换版本先执行 `--stop`。
