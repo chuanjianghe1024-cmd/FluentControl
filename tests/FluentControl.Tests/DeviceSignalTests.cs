@@ -24,6 +24,22 @@ internal static class DeviceSignalTests
         frame = JsonSerializer.SerializeToElement(new { protocol = "fc-device/1", sourceId = "board-A", signal = "illuminance", unit = "lx", value = 21.5, valid = true, sequence = 1, uptimeMs = 200 });
         Check(DeviceSignals.Light(frame, "board-A", DateTimeOffset.UtcNow).Lux == 21.5);
         try { DeviceSignals.Light(frame, "board-B", DateTimeOffset.UtcNow); throw new Exception("Identity mismatch accepted"); } catch (InvalidDataException) { }
+        Check(NetworkSignalSensor.IsPublicLightEndpoint("http://192.168.1.7:8766/v1/sample"));
+        Check(!NetworkSignalSensor.IsPublicLightEndpoint("http://192.168.1.7:8766/v1/management"));
+        Check(!NetworkSignalSensor.IsPublicLightEndpoint("http://192.168.1.7:9999/v1/sample"));
+        using (var publicClient = new HttpClient(new PublicReply()))
+        {
+            var read = await NetworkSignalSensor.ReadPublicAsync(publicClient,
+                new() { DeviceId = "public-sensor", Url = "http://192.0.2.1:8766/v1/sample" }, CancellationToken.None);
+            Check(read.Lux == 71);
+            try
+            {
+                await NetworkSignalSensor.ReadPublicAsync(publicClient,
+                    new() { DeviceId = "unknown-sensor", Url = "http://192.0.2.1:8766/v1/sample" }, CancellationToken.None);
+                throw new Exception("Public LAN accepted a mismatched identity");
+            }
+            catch (InvalidDataException) { }
+        }
         if (OperatingSystem.IsWindows())
         {
             var id = "fixture-" + Guid.NewGuid().ToString("N");
@@ -39,6 +55,15 @@ internal static class DeviceSignalTests
             finally { DeviceKeyStore.Remove(id); }
         }
         Console.WriteLine("PASS: signal identity/units, deep links, signed responses and protected device binding.");
+    }
+    private sealed class PublicReply : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            Check(request.Method == HttpMethod.Get && request.Headers.Contains("X-FC-Signature") == false);
+            var frame = JsonSerializer.Serialize(new { protocol = "fc-device/1", sourceId = "public-sensor", signal = "illuminance", unit = "lx", value = 71, valid = true, sequence = 1, uptimeMs = 200 });
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(frame) });
+        }
     }
     private sealed class Reply(string key, string id, bool tamper = false) : HttpMessageHandler
     {
