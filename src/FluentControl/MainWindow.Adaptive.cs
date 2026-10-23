@@ -27,6 +27,7 @@ public sealed partial class MainWindow
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(canvas, "adaptive-curve");
         section.Children.Add(canvas);
         var readout = Text(""); section.Children.Add(readout);
+        var liveReadout = Text(""); section.Children.Add(liveReadout);
         var preview = new Slider { Minimum = 0, Maximum = 100, Value = curve.Axis == "clock" ? 50 : 35,
             Header = T("模拟输入（不写入显示器）", "Simulated input (no display writes)") };
         section.Children.Add(preview);
@@ -95,9 +96,10 @@ public sealed partial class MainWindow
                     if (index > 0 && index < curve.Points.Count - 1)
                     {
                         var x = AdaptivePresets.Input(curve.Axis, (position.X - 32) / w);
-                        var lo = curve.Points[index - 1].X + .010000001;
-                        var hi = curve.Points[index + 1].X - .010000001;
-                        if (lo <= hi) point.X = Math.Clamp(x, lo, hi);
+                        var step = curve.Axis == "ambient" ? 1d : .010000001;
+                        var lo = curve.Points[index - 1].X + step;
+                        var hi = curve.Points[index + 1].X - step;
+                        if (lo <= hi) point.X = Math.Clamp(curve.Axis == "ambient" ? Math.Round(x) : x, lo, hi);
                     }
                     if (curve.Axis == "clock" && (index == 0 || index == curve.Points.Count - 1)) curve.Points[0].Brightness = curve.Points[^1].Brightness = point.Brightness;
                     Canvas.SetLeft(dot, 25 + AdaptivePresets.Position(curve.Axis, point.X) * w); Canvas.SetTop(dot, h * (1 - point.Brightness / 100) - 7);
@@ -110,7 +112,26 @@ public sealed partial class MainWindow
             }
             var input = AdaptivePresets.Input(curve.Axis, preview.Value / 100);
             readout.Text = CanPreview() ? $"{input:0.##} {(curve.Axis == "clock" ? "h" : "lux")} → {AdaptivePresets.Evaluate(curve, input):0.#}%" : T("预览已暂停，或正在等待光照来源。", "Preview paused or waiting for a light source.");
-            if (CanPreview()) canvas.Children.Add(new Line { X1 = 32 + preview.Value / 100 * w, X2 = 32 + preview.Value / 100 * w, Y1 = 0, Y2 = h, Stroke = new SolidColorBrush(Microsoft.UI.Colors.OrangeRed), StrokeThickness = 2, IsHitTestVisible = false });
+            if (CanPreview()) canvas.Children.Add(new Line { X1 = 32 + preview.Value / 100 * w, X2 = 32 + preview.Value / 100 * w, Y1 = 0, Y2 = h, Stroke = new SolidColorBrush(Microsoft.UI.Colors.Gray), StrokeThickness = 1, Opacity = .55, IsHitTestVisible = false });
+            if (curve.Axis == "ambient")
+            {
+                var source = settings.LightSources.FirstOrDefault(x => x.Id == settings.ActiveSourceId);
+                var live = desktopLightSourceId == settings.ActiveSourceId ? desktopLightSample : null;
+                bool fresh = live is not null && live.Valid && live.Lux is double value && double.IsFinite(value) && value >= 0 &&
+                    live.Timestamp <= DateTimeOffset.UtcNow.AddSeconds(5) &&
+                    DateTimeOffset.UtcNow - live.Timestamp <= TimeSpan.FromMilliseconds(Math.Max(5000, 3d * (source?.PollMilliseconds ?? 1000)));
+                if (fresh)
+                {
+                    double lx = live!.Lux!.Value;
+                    double pos = 32 + AdaptivePresets.Position("ambient", Math.Min(10000, lx)) * w;
+                    canvas.Children.Add(new Line { X1 = pos, X2 = pos, Y1 = 0, Y2 = h, Stroke = new SolidColorBrush(Microsoft.UI.Colors.OrangeRed), StrokeThickness = 2.5, IsHitTestVisible = false });
+                    liveReadout.Text = F("当前光照 {0:0} lux → 目标 {1:0}% · {2:HH:mm:ss}", "Live {0:0} lux → target {1:0}% · {2:HH:mm:ss}",
+                        lx, AdaptivePresets.Evaluate(curve, lx), live.Timestamp.ToLocalTime()) +
+                        (live.Simulated ? " · " + T("模拟", "Simulated") : "");
+                }
+                else liveReadout.Text = T("当前光照：等待实时读数…", "Live light: waiting for a fresh reading…");
+            }
+            else liveReadout.Text = "";
         }
         void BuildRows()
         {
@@ -119,23 +140,30 @@ public sealed partial class MainWindow
             {
                 var index = curve.Points.IndexOf(point); bool endpoint = index == 0 || index == curve.Points.Count - 1;
                 var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-                var x = new NumberBox { Header = curve.Axis == "clock" ? T("小时", "Hours") : "lux ≥", Value = point.X, Width = 140, IsEnabled = !endpoint, Minimum = 0, Maximum = curve.Axis == "clock" ? 24 : 10000 };
-                var y = new NumberBox { Header = T("亮度", "Brightness") + " %", Value = point.Brightness, Width = 140, Minimum = 0, Maximum = 100 };
+                var x = new NumberBox { Header = curve.Axis == "clock" ? T("小时", "Hours") : "lux ≥", Value = point.X, Width = 140, IsEnabled = !endpoint, Minimum = 0, Maximum = curve.Axis == "clock" ? 24 : 10000, SmallChange = curve.Axis == "ambient" ? 1 : .5 };
+                var y = new ComboBox { Header = T("亮度", "Brightness") + " %", IsEditable = true, Width = 140,
+                    ItemsSource = Enumerable.Range(0, 11).Select(i => (i * 10).ToString()).ToArray(), Text = Math.Round(point.Brightness).ToString() };
                 Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(y, "adaptive-y-" + index);
                 x.ValueChanged += (_, e) =>
                 {
                     if (endpoint) return;
-                    if (!double.IsFinite(e.NewValue) || e.NewValue - curve.Points[index - 1].X < .01 || curve.Points[index + 1].X - e.NewValue < .01) { x.Value = point.X; return; }
-                    point.X = e.NewValue; SaveAdaptiveSettings(); Draw();
+                    double value = curve.Axis == "ambient" ? Math.Round(e.NewValue) : e.NewValue;
+                    double step = curve.Axis == "ambient" ? 1 : .01;
+                    if (!double.IsFinite(value) || value - curve.Points[index - 1].X < step || curve.Points[index + 1].X - value < step) { x.Value = point.X; return; }
+                    point.X = value; if (x.Value != value) x.Value = value; SaveAdaptiveSettings(); Draw();
                 };
-                y.ValueChanged += (_, e) =>
+                void SetBrightness(string text)
                 {
-                    if (!double.IsFinite(e.NewValue)) { y.Value = point.Brightness; return; }
-                    point.Brightness = Math.Clamp(e.NewValue, 0, 100);
-                    if (curve.Axis == "clock" && endpoint) curve.Points[0].Brightness = curve.Points[^1].Brightness = point.Brightness;
+                    if (!double.TryParse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.CurrentCulture, out var number) ||
+                        !double.IsFinite(number) || number < 0 || number > 100) { y.Text = Math.Round(point.Brightness).ToString(); return; }
+                    double value = Math.Round(number);
+                    if (point.Brightness == value) return;
+                    point.Brightness = value;
+                    if (curve.Axis == "clock" && endpoint) curve.Points[0].Brightness = curve.Points[^1].Brightness = value;
                     SaveAdaptiveSettings(); Draw();
-                };
-                y.LostFocus += (_, _) => { if (curve.Axis == "clock" && endpoint) BuildRows(); };
+                }
+                y.SelectionChanged += (_, _) => { if (y.SelectedItem is string selected) SetBrightness(selected); };
+                y.LostFocus += (_, _) => { SetBrightness(y.Text); if (curve.Axis == "clock" && endpoint) BuildRows(); };
                 var remove = new Button { Content = T("删除", "Delete"), IsEnabled = !endpoint, VerticalAlignment = VerticalAlignment.Bottom };
                 remove.Click += (_, _) => { curve.Points.Remove(point); SaveAdaptiveSettings(); BuildRows(); Draw(); };
                 row.Children.Add(x); row.Children.Add(y); row.Children.Add(remove); rows.Children.Add(row);
@@ -147,10 +175,12 @@ public sealed partial class MainWindow
             var at = e.GetCurrentPoint(canvas).Position;
             if (at.Y < 0 || at.Y > 200 || at.X <= 32 || at.X >= canvas.ActualWidth - (curve.Axis == "ambient" ? 44 : 16)) return;
             var x = AdaptivePresets.Input(curve.Axis, (at.X - 32) / Math.Max(100, canvas.ActualWidth - (curve.Axis == "ambient" ? 76 : 48)));
-            if (curve.Points.Any(p => Math.Abs(p.X - x) < .01)) return;
+            if (curve.Axis == "ambient") x = Math.Round(x);
+            if (curve.Points.Any(p => Math.Abs(p.X - x) < (curve.Axis == "ambient" ? 1 : .01))) return;
             curve.Points.Add(new() { X = x, Brightness = Math.Round(Math.Clamp(100 * (1 - at.Y / 200), 0, 100)) });
             curve.Points.Sort((a, b) => a.X.CompareTo(b.X)); SaveAdaptiveSettings(); BuildRows(); Draw();
         };
+        adaptiveCurveLiveUpdate = Draw;
         canvas.SizeChanged += (_, _) => Draw(); preview.ValueChanged += (_, _) => Draw(); BuildRows();
         var exchange = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         foreach (bool importing in new[] { true, false })

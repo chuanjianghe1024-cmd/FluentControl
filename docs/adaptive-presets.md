@@ -11,7 +11,7 @@
 
 ## 开发版变更（尚未发布） / Unreleased changes
 
-光照调节采用 **固定档位**：每个节点的 lux 是该档下限，达到下一下限进入下一档；例如 100–不足 500 lux 固定为 40%，500 lux 起为 65%。低于首阈值和超过 10000 lux 使用首/末档。区间内不会随 lux 插值，也不会为了渐变反复发送中间亮度。保留 3 点中值过滤和至少 2 秒的切档间隔，手动调整仍保持 10 分钟。时间与日出日落模式保留原有渐变。
+光照调节仍用固定档位选择**目标亮度**，但实际屏幕亮度改为逐屏独立的 16 秒 smoothstep 缓入缓出曲线（开始/结束慢、中间快），单次写入最多变化 12 个百分点且至少间隔 2 秒；跨度大时过渡可能超过 16 秒。3 点中值过滤和手动调整保持 10 分钟仍生效。多屏按 Windows Left/Top 布局次序处理，不刻意造成多屏错峰。编辑器 lux 取整数，亮度提供每 10% 一档的可编辑下拉，图上另有实时光照指示线；失联/过期时不显示虚假数值。
 
 目标显示器使用复选框，可选择多台共用同一规则；取消全部不会自动选回旧目标。离线选择保留。逐屏检查 SDR/能力与生命周期，一台不可用、HDR 或写入失败不阻止其他可用屏幕；失败屏幕暂停重试，重新启用后恢复。
 
@@ -19,7 +19,7 @@
 
 迁移前保存 `user-state.json.before-adaptive-bands-v2.bak`。旧单屏选择迁移为列表；旧 ambient v1 曲线保留节点并升级为 v2，自动调节暂停，检查档位后重新启用。v1 JSON 解析仍保留原插值语义，导入到光照编辑器时转换为 v2；导出 v2 明确标识档位语义，旧版 FC 不支持 v2。clock 仍使用 v1。
 
-Ambient brightness is fixed within lower-inclusive bands, jumping directly to the selected level when the median light reading crosses a threshold. A 3-sample median rejects brief shadows, switches remain at least 2 seconds apart, and manual changes hold for 10 minutes. Clock/solar transitions remain bounded. Checkboxes select multiple displays for one rule; offline selections survive and faults are isolated per display.
+Ambient bands choose fixed targets while each monitor eases toward them over a nominal 16-second smoothstep transition (up to 12 percentage points per write, at least 2 seconds between writes). Very large changes may take longer. Three-sample median filtering and the 10-minute manual hold remain. Windows Left/Top coordinates order multi-monitor writes. Presets use integer lux thresholds, an editable 10% brightness dropdown, and a live lux cursor. Checkboxes select multiple displays for one rule; offline selections survive and faults are isolated per display.
 
 History shows a timestamped line chart for each 100-record page plus exact values, leaving invalid samples and long sampling gaps blank. The settings chart shows brightness bands, not history. Migration backs up the original settings, preserves thresholds and the old target, converts ambient curves to v2 bands and pauses ambient automation for review. v1 parsing retains interpolation, with explicit conversion on ambient import; older FC versions cannot import v2 exports.
 

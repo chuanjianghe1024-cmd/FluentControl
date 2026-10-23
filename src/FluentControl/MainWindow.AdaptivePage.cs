@@ -16,6 +16,7 @@ public sealed partial class MainWindow
     }
     private void BuildAdaptivePage()
     {
+        adaptiveCurveLiveUpdate = null;
         SettingsPanel.Children.Clear(); settingsSections.Clear();
         settingsNavigation = new NavigationView { PaneDisplayMode = NavigationViewPaneDisplayMode.Top, IsSettingsVisible = false,
             IsBackButtonVisible = NavigationViewBackButtonVisible.Collapsed, IsPaneToggleButtonVisible = false, Height = 56 };

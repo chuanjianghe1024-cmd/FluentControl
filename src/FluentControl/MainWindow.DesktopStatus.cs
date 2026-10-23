@@ -5,6 +5,7 @@ namespace FluentControl;
 
 public sealed partial class MainWindow
 {
+    private Action? adaptiveCurveLiveUpdate;
     private ToggleSwitch? adaptiveEnableToggle;
     private LightSample? desktopLightSample;
     private string desktopLightSourceId = "";
@@ -27,12 +28,14 @@ public sealed partial class MainWindow
         desktopLightSample = sample;
         desktopLightFailed = false;
         UpdateDesktopStatus();
+        if (selectedAdaptiveSection == "presets") adaptiveCurveLiveUpdate?.Invoke();
     }
     private void FailDesktopLight()
     {
         desktopLightSample = null;
         desktopLightFailed = true;
         UpdateDesktopStatus();
+        if (selectedAdaptiveSection == "presets") adaptiveCurveLiveUpdate?.Invoke();
     }
     private void UpdateDesktopStatus()
     {

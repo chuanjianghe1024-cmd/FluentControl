@@ -37,7 +37,7 @@ public sealed partial class MainWindow
         }
         adaptiveLiveStatus = Text(s.Enabled ? T("等待数据…", "Waiting for data…") : T("自动调节已关闭", "Automatic adjustment is off")); section.Children.Add(adaptiveLiveStatus);
         section.Children.Add(Text(s.Mode == "ambient"
-            ? T("光照按区间固定亮度，达到下一阈值才跳档；3 点中值过滤瞬时遮挡，最多每 2 秒切换一次。手动调整后保持 10 分钟。", "Brightness stays fixed within each light band and jumps at the next threshold. A 3-sample median rejects brief shadows; switches are at least 2 s apart. Manual changes hold for 10 minutes.")
+            ? T("光照档位决定目标亮度，实际屏幕使用缓入缓出的平滑过渡；3 点中值过滤瞬时遮挡，每 2 秒最多写入一次。手动调整保持 10 分钟。", "Ambient bands select target brightness; each display eases in and out. A 3-sample median rejects brief shadows, writes occur at most every 2s, and manual adjustments hold for 10 minutes.")
             : T("默认 1 秒采样，3 点中值与平滑；屏幕最多每 2 秒写一次，每次最多 5%，差异不足 2% 不写。手动调整后保持 10 分钟。", "Default: 1 s sampling, 3-sample median and smoothing; display writes at most every 2 s, up to 5% per step, with a 2% deadband. Manual changes hold for 10 minutes.")));
         void Number(string title, double value, double min, double max, Action<double> changed)
         {

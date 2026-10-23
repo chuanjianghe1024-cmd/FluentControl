@@ -28,6 +28,13 @@ internal static class AdaptiveAutomationTests
         Check(smoothing.Add(Sample(500, 7), smooth: false) == 100, "Band filter rejects one-frame shadows/spikes.");
         Check(smoothing.Add(Sample(500, 8), smooth: false) == 500, "Band filter must not interpolate through intermediate light levels.");
         Check(SolarSchedule.NextBrightness(50, 51) is null && SolarSchedule.NextBrightness(50, 80) == 55 && SolarSchedule.NextBrightness(50, 10) == 45, "Brightness deadband and slew rate");
+        var transition = new AdaptiveBrightnessTransition();
+        Check(transition.Next(20,80,now) is null, "Easing must not jump at start");
+        var early = transition.Next(20,80,now.AddSeconds(4));
+        Check(early is > 20 and < 40, "Easing begins slowly");
+        var midpoint = transition.Next(early!.Value,80,now.AddSeconds(8));
+        Check(midpoint > early && midpoint - early <= 12, "Per-write step bound");
+        Check(transition.Next(midpoint!.Value,20,now.AddSeconds(8)) is null, "Changing targets must restart from readback");
         Check(SolarSchedule.InDayRange(23,22,6) && SolarSchedule.InDayRange(3,22,6) && !SolarSchedule.InDayRange(12,22,6), "Wrapping theme schedule");
         var wuhan = SolarSchedule.Calculate(new DateTime(2026,10,14),30.5928,114.3055);
         Check(wuhan.Sunrise is not null && wuhan.Sunset is not null && wuhan.IsDay(now), "Wuhan midday should be daytime");
