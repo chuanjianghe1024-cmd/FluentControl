@@ -8,6 +8,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Product>FluentControl Sensors Gateway</Product>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+  </ItemGroup>
   <Target Name="GetFcsGatewayPayload" Returns="@(FcsGatewayPayload)">
     <ItemGroup>
       <FcsGatewayPayload Include="$(TargetDir)FluentControl.FcsGateway.exe;$(TargetDir)FluentControl.FcsGateway.dll;$(TargetDir)FluentControl.FcsGateway.deps.json;$(TargetDir)FluentControl.FcsGateway.runtimeconfig.json" />
