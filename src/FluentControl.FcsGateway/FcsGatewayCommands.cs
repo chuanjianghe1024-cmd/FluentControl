@@ -59,7 +59,7 @@ internal static class FcsGatewayCommands
                 case "usb.read":
                 {
                     var result = await usb.ReadAsync(port, identity, cancel);
-                    registry.ReportUsbSample(result, port);
+                    registry.ReportUsbSample(result, result.Port ?? port);
                     return new(new { protocol = Protocol, sample = result, transport = "usb" });
                 }
                 case "sample.read":
@@ -82,7 +82,7 @@ internal static class FcsGatewayCommands
                     try
                     {
                         sample = await usb.ReadAsync(port, identity, cancel);
-                        registry.ReportUsbSample(sample, port);
+                        registry.ReportUsbSample(sample, sample.Port ?? port);
                         transport = "usb";
                     }
                     catch (Exception ex) when (ex is IOException or TimeoutException or UnauthorizedAccessException or InvalidDataException)

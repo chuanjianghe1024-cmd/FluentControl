@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Win32;
 
 internal sealed record UsbDevice(string Port, string Identity);
-internal sealed record UsbReading(string DeviceId, double Lux, DateTimeOffset Timestamp);
+internal sealed record UsbReading(string DeviceId, double Lux, DateTimeOffset Timestamp, string? Port = null);
 
 // The Gateway is the only FC-owned serial protocol host. Each command verifies a
 // fresh physical USB handshake and never trusts a caller-provided identity alone.
@@ -177,7 +177,7 @@ internal sealed class FcsUsb : IDisposable
                             !frame.GetProperty("lux").TryGetDouble(out var lux) || !double.IsFinite(lux) || lux < 0 || lux > 200000)
                             throw new InvalidDataException("Invalid USB light sample.");
                         known[deviceId] = candidate;
-                        return new UsbReading(deviceId, lux, DateTimeOffset.UtcNow);
+                        return new UsbReading(deviceId, lux, DateTimeOffset.UtcNow, candidate);
                     }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TimeoutException or InvalidDataException or JsonException or InvalidOperationException or KeyNotFoundException) { }
                 }
