@@ -78,7 +78,7 @@ public sealed partial class MainWindow
         desktopLightRequest = cancel;
         try
         {
-            var sample = LocalLightProtocol.IsLocal(source.Url) ? await LocalLightSensor.ReadAsync(source, cancel.Token)
+            var sample = LocalLightProtocol.IsLocal(source.Url) ? await FcsGatewayClient.ReadAutoAsync(source, cancel.Token)
                 : await NetworkSignalSensor.ReadSourceAsync(lightClient, source, cancel.Token);
             if (!closed && desktopPanel is not null && revision == adaptiveRevision) PublishDesktopLight(source.Id, sample);
         }

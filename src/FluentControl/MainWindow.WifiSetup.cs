@@ -66,7 +66,7 @@ public sealed partial class MainWindow
         async Task<JsonElement> Manage(string operation, object? args, CancellationToken token)
         {
             if (selected is null) throw new InvalidOperationException();
-            var result = fixtureManage is null ? await LocalLightSensor.ManageAsync(selected, operation, args, token) : await fixtureManage(operation, args, token);
+            var result = fixtureManage is null ? await FcsGatewayClient.ManageUsbAsync(selected, operation, args, token) : await fixtureManage(operation, args, token);
             token.ThrowIfCancellationRequested();
             return result;
         }

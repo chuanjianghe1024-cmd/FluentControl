@@ -35,7 +35,7 @@ public sealed partial class MainWindow
                 var ports = string.Join(",", LocalLightSensor.CandidatePorts("AUTO"));
                 if (ports == lastSensorPorts) return;
                 lastSensorPorts = ports;
-                var devices = await LocalLightSensor.DiscoverAsync("auto", sensorLifetime.Token);
+                var devices = await FcsGatewayClient.DiscoverUsbAsync("AUTO", sensorLifetime.Token);
                 if (!closed && devices.Any(d => !state.Settings.Adaptive.LightSources.Any(s => s.DeviceId == d.Identity)))
                 {
                     shell?.NotifySensor(T("发现 USB 信号设备，请到自动调节 → 设备与接入添加订阅或配置设备。", "USB signal device found. Open Automatic adjustment → Devices & setup to subscribe or configure."));
@@ -57,7 +57,7 @@ public sealed partial class MainWindow
             using var cancel = CancellationTokenSource.CreateLinkedTokenSource(sensorLifetime.Token); cancel.CancelAfter(TimeSpan.FromSeconds(30));
             try
             {
-                var devices = await LocalLightSensor.DiscoverAsync(port.Text.Trim(), cancel.Token);
+                var devices = await FcsGatewayClient.DiscoverUsbAsync(port.Text.Trim(), cancel.Token);
                 if (devices.Count == 0) { ShowStatus(T("未发现兼容传感器，请关闭 Thonny 并检查主板程序和端口。", "No compatible sensor found. Close Thonny and check firmware and port."), InfoBarSeverity.Warning); return; }
                 if (!closed) await ShowWifiWizardAsync(devices);
             }
@@ -74,7 +74,7 @@ public sealed partial class MainWindow
             using var cancel = CancellationTokenSource.CreateLinkedTokenSource(sensorLifetime.Token); cancel.CancelAfter(TimeSpan.FromSeconds(30));
             try
             {
-                var devices = await LocalLightSensor.DiscoverAsync(port.Text.Trim(), cancel.Token);
+                var devices = await FcsGatewayClient.DiscoverUsbAsync(port.Text.Trim(), cancel.Token);
                 if (!closed && devices.Count > 0) await ShowSensorDeviceAsync(devices, port.Text.Trim().Equals("auto", StringComparison.OrdinalIgnoreCase));
                 else if (!closed) ShowStatus(T("未发现兼容传感器，请关闭 Thonny 并检查主板程序和端口。", "No compatible sensor found. Close Thonny and check firmware and port."), InfoBarSeverity.Warning);
             }
@@ -92,25 +92,25 @@ public sealed partial class MainWindow
             try
             {
                 bool added = false;
-                foreach (var found in await NetworkSignalSensor.DiscoverAsync(cancel.Token))
+                // Gateway owns physical LAN discovery and validates each public sample.
+                // Legacy signed subscriptions remain readable through the existing client.
+                foreach (var found in await FcsGatewayClient.ListAsync(true, cancel.Token))
                 {
                     if (closed || listRevision != lightSourceListRevision) return;
-                    var source = new LightSourceSubscription { Name = found.Id, DeviceId = found.Id, Url = found.Url, SignedDevice = false };
-                    try { await NetworkSignalSensor.ReadPublicAsync(lightClient, source, cancel.Token); }
-                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    if (found.Status != "online" || string.IsNullOrWhiteSpace(found.Ip)) continue;
+                    var source = new LightSourceSubscription
                     {
-                        // Old signed firmware still works if FC previously saved its USB binding.
-                        source.SignedDevice = true;
-                        try { await NetworkSignalSensor.ReadAsync(lightClient, source, cancel.Token); }
-                        catch (Exception inner) when (inner is not OperationCanceledException) { continue; }
-                    }
-                    if (closed || listRevision != lightSourceListRevision) return;
-                    // Existing devices are already added. Update the reachable endpoint in place
-                    // without disabling automation or creating another copy of the same physical device.
+                        Name = found.DeviceId, DeviceId = found.DeviceId,
+                        Url = "http://" + found.Ip + ":8766/v1/sample", SignedDevice = false
+                    };
                     var existing = state.Settings.Adaptive.LightSources.FirstOrDefault(x => x.DeviceId == source.DeviceId);
                     if (existing is null) { AddSensorSubscription(source); added = true; }
                     else if (existing.Url != source.Url || existing.SignedDevice != source.SignedDevice)
-                    { existing.Url = source.Url; existing.SignedDevice = source.SignedDevice; SaveState(); added = true; }
+                    {
+                        existing.Url = source.Url;
+                        existing.SignedDevice = source.SignedDevice;
+                        SaveState(); added = true;
+                    }
                 }
                 if (!closed) { if (added) BuildSettings(); else ShowStatus(T("未发现可读取的光照设备；请检查设备是否已通过热点配网，并与电脑位于同一局域网。", "No readable sensor found. Check that the device joined the same LAN using Wi-Fi setup."), InfoBarSeverity.Informational); }
             }
@@ -131,7 +131,7 @@ public sealed partial class MainWindow
     private async Task ShowSensorDeviceAsync(IReadOnlyList<LocalLightDevice> devices, bool automaticPort)
     {
         var panel = new StackPanel { Spacing = 10, MinWidth = 360 };
-        panel.Children.Add(new TextBlock { Text = T("USB 直连拥有管理权限，无需绑定。无线读取需先保存绑定；本版本管理操作仅走 USB。", "USB grants management access without binding. Wireless reads require saved binding; management uses USB in this version."), TextWrapping = TextWrapping.Wrap });
+        panel.Children.Add(new TextBlock { Text = T("USB 直连拥有最高管理权限，由 FCS Gateway 验证设备身份后执行。新版 C3 的局域网只读光照不需要逐客户端绑定；旧固件可保留签名读取。", "FCS Gateway verifies USB identity before management. New C3 firmware allows public read-only LAN samples; legacy signed reads remain supported."), TextWrapping = TextWrapping.Wrap });
         var picker = new ComboBox { ItemsSource = devices, DisplayMemberPath = "Identity", SelectedIndex = Math.Max(0, devices.ToList().FindIndex(d => d.Identity == requestedSensorId)), HorizontalAlignment = HorizontalAlignment.Stretch };
         var status = new TextBlock { TextWrapping = TextWrapping.Wrap };
         var ssid = new ComboBox { Header = "Wi-Fi SSID", IsEditable = true, HorizontalAlignment = HorizontalAlignment.Stretch };
@@ -149,7 +149,7 @@ public sealed partial class MainWindow
             using var cancel = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token); cancel.CancelAfter(TimeSpan.FromSeconds(20));
             try
             {
-                var result = await LocalLightSensor.ManageAsync(device, operation, arguments, cancel.Token);
+                var result = await FcsGatewayClient.ManageUsbAsync(device, operation, arguments, cancel.Token);
                 if (lifetime.IsCancellationRequested || closed) return;
                 if (result.TryGetProperty("bindingKey", out var key) && key.ValueKind == JsonValueKind.String) DeviceKeyStore.Save(device.Identity, key.GetString()!);
                 if (operation == "factory.reset") DeviceKeyStore.Remove(device.Identity);

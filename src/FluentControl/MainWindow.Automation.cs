@@ -100,7 +100,7 @@ public sealed partial class MainWindow
                     if (source is null) throw new InvalidDataException();
                     using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(LocalLightProtocol.IsLocal(source.Url) ? 25 : 3)); lightRequest = cancellation;
                     try { sample = LocalLightProtocol.IsLocal(source.Url)
-                        ? await LocalLightSensor.ReadAsync(source, cancellation.Token)
+                        ? (uiTest ? await LocalLightSensor.ReadAsync(source, cancellation.Token) : await FcsGatewayClient.ReadAutoAsync(source, cancellation.Token))
                         : await NetworkSignalSensor.ReadSourceAsync(lightClient, source, cancellation.Token); }
                     finally { lightRequest = null; }
                 }
