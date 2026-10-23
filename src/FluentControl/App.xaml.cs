@@ -26,6 +26,11 @@ public partial class App : Application
             var name = Environment.GetCommandLineArgs().Contains("--ui-test") ? @"Local\FluentControl.UiTest" : @"Local\FluentControl";
             instance = new Mutex(true, name, out var firstInstance);
             if (!firstInstance) { if (Services.DeviceLinkActivation.Argument() is { } link) { try { await Services.DeviceLinkActivation.SendAsync(link); } catch { } } Services.ShellIntegration.SignalExisting(); instance.Dispose(); instance = null; Exit(); return; }
+            if (!Environment.GetCommandLineArgs().Contains("--ui-test"))
+            {
+                try { Services.FcsGatewayClient.EnsureStarted(); }
+                catch (Exception ex) { StartupLog.Write("FCS Gateway startup: " + ex.GetType().Name); }
+            }
             StartupLog.Write("Creating main window");
             var main = new MainWindow();
             window = main;

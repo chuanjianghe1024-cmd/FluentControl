@@ -55,6 +55,10 @@ jobs:
         run: dotnet run --project tests/FluentControl.Tests -c Release -- --native
       - name: Compile Fluent setup frontend
         run: dotnet build installer/FluentControl.Setup/FluentControl.Setup.csproj -c Release
+      - name: Build and test independent FCS Gateway
+        run: |
+          dotnet build src/FluentControl.FcsGateway/FluentControl.FcsGateway.csproj -c Release
+          dotnet run --project src/FluentControl.FcsGateway/FluentControl.FcsGateway.csproj -c Release -- --self-test
       - name: Build WinUI application
         run: dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
       - name: Publish application folder
@@ -70,6 +74,7 @@ jobs:
         run: |
           ./scripts/Test-DdcHost.ps1
           ./scripts/Test-Startup.ps1
+          if (-not (Test-Path 'publish/FluentControl.FcsGateway.exe')) { throw 'Bundled FCS Gateway is missing.' }
       - name: Build single compressed offline MSI
         shell: pwsh
         run: ./scripts/Build-Msi.ps1 -Version $env:PACKAGE_VERSION

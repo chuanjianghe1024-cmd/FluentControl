@@ -24,6 +24,7 @@
   <ItemGroup>
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />
     <ProjectReference Include="../FluentControl.DdcHost/FluentControl.DdcHost.csproj" ReferenceOutputAssembly="false" AdditionalProperties="SelfContained=$(SelfContained)" />
+    <ProjectReference Include="../FluentControl.FcsGateway/FluentControl.FcsGateway.csproj" ReferenceOutputAssembly="false" AdditionalProperties="SelfContained=$(SelfContained)" />
     <EmbeddedResource Include="Services/Locales.json" LogicalName="FluentControl.Locales.json" />
 
     <!-- The application uses WinUI/windowing, not the AI/ML/widgets metapackage.
@@ -43,6 +44,16 @@
   <Target Name="CopyDdcHostToPublish" AfterTargets="Publish">
     <ItemGroup><DdcHostPublished Include="$(OutDir)FluentControl.DdcHost.exe;$(OutDir)FluentControl.DdcHost.dll;$(OutDir)FluentControl.DdcHost.deps.json;$(OutDir)FluentControl.DdcHost.runtimeconfig.json" /></ItemGroup>
     <Copy SourceFiles="@(DdcHostPublished)" DestinationFolder="$(PublishDir)" />
+  </Target>
+  <Target Name="CopyFcsGatewayToOutput" AfterTargets="Build">
+    <MSBuild Projects="../FluentControl.FcsGateway/FluentControl.FcsGateway.csproj" Targets="GetFcsGatewayPayload" Properties="Configuration=$(Configuration);Platform=$(Platform);SelfContained=$(SelfContained)">
+      <Output TaskParameter="TargetOutputs" ItemName="FcsGatewayPayload" />
+    </MSBuild>
+    <Copy SourceFiles="@(FcsGatewayPayload)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyFcsGatewayToPublish" AfterTargets="Publish">
+    <ItemGroup><FcsGatewayPublished Include="$(OutDir)FluentControl.FcsGateway.exe;$(OutDir)FluentControl.FcsGateway.dll;$(OutDir)FluentControl.FcsGateway.deps.json;$(OutDir)FluentControl.FcsGateway.runtimeconfig.json" /></ItemGroup>
+    <Copy SourceFiles="@(FcsGatewayPublished)" DestinationFolder="$(PublishDir)" />
   </Target>
   <!-- ApplicationIcon is already indexed by the SDK. Copy the native tray icon
        after resource generation instead of adding a duplicate Content item. -->

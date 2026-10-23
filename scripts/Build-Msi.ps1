@@ -28,7 +28,7 @@ try {
         throw 'MSI version must fit major.minor.build (255.255.65535).'
     }
     $publish = (Resolve-Path $PublishDirectory).Path
-    foreach ($required in @('FluentControl.exe', 'FluentControl.dll', 'FluentControl.runtimeconfig.json', 'FluentControl.DdcHost.exe', 'FluentControl.DdcHost.dll', 'FluentControl.DdcHost.deps.json', 'FluentControl.DdcHost.runtimeconfig.json', 'coreclr.dll', 'Microsoft.UI.Xaml.dll', 'Assets/FluentControl.ico')) {
+    foreach ($required in @('FluentControl.exe', 'FluentControl.dll', 'FluentControl.runtimeconfig.json', 'FluentControl.DdcHost.exe', 'FluentControl.DdcHost.dll', 'FluentControl.DdcHost.deps.json', 'FluentControl.DdcHost.runtimeconfig.json', 'FluentControl.FcsGateway.exe', 'FluentControl.FcsGateway.dll', 'FluentControl.FcsGateway.deps.json', 'FluentControl.FcsGateway.runtimeconfig.json', 'coreclr.dll', 'Microsoft.UI.Xaml.dll', 'Assets/FluentControl.ico')) {
         if (-not (Test-Path (Join-Path $publish $required))) { throw "Missing required offline payload: $required" }
     }
     if (-not ((Test-Path "$publish/resources.pri") -or (Test-Path "$publish/FluentControl.pri"))) { throw 'Application PRI is missing.' }
