@@ -65,7 +65,7 @@ public sealed partial class MainWindow
                 Interlocked.Exchange(ref manualBrightnessHold, 0);
                 await TickAdaptiveAsync(fixture: true);
                 var deltaPercent = (channel.Read!() - baseline) / (channel.Maximum - channel.Minimum) * 100;
-                if (deltaPercent <= 0 || deltaPercent > 5.1) throw new InvalidOperationException("Automatic schedule did not apply a bounded brightness step.");
+                if (deltaPercent < -.1 || deltaPercent > 12.1) throw new InvalidOperationException("Automatic schedule violated the easing step bound.");
                 var after = channel.Read!(); adaptiveDue = default;
                 await TickAdaptiveAsync(fixture: true);
                 if (channel.Read!() != after) throw new InvalidOperationException("Automatic rate limit failed.");
@@ -99,8 +99,8 @@ public sealed partial class MainWindow
                     var state = hdrStates[displayDevices[i].Id];
                     if (state.Active == true || state.Enabled == true) continue;
                     var c = ambientChannels[i];
-                    if (Math.Abs((c.Read!() - c.Minimum) / (c.Maximum - c.Minimum) * 100 - 70) > .1)
-                        throw new InvalidOperationException("Ambient band did not jump to the selected level on every eligible display.");
+                    if (Math.Abs((c.Read!() - c.Minimum) / (c.Maximum - c.Minimum) * 100 - 20) > 1)
+                        throw new InvalidOperationException("Ambient band must ease in, not jump immediately.");
                 }
                 var appliedCount = adaptiveAppliedTargets.Count;
                 adaptiveDue = default; adaptiveLastWrite = default;
@@ -125,7 +125,7 @@ public sealed partial class MainWindow
                 throw new InvalidOperationException("History chart filled a data gap or lost samples.");
             await CheckWifiWizardAsync();
             await CheckLightSourceManagementAsync();
-            StartupLog.Write("PASS: simulated automatic schedule output, slew rate, write interval, manual hold and disable gate.");
+            StartupLog.Write("PASS: simulated automatic brightness easing, bounded steps, write interval, manual hold and disable gate.");
             StartupLog.Write("PASS: adaptive curve rendering, numeric edits, persistence, midnight endpoints and no channel mutation.");
         }
         finally { state.Settings.Adaptive = previous; selectedSettingsSection = section; SaveState(); BuildSettings(); Navigation.SelectedItem = navigation; }

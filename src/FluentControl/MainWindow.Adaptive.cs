@@ -145,7 +145,8 @@ public sealed partial class MainWindow
                     ItemsSource = Enumerable.Range(0, 11).Select(i => (i * 10).ToString()).ToArray(),
                     SelectedItem = (Math.Round(point.Brightness / 10) * 10).ToString() };
                 var customY = new NumberBox { Header = T("自定义亮度 %", "Custom brightness %"), Value = point.Brightness, Width = 140, Minimum = 0, Maximum = 100, SmallChange = 1 };
-                Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(y, "adaptive-y-" + index);
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(y, "adaptive-preset-" + index);
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(customY, "adaptive-y-" + index);
                 x.ValueChanged += (_, e) =>
                 {
                     if (endpoint) return;
