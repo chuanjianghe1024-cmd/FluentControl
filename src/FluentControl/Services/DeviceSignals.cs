@@ -74,6 +74,8 @@ public static class NetworkSignalSensor
 
     public static Task<LightSample> ReadSourceAsync(HttpClient client, LightSourceSubscription source, CancellationToken cancellation) =>
         source.SignedDevice ? ReadAsync(client, source, cancellation) :
+        IsPublicLightEndpoint(source.Url) && OperatingSystem.IsWindows() &&
+            !string.IsNullOrWhiteSpace(source.DeviceId) ? FcsGatewayClient.ReadLanAutoAsync(source, cancellation) :
         IsPublicLightEndpoint(source.Url) ? ReadPublicAsync(client, source, cancellation) :
         LightFeed.ReadAsync(client, source, cancellation);
 

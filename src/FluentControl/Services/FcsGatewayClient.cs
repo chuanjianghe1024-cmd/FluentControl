@@ -121,9 +121,19 @@ public static class FcsGatewayClient
         if (!LocalLightProtocol.IsLocal(source.Url) || string.IsNullOrWhiteSpace(source.DeviceId))
             throw new InvalidDataException("Expected a bound USB sensor identity.");
         var port = LocalLightProtocol.PortFor(source.Url);
-        using var json = await QueryAsync("sample.read", cancellation, deviceId: source.DeviceId, port: port);
+        return await ReadDeviceAsync(source.DeviceId, port, cancellation);
+    }
+    public static Task<LightSample> ReadLanAutoAsync(LightSourceSubscription source, CancellationToken cancellation)
+    {
+        if (!NetworkSignalSensor.IsPublicLightEndpoint(source.Url) || string.IsNullOrWhiteSpace(source.DeviceId))
+            throw new InvalidDataException("Expected a public FCS source.");
+        return ReadDeviceAsync(source.DeviceId, "AUTO", cancellation);
+    }
+    private static async Task<LightSample> ReadDeviceAsync(string id, string port, CancellationToken cancellation)
+    {
+        using var json = await QueryAsync("sample.read", cancellation, deviceId: id, port: port);
         var root = json.RootElement.GetProperty("sample");
-        if (root.GetProperty("deviceId").GetString() != source.DeviceId)
+        if (root.GetProperty("deviceId").GetString() != id)
             throw new InvalidDataException("Device identity changed.");
         var value = root.GetProperty("lux").GetDouble();
         if (!double.IsFinite(value) || value < 0 || value > 200000)
@@ -133,6 +143,6 @@ public static class FcsGatewayClient
             timestamp > DateTimeOffset.UtcNow.AddSeconds(10))
             throw new InvalidDataException("Stale Gateway light sample.");
         return new LightSample { Format = "fluentcontrol.light-sample", Version = 1,
-            SourceId = source.DeviceId, Timestamp = timestamp, Lux = value, Valid = true };
+            SourceId = id, Timestamp = timestamp, Lux = value, Valid = true };
     }
 }

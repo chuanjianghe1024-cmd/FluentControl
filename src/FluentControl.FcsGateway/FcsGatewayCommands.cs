@@ -67,6 +67,18 @@ internal static class FcsGatewayCommands
                     if (!GatewayRegistry.ValidId(identity)) throw new InvalidDataException("Invalid device identity.");
                     UsbReading sample;
                     string transport;
+                    // Prefer the already discovered LAN path when USB is no longer recently seen.
+                    // This avoids repeatedly probing absent serial ports after moving to a charger.
+                    if (registry.HasLan(identity) && !registry.HasRecentUsb(identity))
+                    {
+                        try
+                        {
+                            sample = await registry.ReadPublicAsync(identity, cancel);
+                            return new(new { protocol = Protocol, sample, transport = "lan" });
+                        }
+                        catch (Exception ex) when (ex is IOException or HttpRequestException or InvalidDataException or TaskCanceledException)
+                        { /* USB might have returned; test it before reporting unavailable. */ }
+                    }
                     try
                     {
                         sample = await usb.ReadAsync(port, identity, cancel);

@@ -124,7 +124,9 @@ public sealed partial class MainWindow
                     VerticalAlignment = VerticalAlignment.Center });
                 heading.Children.Add(new TextBlock { Text = existing?.Name ?? device.DeviceId, FontSize = 15 });
                 heading.Children.Add(new TextBlock { Text = (existing is null ? T("可添加", "Available") : T("已添加", "Added")) +
-                    " · " + (online ? T("在线", "Online") : T("离线", "Offline")) });
+                    " · " + (online ? T("在线", "Online") :
+                        device.UsbPort is not null ? T("USB 已发现，待读数", "USB discovered · awaiting reading") :
+                        T("离线", "Offline")) });
                 row.Children.Add(heading);
                 var routes = new List<string>();
                 if (!string.IsNullOrEmpty(device.UsbPort)) routes.Add("USB " + device.UsbPort);

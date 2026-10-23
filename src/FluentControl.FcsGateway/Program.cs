@@ -125,6 +125,8 @@ internal sealed class GatewayRegistry : IDisposable
     }
     public bool HasLan(string id) => devices.TryGetValue(id, out var e) &&
         !string.IsNullOrEmpty(e.Ip) && DateTimeOffset.UtcNow - e.Seen < TimeSpan.FromMinutes(10);
+    public bool HasRecentUsb(string id) => devices.TryGetValue(id, out var e) &&
+        !string.IsNullOrEmpty(e.UsbPort) && DateTimeOffset.UtcNow - e.UsbSeen < TimeSpan.FromSeconds(15);
     public async Task<UsbReading> ReadPublicAsync(string id, CancellationToken cancel)
     {
         if (!devices.TryGetValue(id, out var e) || string.IsNullOrEmpty(e.Ip) ||
