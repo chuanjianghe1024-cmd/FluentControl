@@ -81,7 +81,7 @@ public sealed partial class MainWindow
             FontSize = 17, TextWrapping = TextWrapping.Wrap });
         fcsGatewayStatus = new TextBlock { Text = T("正在读取网关状态…", "Reading gateway status…"), TextWrapping = TextWrapping.Wrap };
         section.Children.Add(fcsGatewayStatus);
-        var refresh = new Button { Content = T("立即扫描局域网", "Scan LAN now"), IsEnabled = !uiTest };
+        var refresh = new Button { Content = T("扫描 USB 与局域网", "Scan USB and LAN"), IsEnabled = !uiTest };
         refresh.Click += async (_, _) =>
         {
             refresh.IsEnabled = false;
@@ -103,6 +103,12 @@ public sealed partial class MainWindow
         try
         {
             FcsGatewayClient.EnsureStarted();
+            if (discover)
+            {
+                using var scan = CancellationTokenSource.CreateLinkedTokenSource(sensorLifetime.Token);
+                scan.CancelAfter(TimeSpan.FromSeconds(30));
+                await FcsGatewayClient.DiscoverUsbAsync("AUTO", scan.Token);
+            }
             var devices = await FcsGatewayClient.ListAsync(discover);
             if (closed || !ReferenceEquals(panel, fcsDevicesPanel) || !ReferenceEquals(status, fcsGatewayStatus)) return;
             status.Text = F("网关已连接 · 已发现 {0} 台设备", "Gateway connected · {0} discovered devices", devices.Count);
@@ -120,18 +126,37 @@ public sealed partial class MainWindow
                 heading.Children.Add(new TextBlock { Text = (existing is null ? T("可添加", "Available") : T("已添加", "Added")) +
                     " · " + (online ? T("在线", "Online") : T("离线", "Offline")) });
                 row.Children.Add(heading);
-                row.Children.Add(new TextBlock { Text = device.Ip + (online && device.Lux is double lx ? $" · {lx:0} lux" : "") +
-                    (device.LastSampleUtc is { } timestamp ? $" · {timestamp.ToLocalTime():HH:mm:ss}" : ""),
-                    TextWrapping = TextWrapping.Wrap, Opacity = .65 });
-                if (existing is null && online)
+                var routes = new List<string>();
+                if (!string.IsNullOrEmpty(device.UsbPort)) routes.Add("USB " + device.UsbPort);
+                if (!string.IsNullOrEmpty(device.Ip)) routes.Add("LAN " + device.Ip);
+                var detail = string.Join(" · ", routes) +
+                    (online && device.Lux is double lx ? $" · {lx:0} lux" : "") +
+                    (device.LastSampleUtc is { } timestamp ? $" · {timestamp.ToLocalTime():HH:mm:ss}" : "");
+                row.Children.Add(new TextBlock { Text = detail, TextWrapping = TextWrapping.Wrap, Opacity = .65 });
+                if (existing is null && (online || !string.IsNullOrEmpty(device.UsbPort)))
                 {
                     var add = new Button { Content = T("添加光照来源", "Add light source") };
-                    add.Click += (_, _) =>
+                    add.Click += async (_, _) =>
                     {
                         if (state.Settings.Adaptive.LightSources.Any(s => s.DeviceId == device.DeviceId)) return;
-                        AddSensorSubscription(new LightSourceSubscription { Name = device.DeviceId, DeviceId = device.DeviceId,
-                            Url = "http://" + device.Ip + ":8766/v1/sample", SignedDevice = false });
-                        BuildFcsPage();
+                        add.IsEnabled = false;
+                        try
+                        {
+                            var useUsb = !string.IsNullOrEmpty(device.UsbPort);
+                            var source = new LightSourceSubscription { Name = device.DeviceId, DeviceId = device.DeviceId,
+                                Url = useUsb ? "fc-usb://auto" : "http://" + device.Ip + ":8766/v1/sample",
+                                SignedDevice = false };
+                            // USB candidates must return a fresh, identity-matched reading before adoption.
+                            if (useUsb) await FcsGatewayClient.ReadAutoAsync(source, sensorLifetime.Token);
+                            if (closed || state.Settings.Adaptive.LightSources.Any(s => s.DeviceId == device.DeviceId)) return;
+                            AddSensorSubscription(source);
+                            BuildFcsPage();
+                        }
+                        catch (Exception)
+                        {
+                            if (!closed) ShowStatus(T("无法验证设备光照，请检查连接并重试。", "Could not verify the sensor reading. Check the connection and retry."), InfoBarSeverity.Warning);
+                        }
+                        finally { if (!closed) add.IsEnabled = true; }
                     };
                     row.Children.Add(add);
                 }

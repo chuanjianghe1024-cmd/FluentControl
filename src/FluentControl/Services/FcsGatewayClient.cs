@@ -22,6 +22,12 @@ public static class FcsGatewayClient
         if (!File.Exists(executable)) return false;
         lock (StartLock)
         {
+            try
+            {
+                if (Mutex.TryOpenExisting(@"Local\FluentControl.FcsGateway", out var running))
+                { running.Dispose(); return true; }
+            }
+            catch (UnauthorizedAccessException) { return false; }
             if (DateTimeOffset.UtcNow - lastStart < TimeSpan.FromSeconds(10)) return true;
             lastStart = DateTimeOffset.UtcNow;
             try

@@ -47,6 +47,9 @@ public sealed partial class MainWindow
             finally { sensorArrivalBusy = false; }
         };
         sensorArrivalTimer.Start();
+        // Keep the Gateway's LAN heartbeat running even when the FCS page is closed.
+        if (state.Settings.Adaptive.LightSources.Any(s => !string.IsNullOrWhiteSpace(s.DeviceId)))
+            FcsGatewayClient.EnsureStarted();
     }
     private void BuildSensorDeviceSettings(StackPanel section, TextBox port)
     {
