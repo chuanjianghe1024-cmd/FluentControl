@@ -53,7 +53,8 @@ while (!lifetime.IsCancellationRequested)
             "status" => (object)new { protocol = Version, running = true, devices = service.Snapshot().Length },
             _ => new { protocol = Version, error = "unsupported" }
         };
-        await writer.WriteLineAsync(JsonSerializer.Serialize(result));
+        // IPC contract uses camelCase, including record-backed device fields.
+        await writer.WriteLineAsync(JsonSerializer.Serialize(result, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
     }
     catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { break; }
     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OperationCanceledException or SocketException)
@@ -188,6 +189,13 @@ internal static class GatewayChecks
         if (!GatewayRegistry.TryLight(ok.RootElement, "x", out var lux) || lux != 123.5 ||
             GatewayRegistry.TryLight(bad.RootElement, "x", out _))
             throw new InvalidOperationException("Light frame validation failed");
-        Console.WriteLine("PASS: FCS gateway ID, private subnet, validated sensor frame.");
+        var sample = new GatewayDevice("x", "192.168.1.7", "online", 123.5, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+        var wire = JsonSerializer.Serialize(new { protocol = "fcs-gateway/1", devices = new[] { sample } },
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        using var parsed = JsonDocument.Parse(wire);
+        if (parsed.RootElement.GetProperty("devices")[0].GetProperty("deviceId").GetString() != "x" ||
+            parsed.RootElement.GetProperty("devices")[0].GetProperty("lux").GetDouble() != 123.5)
+            throw new InvalidOperationException("IPC device field casing changed");
+        Console.WriteLine("PASS: FCS gateway ID, private subnet, validated sensor frame and IPC serialization.");
     }
 }
