@@ -13,9 +13,24 @@ if (args.Length == 1 && args[0] == "--self-test")
     GatewayChecks.Run();
     return;
 }
+if (args.Length == 1 && args[0] == "--stop")
+{
+    // Explicit same-user shutdown for upgrades and standalone deployments.
+    try
+    {
+        using var pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut,
+            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        await pipe.ConnectAsync(1500, timeout.Token);
+        using var writer = new StreamWriter(pipe, new UTF8Encoding(false), 4096, leaveOpen: true) { AutoFlush = true };
+        await writer.WriteLineAsync("{\"operation\":\"shutdown\"}");
+    }
+    catch (Exception ex) when (ex is IOException or TimeoutException or OperationCanceledException) { }
+    return;
+}
 if (args.Length > 1 || args.Length == 1 && args[0] != "--serve")
 {
-    Console.Error.WriteLine("Usage: FluentControl.FcsGateway.exe [--serve|--self-test]");
+    Console.Error.WriteLine("Usage: FluentControl.FcsGateway.exe [--serve|--self-test|--stop]");
     return;
 }
 // One gateway per logged-in Windows user, regardless of whether FC is open.
@@ -51,10 +66,12 @@ while (!lifetime.IsCancellationRequested)
         {
             "discover" or "list" => new { protocol = Version, devices = service.Snapshot() },
             "status" => (object)new { protocol = Version, running = true, devices = service.Snapshot().Length },
+            "shutdown" => new { protocol = Version, running = false },
             _ => new { protocol = Version, error = "unsupported" }
         };
         // IPC contract uses camelCase, including record-backed device fields.
         await writer.WriteLineAsync(JsonSerializer.Serialize(result, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        if (op == "shutdown") lifetime.Cancel();
     }
     catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { break; }
     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OperationCanceledException or SocketException)
