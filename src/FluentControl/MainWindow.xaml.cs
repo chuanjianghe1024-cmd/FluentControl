@@ -82,11 +82,12 @@ public sealed partial class MainWindow : Window
         DisplayPanel.Visibility = tag == "monitors" ? Visibility.Visible : Visibility.Collapsed;
         AudioPanel.Visibility = tag == "audio" ? Visibility.Visible : Visibility.Collapsed;
         MousePanel.Visibility = tag == "mouse" ? Visibility.Visible : Visibility.Collapsed;
-        SettingsPanel.Visibility = tag is "settings" or "adaptive" ? Visibility.Visible : Visibility.Collapsed;
-        MainScroll.Visibility = tag is "settings" or "adaptive" ? Visibility.Collapsed : Visibility.Visible;
+        SettingsPanel.Visibility = tag is "settings" or "adaptive" or "fcs" ? Visibility.Visible : Visibility.Collapsed;
+        MainScroll.Visibility = tag is "settings" or "adaptive" or "fcs" ? Visibility.Collapsed : Visibility.Visible;
+        if (tag != "fcs") fcsTimer.Stop();
         PresetLibraryPanel.Visibility = tag == "library" ? Visibility.Visible : Visibility.Collapsed;
         if (tag == "library") BuildPresetLibrary();
-        if (tag is "settings" or "adaptive") BuildSettings();
+        if (tag is "settings" or "adaptive" or "fcs") BuildSettings();
         UpdatePageTitle();
     }
     private void DisplayMode_SelectionChanged(object sender, SelectionChangedEventArgs args)

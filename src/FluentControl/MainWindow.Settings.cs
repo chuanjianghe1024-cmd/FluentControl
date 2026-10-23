@@ -20,6 +20,7 @@ public sealed partial class MainWindow
     private void BuildSettings()
     {
         if ((Navigation.SelectedItem as NavigationViewItem)?.Tag as string == "adaptive") { BuildAdaptivePage(); return; }
+        if ((Navigation.SelectedItem as NavigationViewItem)?.Tag as string == "fcs") { BuildFcsPage(); return; }
         SettingsPanel.Children.Clear(); settingsSections.Clear();
         settingsNavigation = new NavigationView
         {

@@ -137,6 +137,7 @@ public sealed partial class MainWindow
         ((NavigationViewItem)Navigation.MenuItems[2]).Content = T("鼠标与指针", "Mouse & pointer");
         ((NavigationViewItem)Navigation.MenuItems[3]).Content = T("型号配置库", "Model preset library");
         ((NavigationViewItem)Navigation.MenuItems[4]).Content = T("自动调节", "Automatic adjustment");
+        ((NavigationViewItem)Navigation.MenuItems[5]).Content = T("FCS 设备", "FCS devices");
         GlobalProfileTitle.Text = T("总配置", "Global profile");
         if (Navigation.SettingsItem is NavigationViewItem settingsItem) settingsItem.Content = T("设置", "Settings");
         var index = DisplayMode.SelectedIndex;
@@ -165,11 +166,12 @@ public sealed partial class MainWindow
     private void UpdatePageTitle()
     {
         var tag = Navigation.SelectedItem == Navigation.SettingsItem ? "settings" : (Navigation.SelectedItem as NavigationViewItem)?.Tag as string ?? "monitors";
-        PageTitle.Text = tag switch { "audio" => T("音量与输入", "Volume & input"), "mouse" => T("鼠标与指针", "Mouse & pointer"), "library" => T("型号配置库", "Model preset library"), "settings" => T("设置", "Settings"), "adaptive" => T("自动调节", "Automatic adjustment"), _ => T("显示器", "Displays") };
+        PageTitle.Text = tag switch { "audio" => T("音量与输入", "Volume & input"), "mouse" => T("鼠标与指针", "Mouse & pointer"), "library" => T("型号配置库", "Model preset library"), "settings" => T("设置", "Settings"), "adaptive" => T("自动调节", "Automatic adjustment"), "fcs" => T("FCS 设备", "FCS devices"), _ => T("显示器", "Displays") };
         Title = AppName + " · " + PageTitle.Text;
         PageDescription.Text = tag switch
         {
             "adaptive" => T("按光照或时间调节屏幕，管理预设、设备与历史。", "Adjust displays by light or time; manage presets, devices and history."),
+            "fcs" => T("发现传感器、查看在线状态、配网与管理设备。", "Discover sensors, check live status, and configure devices."),
             "audio" => T("跟随 Windows 当前的声音输出和输入。", "Follows the current Windows sound output and input."),
             "mouse" => T("找到适合自己的移动速度与指针大小。", "Tune movement speed and pointer size."),
             "settings" => T("按自己的习惯使用聚合控制。", "Make Fluent Control work your way."),

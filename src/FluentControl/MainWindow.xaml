@@ -21,6 +21,9 @@
             <NavigationViewItem Content="自动调节" Tag="adaptive" AutomationProperties.AutomationId="nav-adaptive">
                 <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;"/></NavigationViewItem.Icon>
             </NavigationViewItem>
+            <NavigationViewItem Content="FCS 设备" Tag="fcs" AutomationProperties.AutomationId="nav-fcs">
+                <NavigationViewItem.Icon><FontIcon Glyph="&#xE968;"/></NavigationViewItem.Icon>
+            </NavigationViewItem>
         </NavigationView.MenuItems>
         <Grid x:Name="Root" Padding="28,24,28,20" RowSpacing="20">
             <Grid.RowDefinitions>
