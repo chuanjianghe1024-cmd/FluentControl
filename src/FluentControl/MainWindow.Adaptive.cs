@@ -141,8 +141,10 @@ public sealed partial class MainWindow
                 var index = curve.Points.IndexOf(point); bool endpoint = index == 0 || index == curve.Points.Count - 1;
                 var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
                 var x = new NumberBox { Header = curve.Axis == "clock" ? T("小时", "Hours") : "lux ≥", Value = point.X, Width = 140, IsEnabled = !endpoint, Minimum = 0, Maximum = curve.Axis == "clock" ? 24 : 10000, SmallChange = curve.Axis == "ambient" ? 1 : .5 };
-                var y = new ComboBox { Header = T("亮度", "Brightness") + " %", IsEditable = true, Width = 140,
-                    ItemsSource = Enumerable.Range(0, 11).Select(i => (i * 10).ToString()).ToArray(), Text = Math.Round(point.Brightness).ToString() };
+                var y = new ComboBox { Header = T("亮度快捷值", "Brightness preset") + " %", Width = 140,
+                    ItemsSource = Enumerable.Range(0, 11).Select(i => (i * 10).ToString()).ToArray(),
+                    SelectedItem = (Math.Round(point.Brightness / 10) * 10).ToString() };
+                var customY = new NumberBox { Header = T("自定义亮度 %", "Custom brightness %"), Value = point.Brightness, Width = 140, Minimum = 0, Maximum = 100, SmallChange = 1 };
                 Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(y, "adaptive-y-" + index);
                 x.ValueChanged += (_, e) =>
                 {
@@ -152,21 +154,21 @@ public sealed partial class MainWindow
                     if (!double.IsFinite(value) || value - curve.Points[index - 1].X < step || curve.Points[index + 1].X - value < step) { x.Value = point.X; return; }
                     point.X = value; if (x.Value != value) x.Value = value; SaveAdaptiveSettings(); Draw();
                 };
-                void SetBrightness(string text)
+                void SetBrightness(double number)
                 {
-                    if (!double.TryParse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.CurrentCulture, out var number) ||
-                        !double.IsFinite(number) || number < 0 || number > 100) { y.Text = Math.Round(point.Brightness).ToString(); return; }
+                    if (!double.IsFinite(number) || number < 0 || number > 100) { customY.Value = point.Brightness; return; }
                     double value = Math.Round(number);
                     if (point.Brightness == value) return;
-                    point.Brightness = value;
+                    point.Brightness = value; customY.Value = value;
                     if (curve.Axis == "clock" && endpoint) curve.Points[0].Brightness = curve.Points[^1].Brightness = value;
                     SaveAdaptiveSettings(); Draw();
                 }
-                y.SelectionChanged += (_, _) => { if (y.SelectedItem is string selected) SetBrightness(selected); };
-                y.LostFocus += (_, _) => { SetBrightness(y.Text); if (curve.Axis == "clock" && endpoint) BuildRows(); };
+                y.SelectionChanged += (_, _) => { if (y.SelectedItem is string selected && double.TryParse(selected, out var value)) SetBrightness(value); };
+                customY.ValueChanged += (_, e) => { if (double.IsFinite(e.NewValue)) SetBrightness(e.NewValue); };
+                customY.LostFocus += (_, _) => { if (curve.Axis == "clock" && endpoint) BuildRows(); };
                 var remove = new Button { Content = T("删除", "Delete"), IsEnabled = !endpoint, VerticalAlignment = VerticalAlignment.Bottom };
                 remove.Click += (_, _) => { curve.Points.Remove(point); SaveAdaptiveSettings(); BuildRows(); Draw(); };
-                row.Children.Add(x); row.Children.Add(y); row.Children.Add(remove); rows.Children.Add(row);
+                row.Children.Add(x); row.Children.Add(y); row.Children.Add(customY); row.Children.Add(remove); rows.Children.Add(row);
             }
         }
         canvas.PointerPressed += (_, e) =>
