@@ -255,7 +255,7 @@ internal static class GatewayChecks
             throw new InvalidOperationException("USB port validation failed");
         using var registry = new GatewayRegistry();
         using var serial = new FcsUsb();
-        var capabilities = FcsGatewayCommands.RunAsync("{\"operation\":\"capabilities\"}",
+        var capabilities = FcsGatewayCommands.RunAsync("{\"operation\":\"capabilities\",\"deviceId\":null,\"port\":\"AUTO\",\"command\":null,\"arguments\":null}",
             registry, serial, CancellationToken.None).GetAwaiter().GetResult();
         var cap = JsonSerializer.SerializeToElement(capabilities.Payload);
         if (cap.GetProperty("pluginRuntime").GetString() != "not-implemented" ||
