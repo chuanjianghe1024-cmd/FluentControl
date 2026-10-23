@@ -8,7 +8,8 @@
 
 - C# / .NET 8 / WinUI 3 的 Windows x64 桌面程序，使用 Win32 DDC/CI、WASAPI 和系统设置接口。
 - 桌面应用不依赖 Node.js。Actions 的 JavaScript action 运行时与应用技术栈无关。
-- 分享网站位于独立的 `chuanjianghe1024-cmd/FluentControl-Web`；不要在这里重新引入 `web/`、前端依赖或网站构建。品牌域名为 `fctrl.app`。
+- 分享网站位于独立的 `chuanjianghe1024-cmd/FluentControl-Web`；不要在这里重新引入 `web/`、前端依赖或网站构建。品牌域名为 `fctrl.app`。 网站源码仓库继续私有，本次不更改其可见性。
+- FC 当前分支自许可切换提交起采用 PolyForm Noncommercial 1.0.0；这是 source-available 非商业许可，不是 OSI 批准的传统开源许可。历史 MIT 版本按原许可处理。
 - 当前行为以代码与 CHANGELOG 为准。README 面向用户介绍产品；`docs/profile-library-design.md` 是后续设计备忘录，不代表其中所有内容已实现。
 
 ## 社区协作与 CI
@@ -25,11 +26,13 @@
 - `agent.md`：项目结构、开发约束、当前工程状态、详细任务和验收条件，是开发计划的统一入口。
 - `AGENTS.md`：指向本文件，供 Codex 等工具自动发现，避免重复维护规则。
 - `CHANGELOG.md` 与 `docs/releases/`：分别记录未发布变更和已发布版本，不把开发构建写成正式发布。
-- `LICENSE`：按用户明确选择采用 MIT，版权署名为 FluentControl contributors；保留第三方原有许可，不将本仓库许可套用于独立的网站仓库。
+- `LICENSE`：当前分支自许可切换提交起采用 PolyForm Noncommercial 1.0.0；历史 MIT 授权不追溯撤销，详见 `docs/licensing-policy.md` 与 `LICENSE-MIT-LEGACY.md`。第三方依赖保留原许可，许可不适用于独立网站仓库。
 - `docs/wiki/`：中英文用户手册及 Wiki 导航的维护源；同步流程、首次初始化和验证方法见 `docs/wiki-maintenance.md`。修改对应功能时同步用户说明，不能将已提交源文件等同于线上 Wiki 已发布。
 - `docs/development.md`：完整构建、测试、安装与发布操作手册。
 - `docs/monitor-profiles.md`、`docs/monitor-adapters.md`：文件格式、接口与型号适配协议；计划不能覆盖现行协议。
 - `docs/profile-library-design.md`：配置组织与迁移的详细设计备忘录，实施状态以本文件和代码为准。
+- `docs/fcs-platform-plan.md`：FCS 多传感器平台、Gateway、设备端代码插件、规则/事件、恢复策略、FC 集成与插件社区规划；规划不代表功能已实现。
+- `docs/licensing-policy.md`：非商业许可迁移边界、历史 MIT 版本，以及软件许可与社区插件内容许可的分离。
 - `docs/code-signing.md`：签名方案与实际执行条件。
 
 README 保留产品层面的计划，详细实现步骤、模块路径和验收清单放在本文件或链接的工程文档。宣传文字不得把未上线服务、未经实机验证的型号或设计稿写成已可用功能。

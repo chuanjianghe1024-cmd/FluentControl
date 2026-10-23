@@ -2,6 +2,11 @@
 
 ## 未发布 / Unreleased
 
+- 新增 FCS 平台架构规划，记录多传感器对象模型、Gateway、插件/规则/事件、USB 代码安装、恢复策略及网站插件社区边界；本次仅更新文档，尚未实现通用 Gateway 或插件运行时。
+- 当前分支许可调整为 PolyForm Noncommercial 1.0.0，保留历史 MIT 许可文本并明确既有授权不追溯撤销；FCW 网站仓库保持独立私有。
+- Add the FCS platform architecture plan for multi-sensor models, gateway, plugins/rules/events, USB-only device code installation, recovery and the plugin community. Documentation only; the general gateway and plugin runtime are not implemented.
+- Adopt PolyForm Noncommercial 1.0.0 for the current branch, preserve the historical MIT license text, and clarify that prior grants are not retroactively revoked. The separate FCW website repository remains private.
+
 - 桌面组件在整体和单独模式下均显示受 HDR 影响的屏幕及调节限制，增加与主界面同步的自动调节开关；沿用已配置的规则和目标屏幕。
 - 已接入的当前光照来源在桌面组件显示 lux 与采样时间，自动调光关闭后仍按订阅周期刷新，不强制开启历史记录；失联或样本过期不显示旧值为实时数据。
 - Desktop panels show per-display HDR limitations in both modes and share the automatic-adjustment switch and configured targets with the main window. Selected light subscriptions refresh lux and sample time even with automatic brightness off, without enabling history; stale/failed samples are not shown as live.
