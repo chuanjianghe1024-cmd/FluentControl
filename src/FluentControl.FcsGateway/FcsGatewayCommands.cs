@@ -10,7 +10,8 @@ internal static class FcsGatewayCommands
     private const string Protocol = "fcs-gateway/1";
     private static string Field(JsonElement root, string name, string fallback = "")
     {
-        if (!root.TryGetProperty(name, out var p)) return fallback;
+        if (!root.TryGetProperty(name, out var p) ||
+            p.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) return fallback;
         if (p.ValueKind != JsonValueKind.String) throw new InvalidDataException("Invalid " + name);
         var value = p.GetString() ?? fallback;
         if (value.Length > 120) throw new InvalidDataException("Field too long.");
