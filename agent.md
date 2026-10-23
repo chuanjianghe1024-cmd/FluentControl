@@ -32,6 +32,8 @@
 - `docs/monitor-profiles.md`、`docs/monitor-adapters.md`：文件格式、接口与型号适配协议；计划不能覆盖现行协议。
 - `docs/profile-library-design.md`：配置组织与迁移的详细设计备忘录，实施状态以本文件和代码为准。
 - `docs/fcs-platform-plan.md`：FCS 多传感器平台、Gateway、设备端代码插件、规则/事件、恢复策略、FC 集成与插件社区规划；规划不代表功能已实现。
+- `docs/fcs-gateway.md`：已实现 Gateway 进程、USB/LAN IPC 的操作说明与未完成的独立安装边界。
+- `docs/fcs-plugin-contract.md`：插件包/规则包的协议、权限、安装、恢复与社区分类草案；插件运行仍未实现。
 - `docs/licensing-policy.md`：非商业许可迁移边界、历史 MIT 版本，以及软件许可与社区插件内容许可的分离。
 - `docs/code-signing.md`：签名方案与实际执行条件。
 

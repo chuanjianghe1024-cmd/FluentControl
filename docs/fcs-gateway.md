@@ -24,3 +24,17 @@
 ## 生命周期与安装升级
 
 FC 安装包默认包含网关可执行文件，但只有用户打开 FCS 设备页面并需要发现时才启动后台进程，避免单纯启动 FC 就永久打开扫描服务；进程可以在 FC 窗口关闭后继续运行。独立使用可运行 `FluentControl.FcsGateway.exe --serve`，退出/升级前可显式运行 `FluentControl.FcsGateway.exe --stop`；停止请求只允许同一 Windows 用户经本机 IPC 发送。卸载与升级前应先关闭 FC，再停止该进程，避免 MSI 的文件占用提示。当前还没有独立 MSI 安装器或可选系统服务。
+
+## v1 USB 管理集中到 Gateway（本次迭代）
+
+FCS Gateway 现在拥有 USB CDC 的端口发现、物理设备身份握手、光照 READ 和经过白名单的管理 FC 命令。FC 配网向导、设备管理和生产模式的 USB 订阅通过本机 Named Pipe 调用 Gateway；原有 FC 串口实现暂作回归测试与迁移兼容参考，不再是这些入口的主路径。
+
+IPC 操作：
+- `usb.discover`：`port=AUTO|COMx`，返回已验证 `{port, identity}` 列表；
+- `usb.manage`：提供 `deviceId`、`port`、已知管理 `command` 与对象 `arguments`；Gateway 必须重新 PING 核对身份后才通过物理 USB 发送；
+- `sample.read`：按稳定设备 ID 优先 USB READ；USB 不可用时尝试该身份在 Gateway 发现并读取验证的公开 LAN 来源；不假设仅拔掉数据线就能保持光照不中断；
+- `list` / `discover`：报告 USB/LAN 去重设备与有效性、最近成功读数、过期状态；`capabilities`：返回目前支持的传输与管理范围，以及未实现的插件状态。
+
+若 Gateway 是独立启动，本机 IPC 仍仅允许同一 Windows 用户；这是单用户管理信任边界。返回 USB 绑定密钥仅允许同用户本机请求，不通过公开 LAN 接口返回。私有网络中的公开传感器接口仅用于读取，仍不提供管理写入。
+
+**当前局限**：没有独立 MSI 安装器（Gateway 二进制可独立执行），当前源码暂在 FC 解决方案中并捆绑 FC 安装包；计划在稳定协议和 CI 验证后抽出可复用 FCS 独立工程与发行包。旧签名 LAN 客户端保留兼容读取，不能由 Gateway 的新匿名读取冒充验证通过。BLE Wi-Fi 安全配网、插件安装/规则引擎仍未实现，参见 [插件清单设计](fcs-plugin-contract.md)。
