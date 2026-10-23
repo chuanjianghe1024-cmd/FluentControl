@@ -101,8 +101,7 @@ public sealed partial class MainWindow
                     using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(LocalLightProtocol.IsLocal(source.Url) ? 25 : 3)); lightRequest = cancellation;
                     try { sample = LocalLightProtocol.IsLocal(source.Url)
                         ? await LocalLightSensor.ReadAsync(source, cancellation.Token)
-                        : source.SignedDevice ? await NetworkSignalSensor.ReadAsync(lightClient, source, cancellation.Token)
-                        : await LightFeed.ReadAsync(lightClient, source, cancellation.Token); }
+                        : await NetworkSignalSensor.ReadSourceAsync(lightClient, source, cancellation.Token); }
                     finally { lightRequest = null; }
                 }
                 if (closed || revision != adaptiveRevision || version != generation) return;

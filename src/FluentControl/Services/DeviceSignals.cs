@@ -46,7 +46,38 @@ public static class DeviceSignals
 
 public static class NetworkSignalSensor
 {
-    // Only authenticated reads are available over LAN. Device management stays USB-only in this release.
+    // Public read only uses the explicit FCS sensor endpoint. Management remains USB-only.
+    public static bool IsPublicLightEndpoint(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == "http" &&
+        uri.AbsolutePath == "/v1/sample" && uri.Port == 8766 && uri.UserInfo.Length == 0 &&
+        uri.Fragment.Length == 0;
+
+    public static async Task<LightSample> ReadPublicAsync(HttpClient client, LightSourceSubscription source, CancellationToken cancellation)
+    {
+        if (string.IsNullOrWhiteSpace(source.DeviceId) || !IsPublicLightEndpoint(source.Url))
+            throw new InvalidDataException("Not a public FCS signal source.");
+        using var request = new HttpRequestMessage(HttpMethod.Get, LightFeed.UriFor(source.Url));
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
+        response.EnsureSuccessStatusCode();
+        if (response.Content.Headers.ContentLength is > LightFeed.MaximumBytes) throw new InvalidDataException("Sample too large.");
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellation);
+        using var memory = new MemoryStream();
+        var buffer = new byte[1024]; int count;
+        while ((count = await stream.ReadAsync(buffer, cancellation)) > 0)
+        {
+            if (memory.Length + count > LightFeed.MaximumBytes) throw new InvalidDataException("Sample too large.");
+            memory.Write(buffer, 0, count);
+        }
+        using var doc = JsonDocument.Parse(memory.ToArray(), new JsonDocumentOptions { MaxDepth = 8 });
+        return DeviceSignals.Light(doc.RootElement, source.DeviceId, DateTimeOffset.UtcNow);
+    }
+
+    public static Task<LightSample> ReadSourceAsync(HttpClient client, LightSourceSubscription source, CancellationToken cancellation) =>
+        source.SignedDevice ? ReadAsync(client, source, cancellation) :
+        IsPublicLightEndpoint(source.Url) ? ReadPublicAsync(client, source, cancellation) :
+        LightFeed.ReadAsync(client, source, cancellation);
+
+    // The earlier signed route stays compatible with old C3 firmware and saved subscriptions.
     public static async Task<LightSample> ReadAsync(HttpClient client, LightSourceSubscription source, CancellationToken cancellation)
     {
         var key = DeviceKeyStore.Read(source.DeviceId);

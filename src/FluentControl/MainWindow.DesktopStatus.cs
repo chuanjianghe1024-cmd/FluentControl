@@ -79,8 +79,7 @@ public sealed partial class MainWindow
         try
         {
             var sample = LocalLightProtocol.IsLocal(source.Url) ? await LocalLightSensor.ReadAsync(source, cancel.Token)
-                : source.SignedDevice ? await NetworkSignalSensor.ReadAsync(lightClient, source, cancel.Token)
-                : await LightFeed.ReadAsync(lightClient, source, cancel.Token);
+                : await NetworkSignalSensor.ReadSourceAsync(lightClient, source, cancel.Token);
             if (!closed && desktopPanel is not null && revision == adaptiveRevision) PublishDesktopLight(source.Id, sample);
         }
         catch (Exception)

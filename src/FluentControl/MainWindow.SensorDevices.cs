@@ -83,7 +83,7 @@ public sealed partial class MainWindow
             finally { sensorSetupActive = false; if (!closed) advanced.IsEnabled = true; }
         };
         section.Children.Add(advanced);
-        var network = new Button { Content = T("发现已绑定的局域网设备", "Discover bound LAN devices"), IsEnabled = !uiTest };
+        var network = new Button { Content = T("发现局域网光照设备", "Discover LAN light devices"), IsEnabled = !uiTest };
         network.Click += async (_, _) =>
         {
             network.IsEnabled = false;
@@ -95,13 +95,24 @@ public sealed partial class MainWindow
                 foreach (var found in await NetworkSignalSensor.DiscoverAsync(cancel.Token))
                 {
                     if (closed || listRevision != lightSourceListRevision) return;
-                    var source = new LightSourceSubscription { Name = found.Id, DeviceId = found.Id, Url = found.Url, SignedDevice = true };
-                    try { await NetworkSignalSensor.ReadAsync(lightClient, source, cancel.Token); }
-                    catch (Exception ex) when (ex is not OperationCanceledException) { continue; }
+                    var source = new LightSourceSubscription { Name = found.Id, DeviceId = found.Id, Url = found.Url, SignedDevice = false };
+                    try { await NetworkSignalSensor.ReadPublicAsync(lightClient, source, cancel.Token); }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        // Old signed firmware still works if FC previously saved its USB binding.
+                        source.SignedDevice = true;
+                        try { await NetworkSignalSensor.ReadAsync(lightClient, source, cancel.Token); }
+                        catch (Exception inner) when (inner is not OperationCanceledException) { continue; }
+                    }
                     if (closed || listRevision != lightSourceListRevision) return;
-                    AddSensorSubscription(source); added = true;
+                    // Existing devices are already added. Update the reachable endpoint in place
+                    // without disabling automation or creating another copy of the same physical device.
+                    var existing = state.Settings.Adaptive.LightSources.FirstOrDefault(x => x.DeviceId == source.DeviceId);
+                    if (existing is null) { AddSensorSubscription(source); added = true; }
+                    else if (existing.Url != source.Url || existing.SignedDevice != source.SignedDevice)
+                    { existing.Url = source.Url; existing.SignedDevice = source.SignedDevice; SaveState(); added = true; }
                 }
-                if (!closed) { if (added) BuildSettings(); else ShowStatus(T("请先通过 USB 配网并保存绑定，再搜索同一局域网。", "Set up Wi-Fi and save binding over USB first, then search the same LAN."), InfoBarSeverity.Informational); }
+                if (!closed) { if (added) BuildSettings(); else ShowStatus(T("未发现可读取的光照设备；请检查设备是否已通过热点配网，并与电脑位于同一局域网。", "No readable sensor found. Check that the device joined the same LAN using Wi-Fi setup."), InfoBarSeverity.Informational); }
             }
             catch (OperationCanceledException) { }
             catch { if (!closed) ShowStatus(T("设备操作失败或结果未确认，请重新读取状态。", "Device operation failed or is unconfirmed. Read status again."), InfoBarSeverity.Warning); }
