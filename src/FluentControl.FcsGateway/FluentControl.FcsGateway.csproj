@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Product>FluentControl Sensors Gateway</Product>
+  </PropertyGroup>
+  <Target Name="GetFcsGatewayPayload" Returns="@(FcsGatewayPayload)">
+    <ItemGroup>
+      <FcsGatewayPayload Include="$(TargetDir)FluentControl.FcsGateway.exe;$(TargetDir)FluentControl.FcsGateway.dll;$(TargetDir)FluentControl.FcsGateway.deps.json;$(TargetDir)FluentControl.FcsGateway.runtimeconfig.json" />
+    </ItemGroup>
+  </Target>
+</Project>
