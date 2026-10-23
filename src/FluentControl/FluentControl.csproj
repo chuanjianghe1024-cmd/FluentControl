@@ -26,6 +26,8 @@
     <ProjectReference Include="../FluentControl.DdcHost/FluentControl.DdcHost.csproj" ReferenceOutputAssembly="false" AdditionalProperties="SelfContained=$(SelfContained)" />
     <ProjectReference Include="../FluentControl.FcsGateway/FluentControl.FcsGateway.csproj" ReferenceOutputAssembly="false" AdditionalProperties="SelfContained=$(SelfContained)" />
     <EmbeddedResource Include="Services/Locales.json" LogicalName="FluentControl.Locales.json" />
+    <!-- Noncommercial license notice travels with every offline build/installer. -->
+    <Content Include="../../LICENSE" Link="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
 
     <!-- The application uses WinUI/windowing, not the AI/ML/widgets metapackage.
          Keep the same WinUI component version as WindowsAppSDK 1.8.260921001. -->

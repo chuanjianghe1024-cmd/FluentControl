@@ -137,7 +137,23 @@ public sealed partial class MainWindow
                 }
                 panel.Children.Add(row);
             }
-            if (devices.Count == 0)
+            // Keep saved offline devices visible rather than making them disappear when power moves to a charger.
+            foreach (var missing in saved.Where(s => !string.IsNullOrWhiteSpace(s.DeviceId) && devices.All(d => d.DeviceId != s.DeviceId)))
+            {
+                var offline = new StackPanel { Spacing = 4, Margin = new Thickness(0, 4, 0, 4) };
+                var heading = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+                heading.Children.Add(new Ellipse { Width = 9, Height = 9,
+                    Fill = new SolidColorBrush(Microsoft.UI.Colors.Gray), VerticalAlignment = VerticalAlignment.Center });
+                heading.Children.Add(new TextBlock { Text = missing.Name, FontSize = 15 });
+                heading.Children.Add(new TextBlock { Text = T("已添加 · 未发现", "Added · not discovered") });
+                offline.Children.Add(heading);
+                offline.Children.Add(new TextBlock { Text = missing.DeviceId + " · " +
+                    (LocalLightProtocol.IsLocal(missing.Url) ? T("USB 来源 · 查看 USB 连接", "USB source · check USB connection") :
+                    T("局域网离线，最后已保存的地址：", "LAN offline, last saved address: ") + missing.Url),
+                    Opacity = .65, TextWrapping = TextWrapping.Wrap });
+                panel.Children.Add(offline);
+            }
+            if (devices.Count == 0 && saved.Count == 0)
                 panel.Children.Add(new TextBlock { Text = T("尚未发现局域网设备。纯供电的 C3 配好 Wi-Fi 后再扫描。", "No LAN device discovered yet. Configure Wi-Fi on the independently powered C3, then scan again."), TextWrapping = TextWrapping.Wrap });
         }
         catch (Exception)

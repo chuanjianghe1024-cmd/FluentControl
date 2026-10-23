@@ -2,6 +2,10 @@
 
 ## 未发布 / Unreleased
 
+- 新增 FCS Gateway 最小独立运行进程、本机用户专属 Named Pipe 协议、局域网设备发现/实时状态；随 FC Windows 安装包默认捆绑，FCS 页面显示已添加/新发现设备、在线 lux、USB 配网与热点配网引导，插件/规则/事件页明确标为待实现。
+- FC 支持新版 C3 的公开只读 LAN 光照接口，保留已保存的签名订阅兼容；断线设备仍在列表显示，不再将旧值冒充实时数值。BLE 直接 Wi-Fi 配网尚未完成。
+- Add a minimal standalone FCS Gateway process, per-user named-pipe discovery/status API, bundled Windows payload, an FC device panel and public LAN sensor read support. BLE Wi-Fi provisioning and the plugin/rule runtime remain planned.
+
 - 新增 FCS 平台架构规划，记录多传感器对象模型、Gateway、插件/规则/事件、USB 代码安装、恢复策略及网站插件社区边界；本次仅更新文档，尚未实现通用 Gateway 或插件运行时。
 - 当前分支许可调整为 PolyForm Noncommercial 1.0.0，保留历史 MIT 许可文本并明确既有授权不追溯撤销；FCW 网站仓库保持独立私有。
 - Add the FCS platform architecture plan for multi-sensor models, gateway, plugins/rules/events, USB-only device code installation, recovery and the plugin community. Documentation only; the general gateway and plugin runtime are not implemented.
