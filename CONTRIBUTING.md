@@ -4,7 +4,7 @@
 
 ## 中文
 
-欢迎贡献代码、翻译、文档、问题复现和显示器兼容性记录。项目采用 [MIT](LICENSE)；贡献者保留署名，提交的原创贡献按本项目 MIT 许可提供。引入第三方代码或数据前，请记录来源和原许可证。
+欢迎贡献代码、翻译、文档、问题复现和显示器兼容性记录。当前分支采用 [PolyForm Noncommercial 1.0.0](LICENSE)，不授予商业使用权；此前 MIT 许可版本的既有授权不被追溯撤销。提交贡献前请确认你有权按项目当前许可提供贡献；引入第三方代码或数据前，记录来源和原许可证。详见 [许可说明](docs/licensing-policy.md)。
 
 ### 从哪里开始
 
@@ -79,7 +79,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 ## English
 
-Code, translations, documentation, reproductions and monitor compatibility evidence are welcome under the [MIT License](LICENSE). You retain attribution; original contributions are provided under MIT. Preserve third-party license notices and provenance.
+Code, translations, documentation, reproductions and monitor compatibility evidence are welcome. The current branch uses [PolyForm Noncommercial 1.0.0](LICENSE), which does not grant commercial-use rights; prior MIT grants are not retroactively revoked. Submit only work you have the right to license under the project terms. Preserve third-party notices and provenance. See the [licensing policy](docs/licensing-policy.md).
 
 ### Start here
 

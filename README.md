@@ -7,7 +7,7 @@
 
 Windows 11 风格 · Windows x64 · 离线 Setup / MSI 安装 · 8 种界面语言
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm_Noncommercial-orange.svg)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/chuanjianghe1024-cmd/FluentControl)](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)
 [![Windows build](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/workflows/build.yml/badge.svg)](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/workflows/build.yml)
 [![Downloads](https://img.shields.io/github/downloads/chuanjianghe1024-cmd/FluentControl/total)](https://github.com/chuanjianghe1024-cmd/FluentControl/releases)
@@ -94,7 +94,7 @@ FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控�
 
 ### 开源许可
 
-采用 [MIT 许可证](LICENSE)，允许商业使用、修改与再分发；分发时请保留版权声明和许可证。第三方组件遵循各自许可证。完整操作说明见 [Wiki 用户手册](https://github.com/chuanjianghe1024-cmd/FluentControl/wiki)，也可在仓库内阅读[手册源文件](docs/wiki/Home.md)。
+当前分支自本次许可切换提交起采用 [PolyForm Noncommercial 1.0.0](LICENSE)，不授予商业使用权。既有 MIT 许可版本及此前已取得的许可不因本次变更而追溯撤销，详见 [历史 MIT 许可副本](LICENSE-MIT-LEGACY.md) 与 [许可说明](docs/licensing-policy.md)。第三方组件遵循各自许可证。完整操作说明见 [Wiki 用户手册](https://github.com/chuanjianghe1024-cmd/FluentControl/wiki)，也可在仓库内阅读[手册源文件](docs/wiki/Home.md)。
 
 ---
 
@@ -178,7 +178,7 @@ Bug reports, feature ideas and monitor compatibility reports are welcome in [Iss
 
 ### License
 
-Licensed under the [MIT License](LICENSE), allowing commercial use, modification and redistribution with the copyright and license notice retained. Third-party components keep their own licenses. See the [Wiki user guide](https://github.com/chuanjianghe1024-cmd/FluentControl/wiki) for detailed instructions, or read the [guide sources](docs/wiki/Home.md) in this repository.
+The current branch adopts [PolyForm Noncommercial 1.0.0](LICENSE) from this transition commit forward and does not grant commercial-use rights. Previously granted MIT licenses for earlier versions are not retroactively revoked; see [LICENSE-MIT-LEGACY.md](LICENSE-MIT-LEGACY.md) and the [licensing policy](docs/licensing-policy.md). Third-party components retain their own licenses.
 
 ### 光照传感器配套仓库 / Companion light-sensor repository
 
