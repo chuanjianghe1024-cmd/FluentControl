@@ -1,0 +1,27 @@
+name: Publish test release
+on:
+  push:
+    branches: [codex/test-release-0.3.201]
+permissions:
+  contents: read
+concurrency:
+  group: publish-test-v0.3.201-test
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'chuanjianghe1024-cmd/FluentControl' && github.ref == 'refs/heads/codex/test-release-0.3.201'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify test-only publication boundaries
+        run: python3 -m unittest discover -s tests/test-release -v
+      - name: Promote exact tested artifacts to prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish-test-release.py

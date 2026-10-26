@@ -1,0 +1,36 @@
+{
+  "repository": "chuanjianghe1024-cmd/FluentControl",
+  "version": "0.3.201",
+  "tag": "v0.3.201-test",
+  "branch": "codex/test-release-0.3.201",
+  "sourceCommit": "ad754af4e243fa236c36286219ae898bfe3886f8",
+  "artifactRun": 40298564696,
+  "requiredRuns": [
+    40298564696,
+    40298564681,
+    40298564657
+  ],
+  "artifacts": [
+    {
+      "name": "FluentControl-MSI-x64",
+      "entry": "FluentControl-0.3.201-x64.msi",
+      "output": "FluentControl-0.3.201-x64.msi"
+    },
+    {
+      "name": "FluentControl-Setup-x64",
+      "entry": "FluentControl-0.3.201-x64-Setup.exe",
+      "output": "FluentControl-0.3.201-x64-Setup.exe"
+    },
+    {
+      "name": "FCS-Gateway-x64",
+      "output": "FCS-Gateway-0.3.201-test-win-x64.zip"
+    }
+  ],
+  "title": "FluentControl v0.3.201-test",
+  "notes": "docs/releases/tests/v0.3.201-test.md",
+  "companion": {
+    "repository": "chuanjianghe1024-cmd/FluentControl-Sensors",
+    "tag": "v0.3.201-test",
+    "sourceCommit": "eaebcba4f8fd3b6611d9d57098664ef6ecddaf19"
+  }
+}
