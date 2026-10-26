@@ -28,12 +28,14 @@ internal static class FcsMcp
         return value;
     }
 
-    private static JsonElement Parameters(JsonElement frame)
+    private static JsonElement Parameters(JsonElement parameters)
     {
-        if (!frame.TryGetProperty("params", out var par) || par.ValueKind != JsonValueKind.Object)
+        if (parameters.ValueKind != JsonValueKind.Object)
             throw new InvalidDataException("Missing tool parameters.");
-        if (!par.TryGetProperty("arguments", out var args)) return JsonSerializer.SerializeToElement(new { });
-        if (args.ValueKind != JsonValueKind.Object) throw new InvalidDataException("Tool arguments must be an object.");
+        if (!parameters.TryGetProperty("arguments", out var args))
+            return JsonSerializer.SerializeToElement(new { });
+        if (args.ValueKind != JsonValueKind.Object)
+            throw new InvalidDataException("Tool arguments must be an object.");
         return args;
     }
 
@@ -119,7 +121,7 @@ internal static class FcsMcp
     private static async Task<object> CallAsync(JsonElement parameters, CancellationToken cancel)
     {
         var tool = Field(parameters, "name");
-        var args = Parameters(new JsonElementWrapper(parameters).WithArguments());
+        var args = Parameters(parameters);
         string id = "";
         if (tool is "fcs_device_capabilities" or "fcs_read_signal" or "fcs_device_status" or "fcs_set_device_setting")
         {
@@ -205,14 +207,6 @@ internal static class FcsMcp
                     error = new { code = -32603, message = "FCS request failed: " + ex.GetType().Name } }));
             }
         }
-    }
-
-    // Deliberately unused by clients: tool arguments remain the sole parsed input.
-    private readonly struct JsonElementWrapper
-    {
-        private readonly JsonElement input;
-        public JsonElementWrapper(JsonElement input) => this.input = input;
-        public JsonElement WithArguments() => input;
     }
 
     public static void SelfTest()
