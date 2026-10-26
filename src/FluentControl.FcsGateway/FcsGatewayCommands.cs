@@ -17,6 +17,55 @@ internal static class FcsGatewayCommands
         if (value.Length > 120) throw new InvalidDataException("Field too long.");
         return value;
     }
+    private static async Task<(UsbReading Sample, string Transport)> ReadSampleAsync(
+        string deviceId, string port, GatewayRegistry registry, FcsUsb usb, CancellationToken cancel)
+    {
+        if (!GatewayRegistry.ValidId(deviceId)) throw new InvalidDataException("Invalid device identity.");
+        // Prefer LAN once USB is no longer recently seen, avoiding stale COM probes.
+        if (registry.HasLan(deviceId) && !registry.HasRecentUsb(deviceId))
+        {
+            try { return (await registry.ReadPublicAsync(deviceId, cancel), "lan"); }
+            catch (Exception ex) when (ex is IOException or HttpRequestException or
+                InvalidDataException or TaskCanceledException) { }
+        }
+        try
+        {
+            var sample = await usb.ReadAsync(port, deviceId, cancel);
+            registry.ReportUsbSample(sample, sample.Port ?? port);
+            return (sample, "usb");
+        }
+        catch (Exception ex) when (ex is IOException or TimeoutException or
+            UnauthorizedAccessException or InvalidDataException)
+        {
+            return (await registry.ReadPublicAsync(deviceId, cancel), "lan");
+        }
+    }
+
+    private static async Task<FcsDeviceCapabilities> CapabilitiesAsync(
+        string deviceId, string port, GatewayRegistry registry, FcsUsb usb, CancellationToken cancel)
+    {
+        if (!GatewayRegistry.ValidId(deviceId)) throw new InvalidDataException("Invalid device identity.");
+        try { return await registry.ReadCapabilitiesAsync(deviceId, cancel); }
+        catch (Exception ex) when (ex is IOException or HttpRequestException or
+            InvalidDataException or TaskCanceledException)
+        {
+            return await usb.CapabilitiesAsync(port, deviceId, cancel);
+        }
+    }
+
+    private static object SafeStatus(JsonElement frame, string expected)
+    {
+        string? Str(string key) => frame.TryGetProperty(key, out var value) &&
+            value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+        bool? Flag(string key) => frame.TryGetProperty(key, out var value) &&
+            value.ValueKind is JsonValueKind.True or JsonValueKind.False ? value.GetBoolean() : null;
+        if (Str("sourceId") != expected) throw new InvalidDataException("Unexpected USB identity.");
+        // Never disclose bindingKey, setupPassword, networks, credentials or raw
+        // management payloads through generic/AI read-only endpoints.
+        return new { deviceId = expected, state = Str("state"), ip = Str("ip"),
+            apActive = Flag("apActive"), bleEnabled = Flag("bleEnabled"),
+            bleSupported = Flag("bleSupported") };
+    }
     public static async Task<GatewayCommandResult> RunAsync(string json, GatewayRegistry registry, FcsUsb usb, CancellationToken cancel)
     {
         try
@@ -42,8 +91,38 @@ internal static class FcsGatewayCommands
                         transports = new[] { "usb", "lan" },
                         usbOperations = new[] { "discover", "read", "manage" },
                         lanOperations = new[] { "discover", "read.public" },
+                        signalOperations = new[] { "device.capabilities", "signal.read" },
+                        mcp = "stdio", cloudSync = "not-implemented",
                         pluginRuntime = "not-implemented", deviceCodeInstall = "usb-only",
                         wirelessRules = "planned" });
+                case "cloud.capabilities":
+                    return new(new { protocol = Protocol, supported = false, enabled = false,
+                        mode = "local-only", schema = "fcs-cloud-envelope/1",
+                        message = "No cloud transmission is implemented." });
+                case "device.capabilities":
+                    return new(new { protocol = Protocol, device = await CapabilitiesAsync(identity, port, registry, usb, cancel) });
+                case "device.status":
+                {
+                    var managed = await usb.ManageAsync(port, identity, "status", default, cancel);
+                    registry.ReportUsb(new[] { new UsbDevice(managed.Port, identity) });
+                    return new(new { protocol = Protocol, device = SafeStatus(managed.Frame, identity) });
+                }
+                case "signal.read":
+                {
+                    var sensor = Field(root, "sensorId");
+                    var signal = Field(root, "signalId");
+                    var model = await CapabilitiesAsync(identity, port, registry, usb, cancel);
+                    if (!FcsSignalCatalog.Supports(model, sensor, signal))
+                        return new(new { protocol = Protocol, error = "unknown_signal" });
+                    // Existing firmware exposes only the illuminance READ frame.
+                    // Other capabilities are discoverable but not pretended readable.
+                    if (signal != "illuminance")
+                        return new(new { protocol = Protocol, error = "signal_read_not_implemented" });
+                    var (reading, via) = await ReadSampleAsync(identity, port, registry, usb, cancel);
+                    return new(new { protocol = Protocol, deviceId = identity, sensorId = sensor,
+                        signalId = signal, unit = "lx", value = reading.Lux,
+                        timestamp = reading.Timestamp, transport = via });
+                }
                 case "usb.discover":
                 {
                     var items = await usb.DiscoverAsync(port, cancel);
@@ -65,33 +144,8 @@ internal static class FcsGatewayCommands
                 }
                 case "sample.read":
                 {
-                    if (!GatewayRegistry.ValidId(identity)) throw new InvalidDataException("Invalid device identity.");
-                    UsbReading sample;
-                    string transport;
-                    // Prefer the already discovered LAN path when USB is no longer recently seen.
-                    // This avoids repeatedly probing absent serial ports after moving to a charger.
-                    if (registry.HasLan(identity) && !registry.HasRecentUsb(identity))
-                    {
-                        try
-                        {
-                            sample = await registry.ReadPublicAsync(identity, cancel);
-                            return new(new { protocol = Protocol, sample, transport = "lan" });
-                        }
-                        catch (Exception ex) when (ex is IOException or HttpRequestException or InvalidDataException or TaskCanceledException)
-                        { /* USB might have returned; test it before reporting unavailable. */ }
-                    }
-                    try
-                    {
-                        sample = await usb.ReadAsync(port, identity, cancel);
-                        registry.ReportUsbSample(sample, sample.Port ?? port);
-                        transport = "usb";
-                    }
-                    catch (Exception ex) when (ex is IOException or TimeoutException or UnauthorizedAccessException or InvalidDataException)
-                    {
-                        sample = await registry.ReadPublicAsync(identity, cancel);
-                        transport = "lan";
-                    }
-                    return new(new { protocol = Protocol, sample, transport });
+                    var (reading, via) = await ReadSampleAsync(identity, port, registry, usb, cancel);
+                    return new(new { protocol = Protocol, sample = reading, transport = via });
                 }
                 case "shutdown":
                     return new(new { protocol = Protocol, running = false }, true);
