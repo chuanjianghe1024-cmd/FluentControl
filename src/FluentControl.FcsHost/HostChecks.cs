@@ -45,6 +45,13 @@ internal static class HostChecks
             history.Flush(); Check(File.ReadLines(Path.Combine(directory, "history.jsonl")).Count() == 4096);
             Check(new FileInfo(Path.Combine(directory, "history.jsonl")).Length <= 8 * 1024 * 1024);
             Check(new HostHistory(directory).Read("test-node").Length == 64);
+            var large = JsonSerializer.SerializeToElement(new { payload = new string('x', 20000) });
+            for (var i = 0; i < 500; i++) history.Add("large-node", DateTimeOffset.UtcNow, large);
+            history.Flush();
+            Check(new FileInfo(Path.Combine(directory, "history.jsonl")).Length <= 8 * 1024 * 1024);
+            Check(File.ReadLines(Path.Combine(directory, "history.jsonl")).Count() < 500);
+            File.AppendAllText(Path.Combine(directory, "history.jsonl"), "{damaged-tail\n");
+            Check(new HostHistory(directory).Read("large-node").Length == 64);
             try { await GatewayHost.ReadJsonAsync(new MemoryStream(new byte[4097]), 4096, default); throw new Exception("Oversize accepted"); }
             catch (InvalidDataException) { }
             Console.WriteLine("FCS host: auth, configuration, identity, read-only boundary, single collection, stale data, restart, history bounds passed.");

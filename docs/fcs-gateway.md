@@ -2,7 +2,13 @@
 
 > **架构目标：FCS 独立发行，FC 作为客户端。** 当前 Gateway 工程暂存在 FC 仓库并由 FC CI 生成便携 Artifact；这仅是迁移阶段。FCS 源码仓库保持私有，用户最终通过 FluentControl 网站获取 FCS 独立包或默认捆绑 FCS 的 FC 安装包。网站分发的独立安装包与独立构建尚未交付。正式分拆计划见 [FCS 独立版本与发行策略](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors/blob/main/docs/release-policy.md)。
 
-## 当前实现
+## 可选 Linux / Docker 常驻宿主（开发中）
+
+FC 默认仍使用随包安装的本机 Windows Gateway。新增可选 `.NET 10` LAN-only 宿主与 FC 远程连接设置，适用于兼容的 NAS、树莓派及 Linux；不会要求普通桌面用户安装 Docker。部署、认证、历史上限及验证边界见 [独立宿主说明](fcs-gateway-host.md)。
+
+FC still defaults to its bundled Windows Gateway. An optional Linux/Docker LAN host and remote connection settings are available in development; see the linked deployment guide for scope and validation limits.
+
+## 当前 Windows 实现
 
 - 新独立项目 `src/FluentControl.FcsGateway/`，Windows x64/.NET 8，可单独运行的后台进程。
 - 同一个 Windows 用户最多运行一个 Gateway（mutex）；通过本机 Named Pipe `FluentControl.FcsGateway.v1` 通信，并启用 CurrentUserOnly。

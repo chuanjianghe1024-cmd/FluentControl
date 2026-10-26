@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using System.Globalization;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -82,7 +82,7 @@ internal sealed class HostHistory
     }
 }
 
-internal sealed record HostSample(JsonElement Frame, DateTimeOffset ReceivedAtUtc);
+internal sealed record HostSample(JsonElement Frame, DateTimeOffset ReceivedAtUtc, long ReceivedTicks);
 internal sealed class GatewayHost : IDisposable
 {
     private sealed class State(HostNode node)
@@ -140,7 +140,7 @@ internal sealed class GatewayHost : IDisposable
             if (frame.GetProperty("data").ValueKind != JsonValueKind.Array) throw new InvalidDataException("Invalid data frame.");
             state.Metadata["node.info"] = info; state.Metadata["operations.list"] = operations;
             var received = DateTimeOffset.UtcNow;
-            Volatile.Write(ref state.Latest, new(frame, received));
+            Volatile.Write(ref state.Latest, new(frame, received, Stopwatch.GetTimestamp()));
             History.Add(state.Node.DeviceId, received, frame);
             Volatile.Write(ref state.Failed, false);
         }
@@ -149,7 +149,7 @@ internal sealed class GatewayHost : IDisposable
         { Volatile.Write(ref state.Failed, true); }
     }
     private bool Online(State state) => !Volatile.Read(ref state.Failed) && Volatile.Read(ref state.Latest) is { } s &&
-        DateTimeOffset.UtcNow - s.ReceivedAtUtc <= Freshness;
+        Stopwatch.GetElapsedTime(s.ReceivedTicks) <= Freshness;
     public object[] Snapshot() => nodes.Values.OrderBy(s => s.Node.DeviceId).Select(s => (object)new {
         deviceId = s.Node.DeviceId, ip = s.Node.Ip, status = Online(s) ? "online" : "offline",
         lux = (double?)null, lastSampleUtc = Volatile.Read(ref s.Latest)?.ReceivedAtUtc, transport = "lan"
@@ -177,7 +177,7 @@ internal sealed class GatewayHost : IDisposable
         var result = sample.Frame.EnumerateObject().ToDictionary(p => p.Name, p => (object)p.Value);
         result["data"] = filtered;
         return new { protocol = "fcs-gateway/1", result, transport = "lan", receivedAtUtc = sample.ReceivedAtUtc,
-            sampleAgeMilliseconds = (int)Math.Max(0, (DateTimeOffset.UtcNow - sample.ReceivedAtUtc).TotalMilliseconds),
+            sampleAgeMilliseconds = (int)Math.Max(0, Stopwatch.GetElapsedTime(sample.ReceivedTicks).TotalMilliseconds),
             maxAgeMilliseconds = (int)Freshness.TotalMilliseconds };
     }
     private async Task DiscoverAsync(CancellationToken cancel)
