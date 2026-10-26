@@ -24,6 +24,20 @@ public sealed partial class MainWindow
             if (state.Settings.Adaptive.Curve.Points[1].Brightness != 37) throw new InvalidOperationException("Adaptive numeric editing failed.");
             var stored = new UserStateStore(System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentControl", "test-user-state.json"));
             if (stored.State.Settings.Adaptive.Curve.Points[1].Brightness != 37) throw new InvalidOperationException("Adaptive edit not persisted.");
+            var transitionGraph = Descendants<Canvas>(SettingsPanel).Single(x => AutomationProperties.GetAutomationId(x) == "brightness-transition-curve");
+            var transitionShape = Descendants<ComboBox>(SettingsPanel).Single(x => AutomationProperties.GetAutomationId(x) == "brightness-transition-shape");
+            transitionShape.SelectedIndex = 2;
+            var duration = Descendants<NumberBox>(SettingsPanel).Single(x => AutomationProperties.GetAutomationId(x) == "brightness-transition-input-0");
+            var steps = Descendants<NumberBox>(SettingsPanel).Single(x => AutomationProperties.GetAutomationId(x) == "brightness-transition-input-2");
+            duration.Value = 1500; steps.Value = 5;
+            var transitionStored = new UserStateStore(System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentControl", "test-user-state.json"));
+            if (transitionGraph.Children.OfType<Ellipse>().Count() != 7 ||
+                transitionStored.State.Settings.Adaptive.Transition.DurationMs != 1500 ||
+                transitionStored.State.Settings.Adaptive.Transition.Steps != 5 ||
+                transitionStored.State.Settings.Adaptive.Transition.Curve != "custom")
+                throw new InvalidOperationException("Transition controls, sample points or persistence failed.");
+            if (snapshot.Any(x => AllChannels()[x.Key].Value != x.Value))
+                throw new InvalidOperationException("Transition preview wrote brightness.");
             var targets = Descendants<CheckBox>(SettingsPanel).Where(x => AutomationProperties.GetAutomationId(x).StartsWith("adaptive-target-")).Take(2).ToArray();
             if (targets.Length != 2) throw new InvalidOperationException("Multi-display fixture requires two choices.");
             foreach (var target in targets) target.IsChecked = true;

@@ -90,9 +90,15 @@ internal static class FcsGatewayCommands
                     { frame = await registry.ReadNodeAsync(identity, command, arguments, cancel); via = "lan"; }
                     else
                     {
-                        var reply = await usb.NodeAsync(port, identity, command, arguments, cancel);
-                        frame = reply.Frame; via = "usb";
-                        registry.ReportUsb(new[] { new UsbDevice(reply.Port, identity) });
+                        try
+                        {
+                            var reply = await usb.NodeAsync(port, identity, command, arguments, cancel);
+                            frame = reply.Frame; via = "usb";
+                            registry.ReportUsb(new[] { new UsbDevice(reply.Port, identity) });
+                        }
+                        catch (Exception ex) when (FcsNode.Routes.ContainsKey(command) && registry.HasLan(identity) &&
+                            ex is IOException or TimeoutException or UnauthorizedAccessException)
+                        { frame = await registry.ReadNodeAsync(identity, command, arguments, cancel); via = "lan"; }
                     }
                     return new(new { protocol = Protocol, result = frame, transport = via });
                 }

@@ -20,6 +20,8 @@ public sealed partial class MainWindow
         var canvas = new Canvas { Width = 440, Height = 240, Background = new SolidColorBrush(Colors.Transparent), HorizontalAlignment = HorizontalAlignment.Left };
         var curve = new ComboBox { Header = T("过渡形状", "Transition shape"), ItemsSource = new[] { T("线性", "Linear"), T("S 曲线", "S curve"), T("自定义", "Custom") },
             SelectedIndex = options.Curve == "linear" ? 0 : options.Curve == "custom" ? 2 : 1 };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(canvas, "brightness-transition-curve");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(curve, "brightness-transition-shape");
         var detail = new TextBlock { TextWrapping = TextWrapping.Wrap };
         const double left = 36, top = 12, width = 388, height = 200;
         Point Position(double x, double y) => new(left + width*x, top + height*(1-y));
@@ -55,9 +57,11 @@ public sealed partial class MainWindow
             }
             detail.Text = F("时长 {0} ms · 采样间隔约 {1} ms · 最多 {2} 次（相同整数跳过）", "Duration {0} ms · interval ≈ {1} ms · up to {2} writes (duplicate integers skipped)", options.DurationMs, Math.Round(options.TickMs), samples);
         }
+        int inputIndex = 0;
         void Number(string title,int value,int min,int max,Action<int> change)
         {
             var box=new NumberBox { Header=title,Value=value,Minimum=min,Maximum=max,Width=240,HorizontalAlignment=HorizontalAlignment.Left,SpinButtonPlacementMode=NumberBoxSpinButtonPlacementMode.Compact };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(box, "brightness-transition-input-" + inputIndex++);
             box.ValueChanged+=(_,e)=> { if(!double.IsFinite(e.NewValue)) return;change((int)Math.Round(e.NewValue));options.Normalize();SaveAdaptiveSettings();Draw(); };
             section.Children.Add(box);
         }
