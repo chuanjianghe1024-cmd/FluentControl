@@ -28,6 +28,7 @@ public sealed partial class MainWindow
     private string? automaticTheme;
     private void InitializeAdaptiveAutomation()
     {
+        FcsRemoteGateway.Configure(state.Settings.RemoteGateway);
         StartSensorArrival();
         ControlOperations.ManualBrightnessRequested += HoldAdaptiveBrightness;
         adaptiveTimer.Tick += async (_, _) => await TickAdaptiveAsync();

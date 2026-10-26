@@ -49,6 +49,8 @@ public static class FcsGatewayClient
         if (operation is not ("status" or "list" or "discover" or "capabilities" or
             "usb.discover" or "usb.manage" or "usb.read" or "sample.read" or "node.request"))
             throw new ArgumentOutOfRangeException(nameof(operation));
+        if (FcsRemoteGateway.Enabled && operation is "status" or "list" or "discover" or "node.request")
+            return await FcsRemoteGateway.QueryAsync(operation, deviceId, command, arguments, cancellation);
         if (!EnsureStarted()) throw new IOException("FCS Gateway is not installed.");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         timeout.CancelAfter(TimeSpan.FromSeconds(operation == "usb.discover" ? 34 :
@@ -142,7 +144,21 @@ public static class FcsGatewayClient
     private static async Task<LightSample> ReadDeviceAsync(string id, string port, string sensorId, string signalId, CancellationToken cancellation)
     {
         if (signalId != "illuminance") throw new InvalidDataException("Only illuminance drives brightness.");
-        var frame = await NodeAsync(id, "data.read", new { sensorId, signalId, mode = "fresh" }, cancellation, port);
+        var requestedAt = DateTimeOffset.UtcNow;
+        var remote = FcsRemoteGateway.Enabled;
+        using var reply = await QueryAsync("node.request", cancellation, id, port, "data.read", new { sensorId, signalId, mode = "fresh" });
+        var frame = reply.RootElement.GetProperty("result");
+        if (frame.GetProperty("protocol").GetString() != "fcs-node/2" || frame.GetProperty("deviceId").GetString() != id ||
+            !frame.GetProperty("ok").GetBoolean()) throw new InvalidDataException("Invalid node reply.");
+        var timestamp = DateTimeOffset.UtcNow;
+        if (remote || reply.RootElement.TryGetProperty("sampleAgeMilliseconds", out _))
+        {
+            var age = reply.RootElement.GetProperty("sampleAgeMilliseconds").GetInt32();
+            var maxAge = reply.RootElement.GetProperty("maxAgeMilliseconds").GetInt32();
+            if (age < 0 || maxAge <= 0 || age > Math.Min(maxAge, 10000)) throw new InvalidDataException("Stale Gateway sample.");
+            timestamp = requestedAt.AddMilliseconds(-age);
+            if (DateTimeOffset.UtcNow - timestamp > TimeSpan.FromSeconds(10)) throw new InvalidDataException("Delayed Gateway sample.");
+        }
         var matches = frame.GetProperty("data").EnumerateArray().Where(item =>
             item.GetProperty("sensorId").GetString() == sensorId && item.GetProperty("signalId").GetString() == signalId).ToArray();
         if (matches.Length != 1) throw new InvalidDataException("Ambiguous signal.");
@@ -153,6 +169,6 @@ public static class FcsGatewayClient
         var lux = value.GetProperty("value").GetDouble();
         if (!double.IsFinite(lux) || lux < 0 || lux > 200000) throw new InvalidDataException("Invalid lux.");
         return new LightSample { Format = "fluentcontrol.light-sample", Version = 1, SourceId = id,
-            Timestamp = DateTimeOffset.UtcNow, Lux = lux, Valid = true };
+            Timestamp = timestamp, Lux = lux, Valid = true };
     }
 }

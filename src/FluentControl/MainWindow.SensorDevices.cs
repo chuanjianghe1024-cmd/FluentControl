@@ -53,6 +53,7 @@ public sealed partial class MainWindow
     }
     private void BuildSensorDeviceSettings(StackPanel section, TextBox port)
     {
+        BuildGatewaySettings(section);
         var button = new Button { Content = T("Wi-Fi 配网向导", "Wi-Fi setup wizard"), IsEnabled = !uiTest };
         button.Click += async (_, _) =>
         {

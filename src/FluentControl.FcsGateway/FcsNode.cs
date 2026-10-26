@@ -3,6 +3,8 @@ using System.Text.Json;
 // Closed operation set. Device capabilities can restrict it, never expand authority.
 internal static class FcsNode
 {
+    public static bool ValidId(string? id) => id is { Length: > 0 and <= 100 } &&
+        id.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
     public static readonly string[] Operations = { "node.info", "sensors.list", "operations.list",
         "data.read", "sampling.get", "sampling.set", "cache.read", "plugin.list" };
     public static readonly Dictionary<string, string> Routes = new()
@@ -25,8 +27,8 @@ internal static class FcsNode
         {
             if (!seen.Add(p.Name) || !allowed.Contains(p.Name)) throw new InvalidDataException("Unknown or repeated argument.");
             bool valid = p.Name switch {
-                "sensorId" => p.Value.ValueKind == JsonValueKind.String && GatewayRegistry.ValidId(p.Value.GetString()),
-                "signalId" => p.Value.ValueKind == JsonValueKind.String && GatewayRegistry.ValidId(p.Value.GetString()) && p.Value.GetString()!.Length <= 64,
+                "sensorId" => p.Value.ValueKind == JsonValueKind.String && ValidId(p.Value.GetString()),
+                "signalId" => p.Value.ValueKind == JsonValueKind.String && ValidId(p.Value.GetString()) && p.Value.GetString()!.Length <= 64,
                 "mode" => p.Value.ValueKind == JsonValueKind.String && p.Value.GetString() is "fresh" or "latest",
                 "enabled" => p.Value.ValueKind is JsonValueKind.True or JsonValueKind.False,
                 "intervalMs" => p.Value.TryGetInt32(out var period) && period is >= 200 and <= 86400000,

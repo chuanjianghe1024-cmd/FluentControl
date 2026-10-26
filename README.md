@@ -191,3 +191,10 @@ The current branch adopts [PolyForm Noncommercial 1.0.0](LICENSE) from this tran
 USB 设备管理、C3 配网参考固件与签名局域网光照订阅的范围、安装方法和未完成项见 [设备信号规范](docs/device-signals.md)。这些改动随 v0.3.140 发布；旧 v0.3.135 不包含。
 
 See the [device signals guide](docs/device-signals.md) for USB management, C3 provisioning reference firmware, signed LAN subscriptions and limitations. These additions ship in v0.3.140 and are not part of v0.3.135.
+
+
+### 可选常驻网关 / Optional always-on Gateway
+
+FC 默认使用自带的本机 Gateway，无需其他设备或 Docker。NAS / 树莓派上的 Linux 网关可选；[部署与功能边界](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/fcs-gateway-host.md)。
+
+FC defaults to its bundled local Gateway. An optional Linux/Docker Gateway can collect continuously on a compatible NAS or Raspberry Pi. This is development work pending release and physical acceptance; see the deployment guide above.

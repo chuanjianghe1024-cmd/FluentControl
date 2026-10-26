@@ -1,5 +1,11 @@
 # 更新记录
 
+## Unreleased — optional Linux/Docker Gateway
+
+- FC 默认保留随包安装、按需运行的本机 Gateway；增加远程网关地址、受保护令牌、测试连接与切回本机入口，USB 配网仍在本机进行。
+- 增加 .NET 10 LAN-only 常驻宿主、amd64/arm64 Docker 和 systemd 部署示例、统一后台采集、受限远程只读 API 与有上限的持久历史；远程失联或样本过期不会继续驱动亮度。
+- Keep FC's bundled local Gateway as the default; add optional remote connections with protected credentials. Add a Linux/Docker LAN collector, authenticated read-only API and bounded history. See [deployment and verification boundaries](docs/fcs-gateway-host.md); remote USB, cloud, rule runtime and remote MCP are not implemented.
+
 ## Unreleased — node v2 and brightness transitions
 
 - Gateway/MCP 增加 node/sensor/operation/data/sampling/cache/plugin v2 工具与能力检查；USB-only 采样写入默认不向 MCP 开放。

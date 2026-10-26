@@ -64,3 +64,10 @@ Close normally to keep FC in the tray; exit from the tray before manually instal
 固件、组合接线、驱动和说明书链接集中在 [FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors)（当前私有，需要访问权限）。v0.3.135 已发布原生 RP2040 USB 订阅、0.2 秒至 24 小时采样设置与本地历史。先保存兼容固件并退出 Thonny，再在设置 → 自动调节预设 → 光照强度中发现设备；也可添加 HTTP 来源。添加后默认采集当前来源的历史，自动亮度保持关闭；历史容量合计 64 MiB，满后轮换最早分段。参见[接入步骤与验证边界](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/adaptive-presets.md)。Windows/WinUI/MSI/Setup 自动化已通过；实体 RP2040 完整联调、真实显示器和混合 DPI 仍未确认。C3/CH552 固件及 FC 刷写尚未实现。
 
 Firmware, board/sensor combinations and official setup links live in [FluentControl-Sensors](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors), currently private. v0.3.135 ships native RP2040 USB subscriptions, 0.2-second–24-hour sampling and 64 MiB rolling local history across subscriptions. Install compatible firmware, close Thonny, then discover the device under Settings → Adaptive presets → Illuminance; HTTP sources are also supported. Adding a source records the active source while leaving brightness automation off. See the [connection guide and validation boundary](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/adaptive-presets.md). Windows/WinUI/MSI/Setup automation passed; physical RP2040 integration, real displays and mixed DPI remain unverified. C3/CH552 firmware and flashing from FC are not implemented.
+
+
+### 可选常驻网关 / Optional always-on Gateway
+
+FC 默认使用自带的本机 Gateway，无需其他设备或 Docker。NAS / 树莓派上的 Linux 网关可选；[部署与功能边界](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/fcs-gateway-host.md)。
+
+FC defaults to its bundled local Gateway. An optional Linux/Docker Gateway can collect continuously on a compatible NAS or Raspberry Pi. This is development work pending release and physical acceptance; see the deployment guide above.

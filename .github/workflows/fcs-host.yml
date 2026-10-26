@@ -1,0 +1,43 @@
+name: FCS Linux Gateway
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fcs-host-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  host:
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: x64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build native host
+        run: dotnet publish src/FluentControl.FcsHost -c Release -r linux-${{ matrix.arch }} --self-contained true -o host-out
+      - name: Verify collection and history
+        run: ./host-out/FluentControl.FcsHost --self-test
+      - name: Verify HTTP authorization boundary
+        run: python3 scripts/test-fcs-host.py ./host-out/FluentControl.FcsHost
+      - name: Build container
+        run: docker build -f deploy/fcs/Dockerfile -t fcs-host:test .
+      - name: Verify container
+        run: |
+          docker run --rm fcs-host:test --self-test
+          python3 scripts/test-fcs-host.py --docker fcs-host:test
+          docker compose -f deploy/fcs/compose.yaml config --quiet

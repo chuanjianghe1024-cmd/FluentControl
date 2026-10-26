@@ -756,7 +756,15 @@
     "Duration {0} ms · interval ≈ {1} ms · up to {2} writes (duplicate integers skipped)": "時長 {0} ms · 間隔約 {1} ms · 最多 {2} 次（略過相同整數）",
     "Load sensor inventory": "讀取感測器清單",
     "Signal for brightness": "亮度使用的訊號",
-    "Sensor inventory unavailable": "無法讀取感測器清單"
+    "Sensor inventory unavailable": "無法讀取感測器清單",
+    "FC uses its bundled local Gateway by default. Optionally connect to a Gateway on a NAS or Raspberry Pi; USB setup stays local.": "FC 預設使用內建本機閘道。可選擇連接 NAS 或樹莓派上的遠端閘道；USB 設定仍在本機完成。",
+    "Remote Gateway address": "遠端閘道位址",
+    "Gateway access token": "閘道存取權杖",
+    "Allow unencrypted HTTP on a trusted private network": "允許在可信任的私人網路使用未加密 HTTP",
+    "Test and connect to remote Gateway": "測試並連接遠端閘道",
+    "Use FC's bundled local Gateway": "使用 FC 內建的本機閘道",
+    "Remote Gateway connected. Discover devices to add subscriptions.": "已連接遠端閘道。探索裝置即可新增訂閱。",
+    "Gateway connection failed. Check the address, token and network.": "閘道連線失敗。請檢查位址、權杖及網路。"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -1515,7 +1523,15 @@
     "Duration {0} ms · interval ≈ {1} ms · up to {2} writes (duplicate integers skipped)": "時間 {0} ms · 間隔 ≈ {1} ms · 最大 {2} 回（重複整数を省略）",
     "Load sensor inventory": "センサー一覧を読み込む",
     "Signal for brightness": "明るさ用の信号",
-    "Sensor inventory unavailable": "センサー一覧を取得できません"
+    "Sensor inventory unavailable": "センサー一覧を取得できません",
+    "FC uses its bundled local Gateway by default. Optionally connect to a Gateway on a NAS or Raspberry Pi; USB setup stays local.": "FC は標準で内蔵のローカルゲートウェイを使います。NAS や Raspberry Pi のゲートウェイにも接続できます。USB 設定はこの PC で行います。",
+    "Remote Gateway address": "リモートゲートウェイのアドレス",
+    "Gateway access token": "ゲートウェイのアクセストークン",
+    "Allow unencrypted HTTP on a trusted private network": "信頼するプライベートネットワークで暗号化されていない HTTP を許可",
+    "Test and connect to remote Gateway": "リモートゲートウェイをテストして接続",
+    "Use FC's bundled local Gateway": "FC 内蔵のローカルゲートウェイを使用",
+    "Remote Gateway connected. Discover devices to add subscriptions.": "リモートゲートウェイに接続しました。デバイスを検出して購読を追加できます。",
+    "Gateway connection failed. Check the address, token and network.": "ゲートウェイに接続できませんでした。アドレス、トークン、ネットワークを確認してください。"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -2274,7 +2290,15 @@
     "Duration {0} ms · interval ≈ {1} ms · up to {2} writes (duplicate integers skipped)": "지속 시간 {0} ms · 간격 ≈ {1} ms · 최대 {2}회(중복 정수 건너뛰기)",
     "Load sensor inventory": "센서 목록 읽기",
     "Signal for brightness": "밝기용 신호",
-    "Sensor inventory unavailable": "센서 목록을 읽을 수 없음"
+    "Sensor inventory unavailable": "센서 목록을 읽을 수 없음",
+    "FC uses its bundled local Gateway by default. Optionally connect to a Gateway on a NAS or Raspberry Pi; USB setup stays local.": "FC는 기본적으로 내장 로컬 게이트웨이를 사용합니다. NAS 또는 Raspberry Pi의 게이트웨이에 연결할 수도 있습니다. USB 설정은 이 PC에서 수행합니다.",
+    "Remote Gateway address": "원격 게이트웨이 주소",
+    "Gateway access token": "게이트웨이 액세스 토큰",
+    "Allow unencrypted HTTP on a trusted private network": "신뢰하는 사설 네트워크에서 암호화되지 않은 HTTP 허용",
+    "Test and connect to remote Gateway": "원격 게이트웨이 테스트 및 연결",
+    "Use FC's bundled local Gateway": "FC 내장 로컬 게이트웨이 사용",
+    "Remote Gateway connected. Discover devices to add subscriptions.": "원격 게이트웨이에 연결되었습니다. 장치를 검색하여 구독을 추가하세요.",
+    "Gateway connection failed. Check the address, token and network.": "게이트웨이 연결에 실패했습니다. 주소, 토큰 및 네트워크를 확인하세요."
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -3033,7 +3057,15 @@
     "Duration {0} ms · interval ≈ {1} ms · up to {2} writes (duplicate integers skipped)": "Dauer {0} ms · Intervall ≈ {1} ms · bis zu {2} Schreibvorgänge (gleiche Ganzzahlen übersprungen)",
     "Load sensor inventory": "Sensorliste laden",
     "Signal for brightness": "Signal für Helligkeit",
-    "Sensor inventory unavailable": "Sensorliste nicht verfügbar"
+    "Sensor inventory unavailable": "Sensorliste nicht verfügbar",
+    "FC uses its bundled local Gateway by default. Optionally connect to a Gateway on a NAS or Raspberry Pi; USB setup stays local.": "FC verwendet standardmäßig das integrierte lokale Gateway. Optional können Sie ein Gateway auf einem NAS oder Raspberry Pi verbinden; die USB-Einrichtung bleibt lokal.",
+    "Remote Gateway address": "Adresse des Remote-Gateways",
+    "Gateway access token": "Gateway-Zugriffstoken",
+    "Allow unencrypted HTTP on a trusted private network": "Unverschlüsseltes HTTP in einem vertrauenswürdigen privaten Netzwerk erlauben",
+    "Test and connect to remote Gateway": "Remote-Gateway testen und verbinden",
+    "Use FC's bundled local Gateway": "Integriertes lokales Gateway von FC verwenden",
+    "Remote Gateway connected. Discover devices to add subscriptions.": "Remote-Gateway verbunden. Suchen Sie Geräte, um Abonnements hinzuzufügen.",
+    "Gateway connection failed. Check the address, token and network.": "Gateway-Verbindung fehlgeschlagen. Prüfen Sie Adresse, Token und Netzwerk."
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -3792,7 +3824,15 @@
     "Duration {0} ms · interval ≈ {1} ms · up to {2} writes (duplicate integers skipped)": "Durée {0} ms · intervalle ≈ {1} ms · jusqu’à {2} écritures (entiers identiques ignorés)",
     "Load sensor inventory": "Charger la liste des capteurs",
     "Signal for brightness": "Signal pour la luminosité",
-    "Sensor inventory unavailable": "Liste des capteurs indisponible"
+    "Sensor inventory unavailable": "Liste des capteurs indisponible",
+    "FC uses its bundled local Gateway by default. Optionally connect to a Gateway on a NAS or Raspberry Pi; USB setup stays local.": "FC utilise par défaut sa passerelle locale intégrée. Vous pouvez aussi connecter une passerelle sur un NAS ou Raspberry Pi ; la configuration USB reste locale.",
+    "Remote Gateway address": "Adresse de la passerelle distante",
+    "Gateway access token": "Jeton d’accès à la passerelle",
+    "Allow unencrypted HTTP on a trusted private network": "Autoriser HTTP non chiffré sur un réseau privé de confiance",
+    "Test and connect to remote Gateway": "Tester et connecter la passerelle distante",
+    "Use FC's bundled local Gateway": "Utiliser la passerelle locale intégrée de FC",
+    "Remote Gateway connected. Discover devices to add subscriptions.": "Passerelle distante connectée. Recherchez des appareils pour ajouter des abonnements.",
+    "Gateway connection failed. Check the address, token and network.": "Échec de connexion à la passerelle. Vérifiez l’adresse, le jeton et le réseau."
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -4551,6 +4591,14 @@
     "Duration {0} ms · interval ≈ {1} ms · up to {2} writes (duplicate integers skipped)": "Duración {0} ms · intervalo ≈ {1} ms · hasta {2} escrituras (se omiten enteros duplicados)",
     "Load sensor inventory": "Cargar lista de sensores",
     "Signal for brightness": "Señal para brillo",
-    "Sensor inventory unavailable": "Lista de sensores no disponible"
+    "Sensor inventory unavailable": "Lista de sensores no disponible",
+    "FC uses its bundled local Gateway by default. Optionally connect to a Gateway on a NAS or Raspberry Pi; USB setup stays local.": "FC usa su puerta de enlace local integrada de forma predeterminada. Puede conectarse a una en un NAS o Raspberry Pi; la configuración USB sigue siendo local.",
+    "Remote Gateway address": "Dirección de la puerta de enlace remota",
+    "Gateway access token": "Token de acceso a la puerta de enlace",
+    "Allow unencrypted HTTP on a trusted private network": "Permitir HTTP sin cifrar en una red privada de confianza",
+    "Test and connect to remote Gateway": "Probar y conectar la puerta de enlace remota",
+    "Use FC's bundled local Gateway": "Usar la puerta de enlace local integrada de FC",
+    "Remote Gateway connected. Discover devices to add subscriptions.": "Puerta de enlace remota conectada. Busque dispositivos para añadir suscripciones.",
+    "Gateway connection failed. Check the address, token and network.": "Error al conectar la puerta de enlace. Compruebe la dirección, el token y la red."
   }
 }

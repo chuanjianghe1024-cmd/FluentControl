@@ -3,6 +3,7 @@ namespace FluentControl.Services;
 
 public sealed class AppSettings
 {
+    public FcsRemoteSettings RemoteGateway { get; set; } = new();
     public AdaptiveSettings Adaptive { get; set; } = new();
     public string Language { get; set; } = "auto";
     public string Theme { get; set; } = "system";
