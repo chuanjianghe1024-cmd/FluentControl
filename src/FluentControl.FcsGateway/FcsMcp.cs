@@ -81,11 +81,25 @@ internal static class FcsMcp
             throw new InvalidDataException("Gateway request too large.");
         for (int attempt = 0; attempt < 2; attempt++)
         {
+            using var pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut,
+                PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
             try
             {
-                using var pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut,
-                    PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
                 await pipe.ConnectAsync(2000, cancel);
+            }
+            catch (Exception ex) when (attempt == 0 &&
+                ex is TimeoutException or IOException or OperationCanceledException)
+            {
+                cancel.ThrowIfCancellationRequested();
+                // Only retry the connection. Never replay a write after it has
+                // been sent, even if the response is lost or a timeout occurs.
+                var exe = Environment.ProcessPath ?? throw new IOException("Gateway executable missing.");
+                Process.Start(new ProcessStartInfo(exe, "--serve")
+                { UseShellExecute = false, CreateNoWindow = true,
+                  WorkingDirectory = AppContext.BaseDirectory });
+                continue;
+            }
+            {
                 using var writer = new StreamWriter(pipe, new UTF8Encoding(false), 4096, true) { AutoFlush = true };
                 using var reader = new StreamReader(pipe, Encoding.UTF8, false, 4096, true);
                 await writer.WriteLineAsync(request);
@@ -95,16 +109,6 @@ internal static class FcsMcp
                 if (frame.RootElement.GetProperty("protocol").GetString() != "fcs-gateway/1")
                     throw new InvalidDataException("Incompatible FCS Gateway.");
                 return frame.RootElement.Clone();
-            }
-            catch (Exception ex) when (attempt == 0 && ex is TimeoutException or IOException or OperationCanceledException)
-            {
-                cancel.ThrowIfCancellationRequested();
-                // The MCP host may start without FC. The background Gateway is
-                // a separate process and uses the same mutex as bundled FC.
-                var exe = Environment.ProcessPath ?? throw new IOException("Gateway executable missing.");
-                Process.Start(new ProcessStartInfo(exe, "--serve")
-                { UseShellExecute = false, CreateNoWindow = true,
-                  WorkingDirectory = AppContext.BaseDirectory });
             }
         }
         throw new IOException("FCS Gateway unavailable.");
