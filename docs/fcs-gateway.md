@@ -1,5 +1,7 @@
 # FCS Gateway 最小运行版
 
+> **架构目标：FCS 独立发行，FC 作为客户端。** 当前 Gateway 工程暂存在 FC 仓库并由 FC CI 生成便携 Artifact；这仅是迁移阶段。FCS 仓库尚无独立 Release，独立安装包与独立构建尚未交付。正式分拆计划见 [FCS 独立版本与发行策略](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors/blob/main/docs/release-policy.md)。
+
 ## 当前实现
 
 - 新独立项目 `src/FluentControl.FcsGateway/`，Windows x64/.NET 8，可单独运行的后台进程。
@@ -15,6 +17,12 @@
 
 - 已实现：Gateway 自行发现 LAN/USB，使用稳定 sourceId 合并设备；原 USB 端口改变后新端口可更新同一身份，而不会新建第二台设备。USB 管理通过 AUTO 找到真实端口时，状态不再显示伪端口 AUTO。
 - 尚需 Windows 实机验收：带固件的 C3 插拔、占用 COM 口（Thonny）、USB 供电转纯电源、LAN 改 IP、睡眠唤醒、丢包及多设备并发。`--self-test` 只验证纯逻辑，**不能**代替串口与硬件验收。
+
+## 独立发行与 FC 客户端边界
+
+目标状态：Gateway、硬件传输适配器、设备发现/管理、Signal 订阅 API 与其版本化能力清单由 FCS 仓库维护，并通过 FCS 独立版本发布。FC 安装包默认捆绑经过验证的指定 FCS 版本；FC 只通过受限 IPC/API 请求订阅、读数和获准的设备操作。其他应用可以直接使用 FCS，无需安装 FC。
+
+当前仍处于迁移阶段：Gateway 的 .NET 工程位于 FC 仓库，FC 的界面与旧兼容路径仍存在；FCS 仓库目前没有 Release 工作流或独立 Gateway 包。因此本次 Gateway 代码提交不代表已经交付独立 FCS 产品。首个 FCS Release 前需要将 Gateway 与维护测试迁入 FCS 仓库，建立独立 CI/发行版本，并让 FC 构建捆绑一个固定的兼容 FCS 版本。
 
 ## 下一阶段 / Not yet implemented
 
