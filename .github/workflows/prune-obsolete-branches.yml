@@ -1,0 +1,29 @@
+name: Prune obsolete branches
+on:
+  push:
+    branches: [codex/test-release-0.3.201]
+    paths:
+      - .github/branch-cleanup-20261026.json
+      - .github/workflows/prune-obsolete-branches.yml
+      - scripts/prune-obsolete-branches.py
+permissions:
+  contents: read
+concurrency:
+  group: prune-obsolete-branches-20261026
+  cancel-in-progress: false
+jobs:
+  prune:
+    if: github.repository == 'chuanjianghe1024-cmd/FluentControl' && github.ref == 'refs/heads/codex/test-release-0.3.201'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Delete only reviewed obsolete branch heads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/prune-obsolete-branches.py

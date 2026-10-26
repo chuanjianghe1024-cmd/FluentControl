@@ -1,0 +1,46 @@
+[
+  {
+    "name": "audit/v0.3.92-display-safety",
+    "sha": "559fe51b50944193e56927ea5ece292b35eab532"
+  },
+  {
+    "name": "codex/ambient-bands-wifi-wizard",
+    "sha": "e2d3047b43eea14e971fa0c32cf1e410ec635d29"
+  },
+  {
+    "name": "codex/ddc-isolation-and-pairing-controls",
+    "sha": "35faec48f17d151529a7f40b940efccc5749a122"
+  },
+  {
+    "name": "codex/hdr-control-notice",
+    "sha": "b9785f4766c254cd8d138ff17687e4bf29678303"
+  },
+  {
+    "name": "codex/system-color-temperature",
+    "sha": "324438fd327592b2ce1a082df1d88dc062c5fd93"
+  },
+  {
+    "name": "codex/windows-hdr",
+    "sha": "ff935ffee0856f1f94c7f5f8b915214be9ddb4c0"
+  },
+  {
+    "name": "docs/community-onboarding",
+    "sha": "eb26b3a16107e12ab88689596031c4b017090f41"
+  },
+  {
+    "name": "feat/fluent-setup",
+    "sha": "9c5eea7cf795d835af177324f9479c723df0f605"
+  },
+  {
+    "name": "feat/slim-fluent-setup",
+    "sha": "2afdef8acc720eb69bd7fdd27924524ca9e01fd2"
+  },
+  {
+    "name": "feature/local-light-subscriptions",
+    "sha": "2c8ceb9ed1b3ce575b46f42abd4c3fc968e22895"
+  },
+  {
+    "name": "fix/wix-toolchain-policy",
+    "sha": "415c220459beb7c4a6cab347c2cad0407c285af4"
+  }
+]
