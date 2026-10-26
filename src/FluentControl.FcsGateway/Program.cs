@@ -130,6 +130,30 @@ internal sealed class GatewayRegistry : IDisposable
         !string.IsNullOrEmpty(e.Ip) && DateTimeOffset.UtcNow - e.Seen < TimeSpan.FromMinutes(10);
     public bool HasRecentUsb(string id) => devices.TryGetValue(id, out var e) &&
         !string.IsNullOrEmpty(e.UsbPort) && DateTimeOffset.UtcNow - e.UsbSeen < TimeSpan.FromSeconds(15);
+    public async Task<FcsDeviceCapabilities> ReadCapabilitiesAsync(string id, CancellationToken cancel)
+    {
+        if (!ValidId(id) || !devices.TryGetValue(id, out var entry) ||
+            string.IsNullOrEmpty(entry.Ip) ||
+            DateTimeOffset.UtcNow - entry.Seen > TimeSpan.FromMinutes(10))
+            throw new IOException("No current LAN endpoint.");
+        // Only the UDP-discovered peer IP is used, never a caller-supplied URL.
+        using var response = await client.GetAsync("http://" + entry.Ip + ":8766/v1/capabilities",
+            HttpCompletionOption.ResponseHeadersRead, cancel);
+        response.EnsureSuccessStatusCode();
+        if (response.Content.Headers.ContentLength is > 4096)
+            throw new InvalidDataException("Capability frame too large.");
+        await using var stream = await response.Content.ReadAsStreamAsync(cancel);
+        using var data = new MemoryStream();
+        var chunk = new byte[1024];
+        int size;
+        while ((size = await stream.ReadAsync(chunk, cancel)) > 0)
+        {
+            if (data.Length + size > 4096) throw new InvalidDataException("Capability frame too large.");
+            data.Write(chunk, 0, size);
+        }
+        using var doc = JsonDocument.Parse(data.ToArray(), new JsonDocumentOptions { MaxDepth = 12 });
+        return FcsSignalCatalog.ParseLan(doc.RootElement, id);
+    }
     public async Task<UsbReading> ReadPublicAsync(string id, CancellationToken cancel)
     {
         if (!devices.TryGetValue(id, out var e) || string.IsNullOrEmpty(e.Ip) ||
@@ -307,6 +331,25 @@ internal static class GatewayChecks
             !scanSchedule.ShouldScan(new[] { "COM7" }, start.AddSeconds(6)) ||
             !scanSchedule.ShouldScan(new[] { "COM7" }, start.AddSeconds(37)))
             throw new InvalidOperationException("USB port rescan scheduling failed.");
+        using var catalogFrame = JsonDocument.Parse("""
+            {"protocol":"fc-device/1","sourceId":"sensor-c3","device":{"id":"sensor-c3","model":"bh1750-node"},
+             "sensors":[{"id":"ambient-01","kind":"ambient-light","signals":[{"id":"illuminance","unit":"lx","minimum":0,"maximum":200000,"minIntervalMs":200}]}]}
+            """);
+        var catalog = FcsSignalCatalog.ParseLan(catalogFrame.RootElement, "sensor-c3");
+        if (catalog.Sensors.Length != 1 || !FcsSignalCatalog.Supports(catalog, "ambient-01", "illuminance") ||
+            FcsSignalCatalog.Supports(catalog, "ambient-01", "humidity"))
+            throw new InvalidOperationException("Sensor capability parsing failed.");
+        using var wrongDevice = JsonDocument.Parse("""
+            {"protocol":"fc-device/1","sourceId":"other","device":{"id":"other","model":"bh1750-node"},
+             "sensors":[{"id":"ambient-01","kind":"ambient-light","signals":[{"id":"illuminance","unit":"lx"}]}]}
+            """);
+        try { FcsSignalCatalog.ParseLan(wrongDevice.RootElement, "sensor-c3"); throw new Exception("Mismatch accepted."); }
+        catch (InvalidDataException) { }
+        using var usbHello = JsonDocument.Parse("""
+            {"protocol":"fc-light-usb/1","sourceId":"sensor-c3","signals":[{"id":"illuminance","unit":"lx","minIntervalMs":200}]}
+            """);
+        if (!FcsSignalCatalog.Supports(FcsSignalCatalog.ParseUsb(usbHello.RootElement, "sensor-c3"), "ambient-01", "illuminance"))
+            throw new InvalidOperationException("USB legacy adapter parsing failed.");
         using var registry = new GatewayRegistry();
         registry.ReportUsb(new[] { new UsbDevice("COM4", "stable-c3") });
         registry.ReportUsbSample(new UsbReading("stable-c3", 48.5, start, "COM4"), "COM4");
