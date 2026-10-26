@@ -80,6 +80,8 @@ public sealed partial class MainWindow
             using var json = JsonDocument.Parse(await File.ReadAllTextAsync(path, ct));
             return await FcsPluginClient.RequestAsync(id, "rules.set", json.RootElement, ct);
         });
+        Add(T("启用 C3 后台采样（1 秒）", "Enable C3 background sampling (1 second)"), async (id, ct) => await FcsPluginClient.RequestAsync(id, "sampling.set", new { sensorId = "ambient-01", enabled = true, intervalMs = 1000 }, ct));
+        Add(T("停用 C3 后台采样", "Disable C3 background sampling"), async (id, ct) => await FcsPluginClient.RequestAsync(id, "sampling.set", new { sensorId = "ambient-01", enabled = false, intervalMs = 1000 }, ct));
         Add(T("读取规则", "Read rules"), async (id, ct) => await FcsPluginClient.RequestAsync(id, "rules.list", null, ct));
         Add(T("回滚插件并禁用", "Roll back and disable plugin"), async (id, ct) => await FcsPluginClient.RequestAsync(id, "plugin.rollback", new { id = identity.Text.Trim() }, ct));
         Add(T("移除插件", "Remove plugin"), async (id, ct) => await FcsPluginClient.RequestAsync(id, "plugin.remove", new { id = identity.Text.Trim() }, ct));

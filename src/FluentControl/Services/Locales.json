@@ -778,7 +778,9 @@
     "Read rules": "讀取規則",
     "Roll back and disable plugin": "回復上一版外掛並停用",
     "Remove plugin": "移除外掛",
-    "Exit safe mode (keep plugins disabled)": "退出安全模式（保持外掛停用）"
+    "Exit safe mode (keep plugins disabled)": "退出安全模式（保持外掛停用）",
+    "Enable C3 background sampling (1 second)": "啟用 C3 背景取樣（1 秒）",
+    "Disable C3 background sampling": "停用 C3 背景取樣"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -1559,7 +1561,9 @@
     "Read rules": "ルールを取得",
     "Roll back and disable plugin": "旧版に戻して無効化",
     "Remove plugin": "プラグインを削除",
-    "Exit safe mode (keep plugins disabled)": "セーフモードを終了（無効のまま）"
+    "Exit safe mode (keep plugins disabled)": "セーフモードを終了（無効のまま）",
+    "Enable C3 background sampling (1 second)": "C3 バックグラウンド計測を有効化（1 秒）",
+    "Disable C3 background sampling": "C3 バックグラウンド計測を無効化"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -2340,7 +2344,9 @@
     "Read rules": "규칙 읽기",
     "Roll back and disable plugin": "이전 버전으로 복구 및 비활성화",
     "Remove plugin": "플러그인 제거",
-    "Exit safe mode (keep plugins disabled)": "안전 모드 종료(플러그인 비활성화 유지)"
+    "Exit safe mode (keep plugins disabled)": "안전 모드 종료(플러그인 비활성화 유지)",
+    "Enable C3 background sampling (1 second)": "C3 백그라운드 샘플링 활성화(1초)",
+    "Disable C3 background sampling": "C3 백그라운드 샘플링 비활성화"
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -3121,7 +3127,9 @@
     "Read rules": "Regeln lesen",
     "Roll back and disable plugin": "Plugin zurücksetzen und deaktivieren",
     "Remove plugin": "Plugin entfernen",
-    "Exit safe mode (keep plugins disabled)": "Abgesicherten Modus beenden (Plugins bleiben deaktiviert)"
+    "Exit safe mode (keep plugins disabled)": "Abgesicherten Modus beenden (Plugins bleiben deaktiviert)",
+    "Enable C3 background sampling (1 second)": "C3-Hintergrundmessung aktivieren (1 Sekunde)",
+    "Disable C3 background sampling": "C3-Hintergrundmessung deaktivieren"
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -3902,7 +3910,9 @@
     "Read rules": "Lire les règles",
     "Roll back and disable plugin": "Restaurer la version précédente et désactiver",
     "Remove plugin": "Supprimer l’extension",
-    "Exit safe mode (keep plugins disabled)": "Quitter le mode sans échec (extensions désactivées)"
+    "Exit safe mode (keep plugins disabled)": "Quitter le mode sans échec (extensions désactivées)",
+    "Enable C3 background sampling (1 second)": "Activer les mesures C3 en arrière-plan (1 seconde)",
+    "Disable C3 background sampling": "Désactiver les mesures C3 en arrière-plan"
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -4683,6 +4693,8 @@
     "Read rules": "Leer reglas",
     "Roll back and disable plugin": "Restaurar versión anterior y desactivar",
     "Remove plugin": "Eliminar complemento",
-    "Exit safe mode (keep plugins disabled)": "Salir del modo seguro (complementos desactivados)"
+    "Exit safe mode (keep plugins disabled)": "Salir del modo seguro (complementos desactivados)",
+    "Enable C3 background sampling (1 second)": "Activar muestreo C3 en segundo plano (1 segundo)",
+    "Disable C3 background sampling": "Desactivar muestreo C3 en segundo plano"
   }
 }
