@@ -158,6 +158,36 @@ internal sealed class FcsUsb : IDisposable
         }
         finally { gate.Release(); }
     }
+    public async Task<FcsDeviceCapabilities> CapabilitiesAsync(string selection, string deviceId, CancellationToken cancel)
+    {
+        if (!ValidPort(selection) || !GatewayRegistry.ValidId(deviceId))
+            throw new InvalidDataException("Invalid USB capabilities request.");
+        await gate.WaitAsync(cancel);
+        try
+        {
+            return await Task.Run(() =>
+            {
+                foreach (var candidate in ResolvePorts(selection, deviceId))
+                {
+                    cancel.ThrowIfCancellationRequested();
+                    try
+                    {
+                        using var port = Open(candidate);
+                        var hello = Exchange(port, "PING", cancel);
+                        if (Handshake(hello) != deviceId) continue;
+                        var model = FcsSignalCatalog.ParseUsb(hello, deviceId);
+                        known[deviceId] = candidate;
+                        return model;
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or
+                        TimeoutException or InvalidDataException or JsonException or
+                        InvalidOperationException or KeyNotFoundException) { }
+                }
+                throw new IOException("USB device capabilities unavailable.");
+            }, cancel);
+        }
+        finally { gate.Release(); }
+    }
     public async Task<UsbReading> ReadAsync(string selection, string deviceId, CancellationToken cancel)
     {
         if (!ValidPort(selection) || !GatewayRegistry.ValidId(deviceId)) throw new InvalidDataException("Invalid USB signal request.");
