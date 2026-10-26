@@ -315,9 +315,9 @@ internal static class GatewayChecks
         var originalInput = Console.In;
         var originalOutput = Console.Out;
         using var mcpInput = new StringReader(
-            "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":1,\\"method\\":\\"initialize\\"}\\n" +
-            "{\\"jsonrpc\\":\\"2.0\\",\\"method\\":\\"notifications/initialized\\"}\\n" +
-            "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":2,\\"method\\":\\"tools/list\\"}\\n");
+            """{"jsonrpc":"2.0","id":1,"method":"initialize"}""" + Environment.NewLine +
+            """{"jsonrpc":"2.0","method":"notifications/initialized"}""" + Environment.NewLine +
+            """{"jsonrpc":"2.0","id":2,"method":"tools/list"}""" + Environment.NewLine);
         using var mcpOutput = new StringWriter();
         try
         {
@@ -330,7 +330,7 @@ internal static class GatewayChecks
             Console.SetIn(originalInput);
             Console.SetOut(originalOutput);
         }
-        var rpcLines = mcpOutput.ToString().Split('\\n', StringSplitOptions.RemoveEmptyEntries);
+        var rpcLines = mcpOutput.ToString().Split((char)10, StringSplitOptions.RemoveEmptyEntries);
         if (rpcLines.Length != 2) throw new InvalidOperationException("MCP stdio message count failed.");
         using var rpcInit = JsonDocument.Parse(rpcLines[0]);
         using var rpcTools = JsonDocument.Parse(rpcLines[1]);
