@@ -65,7 +65,13 @@ public sealed partial class MainWindow
         { var path = await PickAsync(); return path is null ? null : await FcsPluginClient.InstallAsync(id, path, ct); });
         Add(T("保存参数并启用插件", "Save settings and enable plugin"), async (id, ct) =>
         { using var json = JsonDocument.Parse(settings.Text); return await FcsPluginClient.RequestAsync(id, "plugin.configure", new { id = identity.Text.Trim(), enabled = true, settings = json.RootElement }, ct); });
-        Add(T("禁用插件", "Disable plugin"), async (id, ct) => await FcsPluginClient.RequestAsync(id, "plugin.configure", new { id = identity.Text.Trim(), enabled = false, settings = new { } }, ct));
+        Add(T("禁用插件", "Disable plugin"), async (id, ct) =>
+        {
+            var pluginId = identity.Text.Trim();
+            var current = await FcsPluginClient.RequestAsync(id, "plugin.list", null, ct);
+            var saved = current.GetProperty("plugins").EnumerateArray().Single(p => p.GetProperty("id").GetString() == pluginId).GetProperty("settings");
+            return await FcsPluginClient.RequestAsync(id, "plugin.configure", new { id = pluginId, enabled = false, settings = saved }, ct);
+        });
         Add(T("执行一次插件动作", "Run plugin action once"), async (id, ct) => await FcsPluginClient.RequestAsync(id, "plugin.run", new { id = identity.Text.Trim(), arguments = new { } }, ct));
         Add(T("从文件应用规则（USB）", "Apply rules from file (USB)"), async (id, ct) =>
         {

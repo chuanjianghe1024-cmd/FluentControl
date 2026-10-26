@@ -64,4 +64,4 @@ A USB hub or upstream port does not prove a monitor-control protocol. Compare HD
 
 ### C3 插件与 Gateway 脚本 / C3 plugins and Gateway scripts
 
-开发版增加 FC 内的 USB 插件管理、C3 本地 WoL 规则，以及 Gateway 复杂脚本创建/验证/干运行。安装后默认禁用，实际唤醒须测试；Windows 脚本功能需 Python 3.10+。Development builds add USB plugin management, local C3 WoL rules, and Gateway script creation/validation/dry-run; hardware acceptance is pending. [操作与限制 / Setup and limits](../fcs-plugin-contract.md).
+开发版增加 FC 内的 USB 插件管理、C3 本地 WoL 规则，以及 Gateway 复杂脚本创建/验证/干运行。安装后默认禁用，实际唤醒须测试；Windows 脚本功能需 Python 3.10+。Development builds add USB plugin management, local C3 WoL rules, and Gateway script creation/validation/dry-run; hardware acceptance is pending. [操作与限制 / Setup and limits](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/fcs-plugin-contract.md).
