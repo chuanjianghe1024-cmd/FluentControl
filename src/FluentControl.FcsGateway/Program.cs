@@ -13,6 +13,11 @@ if (args.Length == 1 && args[0] == "--self-test")
     GatewayChecks.Run();
     return;
 }
+if (args.Length == 1 && args[0] == "--mcp")
+{
+    await FcsMcp.RunAsync();
+    return;
+}
 if (args.Length == 1 && args[0] == "--stop")
 {
     // Explicit same-user shutdown for upgrades and standalone deployments.
@@ -30,7 +35,7 @@ if (args.Length == 1 && args[0] == "--stop")
 }
 if (args.Length > 1 || args.Length == 1 && args[0] != "--serve")
 {
-    Console.Error.WriteLine("Usage: FluentControl.FcsGateway.exe [--serve|--self-test|--stop]");
+    Console.Error.WriteLine("Usage: FluentControl.FcsGateway.exe [--serve|--self-test|--stop|--mcp]");
     return;
 }
 // One gateway per logged-in Windows user, regardless of whether FC is open.
@@ -304,6 +309,7 @@ internal static class GatewayChecks
 {
     public static void Run()
     {
+        FcsMcp.SelfTest();
         if (!GatewayRegistry.ValidId("c3-bh1750-1234") || GatewayRegistry.ValidId("../wrong"))
             throw new InvalidOperationException("Device identity validation failed");
         if (!GatewayRegistry.IsLocalAddress(IPAddress.Parse("192.168.1.7")) ||
