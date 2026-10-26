@@ -1,6 +1,6 @@
 # FCS Gateway 最小运行版
 
-> **架构目标：FCS 独立发行，FC 作为客户端。** 当前 Gateway 工程暂存在 FC 仓库并由 FC CI 生成便携 Artifact；这仅是迁移阶段。FCS 仓库尚无独立 Release，独立安装包与独立构建尚未交付。正式分拆计划见 [FCS 独立版本与发行策略](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors/blob/main/docs/release-policy.md)。
+> **架构目标：FCS 独立发行，FC 作为客户端。** 当前 Gateway 工程暂存在 FC 仓库并由 FC CI 生成便携 Artifact；这仅是迁移阶段。FCS 源码仓库保持私有，用户最终通过 FluentControl 网站获取 FCS 独立包或默认捆绑 FCS 的 FC 安装包。网站分发的独立安装包与独立构建尚未交付。正式分拆计划见 [FCS 独立版本与发行策略](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors/blob/main/docs/release-policy.md)。
 
 ## 当前实现
 
@@ -22,7 +22,7 @@
 
 目标状态：Gateway、硬件传输适配器、设备发现/管理、Signal 订阅 API 与其版本化能力清单由 FCS 仓库维护，并通过 FCS 独立版本发布。FC 安装包默认捆绑经过验证的指定 FCS 版本；FC 只通过受限 IPC/API 请求订阅、读数和获准的设备操作。其他应用可以直接使用 FCS，无需安装 FC。
 
-当前仍处于迁移阶段：Gateway 的 .NET 工程位于 FC 仓库，FC 的界面与旧兼容路径仍存在；FCS 仓库目前没有 Release 工作流或独立 Gateway 包。因此本次 Gateway 代码提交不代表已经交付独立 FCS 产品。首个 FCS Release 前需要将 Gateway 与维护测试迁入 FCS 仓库，建立独立 CI/发行版本，并让 FC 构建捆绑一个固定的兼容 FCS 版本。
+当前仍处于迁移阶段：Gateway 的 .NET 工程位于 FC 仓库，FC 的界面与旧兼容路径仍存在；FCS 仓库目前没有 Release 工作流或独立 Gateway 包。因此本次 Gateway 代码提交不代表已经交付独立 FCS 产品。首个面向用户的 FCS 版本发布前需要将 Gateway 与维护测试迁入 FCS 仓库，建立独立 CI/构建产物，并由网站分发；FC 构建继续捆绑一个固定的兼容 FCS 版本。
 
 ## 下一阶段 / Not yet implemented
 
