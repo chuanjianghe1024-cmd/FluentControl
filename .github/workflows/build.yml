@@ -77,6 +77,9 @@ jobs:
           ./scripts/Test-DdcHost.ps1
           ./scripts/Test-Startup.ps1
           if (-not (Test-Path 'publish/FluentControl.FcsGateway.exe')) { throw 'Bundled FCS Gateway is missing.' }
+          if (-not (Test-Path 'publish/fcs-script-runner.py')) { throw 'Bundled FCS script worker is missing.' }
+          python scripts/test-fcs-scripts.py ./publish/FluentControl.FcsGateway.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Gateway script checks failed.' }
       - name: Build single compressed offline MSI
         shell: pwsh
         run: ./scripts/Build-Msi.ps1 -Version $env:PACKAGE_VERSION

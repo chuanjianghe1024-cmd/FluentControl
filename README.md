@@ -198,3 +198,7 @@ See the [device signals guide](docs/device-signals.md) for USB management, C3 pr
 FC 默认使用自带的本机 Gateway，无需其他设备或 Docker。NAS / 树莓派上的 Linux 网关可选；[部署与功能边界](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/fcs-gateway-host.md)。
 
 FC defaults to its bundled local Gateway. An optional Linux/Docker Gateway can collect continuously on a compatible NAS or Raspberry Pi. This is development work pending release and physical acceptance; see the deployment guide above.
+
+### C3 插件与 Gateway 脚本 / C3 plugins and Gateway scripts
+
+开发版增加 FC 内的 USB 插件管理、C3 本地 WoL 规则，以及 Gateway 复杂脚本创建/验证/干运行。安装后默认禁用，实际唤醒须测试；Windows 脚本功能需 Python 3.10+。Development builds add USB plugin management, local C3 WoL rules, and Gateway script creation/validation/dry-run; hardware acceptance is pending. [操作与限制 / Setup and limits](docs/fcs-plugin-contract.md).

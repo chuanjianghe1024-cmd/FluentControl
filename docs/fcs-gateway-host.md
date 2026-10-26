@@ -53,8 +53,12 @@ Use the Docker commands above from the repository root. Replace the example node
 
 Bridge networking works with configured IPs. Optional UDP discovery (`discover: true`) generally requires Linux host networking in Docker; remove `ports`, set `network_mode: host`, and explicitly bind `ASPNETCORE_URLS` to the desired interface. Configured nodes take precedence. Restart after configuration/token changes. Do not remove the data volume unless deletion is intended. For native Linux, publish self-contained as shown above; the sample systemd unit expects an `fcs` user and binaries at `/opt/fcs-gateway`, with state under `/var/lib/fcs-gateway`.
 
-The authenticated `POST /rpc` interface exposes status, cached discovery/listing, LAN read-only node requests and the most recent 64 history records per device. The unauthenticated `/healthz` reports process liveness only. Remote USB, writes, shutdown, arbitrary URL forwarding, cloud sync, rule execution and remote MCP are not implemented. Existing local Windows MCP remains available.
+The authenticated `POST /rpc` interface exposes status, cached discovery/listing, LAN read-only node requests and the most recent 64 history records per device. The unauthenticated `/healthz` reports process liveness only. Remote USB, writes, shutdown, arbitrary URL forwarding, hosted cloud sync and remote MCP are not implemented. Existing local Windows MCP remains available.
 
 A single background collector serves all clients (default 2-second poll, up to 32 nodes, four concurrent nodes). Identity and operation availability are checked during collection. Failed or stale nodes cannot supply live data; restart does not promote history to live state. FC also checks validity, freshness, units and transport age, including request time, with a 10-second maximum. There is no offline brightness-command queue.
 
 History rolls at 4096 records or 8 MiB, whichever comes first. Atomic snapshots occur each minute and on graceful shutdown; sudden power loss can lose up to one minute. This is bounded sample history, not a guaranteed number of days. Automated tests cover simulated nodes, authentication, identity changes, stale data, history bounds/restart and HTTP restrictions. Physical C3/NAS/Pi/display validation remains separate.
+
+## Local scripts / 本地脚本
+
+Linux host 与 Windows Gateway 共用受限脚本核心；容器含 Python，原生部署需 Python 3.10+ 并设置 `FCS_PYTHON`。任务放在数据目录的 `scripts/`，通过 CLI 创建/验证/干运行后才显式启用。见 [脚本操作](fcs-plugin-contract.md)。HTTP `/rpc` 仍只读，不接受脚本上传。Docker bridge 不保证局域网 WoL 广播可达；默认推荐由独立供电的 C3 执行唤醒。

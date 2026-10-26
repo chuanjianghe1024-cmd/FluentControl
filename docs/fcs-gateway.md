@@ -39,7 +39,7 @@ FC still defaults to its bundled Windows Gateway. An optional Linux/Docker LAN h
 
 ## 配网入口状态
 
-首次配网的 C3 SoftAP 网页（FCS-xxxxxx / http://192.168.4.1）与 FC 原有 USB Wi-Fi 配网向导已提供，Gateway 是配网成功后用于 LAN 发现及实时光照验证的组件。BLE 当前仅有原有认证读取功能，**BLE 直接提交 Wi-Fi 密码的安全配网通道尚未实现**；不允许为了实现此入口而让 Wi-Fi 密码在未经加密的 BLE 特征值中传输。独立图形控制台、无线规则下发及安装管理也仍待实现。
+首次配网的 C3 SoftAP 网页（FCS-xxxxxx / http://192.168.4.1）与 FC 原有 USB Wi-Fi 配网向导已提供，Gateway 是配网成功后用于 LAN 发现及实时光照验证的组件。BLE 当前仅有原有认证读取功能，**BLE 直接提交 Wi-Fi 密码的安全配网通道尚未实现**；不允许为了实现此入口而让 Wi-Fi 密码在未经加密的 BLE 特征值中传输。独立图形控制台与无线规则下发仍待实现；FC 已增加 USB 插件管理入口。
 
 ## 生命周期与安装升级
 
@@ -53,12 +53,16 @@ IPC 操作：
 - `usb.discover`：`port=AUTO|COMx`，返回已验证 `{port, identity}` 列表；
 - `usb.manage`：提供 `deviceId`、`port`、已知管理 `command` 与对象 `arguments`；Gateway 必须重新 PING 核对身份后才通过物理 USB 发送；
 - `sample.read`：按稳定设备 ID 优先 USB READ；USB 不可用时尝试该身份在 Gateway 发现并读取验证的公开 LAN 来源；不假设仅拔掉数据线就能保持光照不中断；
-- `list` / `discover`：报告 USB/LAN 去重设备与有效性、最近成功读数、过期状态；`capabilities`：返回目前支持的传输与管理范围，以及未实现的插件状态。
+- `list` / `discover`：报告 USB/LAN 去重设备与有效性、最近成功读数、过期状态；`capabilities`：返回目前支持的传输与管理范围，以及插件/脚本运行时状态。
 
 若 Gateway 是独立启动，本机 IPC 仍仅允许同一 Windows 用户；这是单用户管理信任边界。返回 USB 绑定密钥仅允许同用户本机请求，不通过公开 LAN 接口返回。私有网络中的公开传感器接口仅用于读取，仍不提供管理写入。
 
-**当前局限**：没有独立 MSI 安装器（Gateway 二进制可独立执行），当前源码暂在 FC 解决方案中并捆绑 FC 安装包；计划在稳定协议和 CI 验证后抽出可复用 FCS 独立工程与发行包。旧签名 LAN 客户端保留兼容读取，不能由 Gateway 的新匿名读取冒充验证通过。BLE Wi-Fi 安全配网、插件安装/规则引擎仍未实现，参见 [插件清单设计](fcs-plugin-contract.md)。
+**当前局限**：没有独立 MSI 安装器（Gateway 二进制可独立执行），当前源码暂在 FC 解决方案中并捆绑 FC 安装包；计划在稳定协议和 CI 验证后抽出可复用 FCS 独立工程与发行包。旧签名 LAN 客户端保留兼容读取，不能由 Gateway 的新匿名读取冒充验证通过。BLE Wi-Fi 安全配网仍未实现；USB 插件安装与本地规则已有开发实现，参见 [插件清单设计](fcs-plugin-contract.md)。
 
 ## 独立部署（便携预览）
 
 Windows build 成功通过完整验证后额外上传 `FCS-Gateway-x64` Artifact，内含 Gateway 独立自包含 .NET 8 运行时、依赖和配置文件。解压后可执行 `FluentControl.FcsGateway.exe --serve`；关闭前使用 `--stop`，或在控制台按 Ctrl+C。无需安装 FC、网站登录或网关级管理员权限。**这是便携预览，不是独立 MSI/Setup 安装器**；目前仅提供 Named Pipe 控制面，没有独立桌面 UI。一个用户同时运行 FC 捆绑的 Gateway 与独立版时，同名互斥锁保证只能有一个实例；请避免版本不一致，切换版本先执行 `--stop`。
+
+## 插件与脚本开发版
+
+FC 传感器设置提供「C3 插件与规则」：读取存储、安装、配置/启用、手动动作、规则应用、回滚、卸载、安全模式恢复。Gateway 命令行可创建、验证和干运行复杂脚本，详见 [操作与 SDK](fcs-plugin-contract.md)。

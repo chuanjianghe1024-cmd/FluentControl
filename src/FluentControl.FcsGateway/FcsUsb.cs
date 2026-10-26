@@ -61,6 +61,7 @@ internal sealed class FcsUsb : IDisposable
     {
         ct.ThrowIfCancellationRequested();
         var token = Guid.NewGuid().ToString("N");
+        if (payload is not null && Encoding.UTF8.GetByteCount(payload) > 2100) throw new InvalidDataException("USB request too large.");
         port.Write(command + " " + token + (payload is null ? "" : " " + payload) + "\n");
         var timer = Stopwatch.StartNew();
         var buffer = new List<byte>();

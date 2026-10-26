@@ -33,7 +33,7 @@
 - `docs/profile-library-design.md`：配置组织与迁移的详细设计备忘录，实施状态以本文件和代码为准。
 - `docs/fcs-platform-plan.md`：FCS 多传感器平台、Gateway、设备端代码插件、规则/事件、恢复策略、FC 集成与插件社区规划；规划不代表功能已实现。
 - `docs/fcs-gateway.md`：已实现 Gateway 进程、USB/LAN IPC 的操作说明与未完成的独立安装边界。
-- `docs/fcs-plugin-contract.md`：插件包/规则包的协议、权限、安装、恢复与社区分类草案；插件运行仍未实现。
+- `docs/fcs-plugin-contract.md`：当前插件/规则/脚本首版的协议、权限、安装、恢复与执行限制。
 - `docs/licensing-policy.md`：非商业许可迁移边界、历史 MIT 版本，以及软件许可与社区插件内容许可的分离。
 - `docs/code-signing.md`：签名方案与实际执行条件。
 
@@ -283,3 +283,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 ### 当前正式版 v0.3.140
 
 设备管理与认证局域网读取使用 Windows build #140 / `768fd670aab805833da8c28d9ee1a31bf3327e31`。Repository CI、Windows 编译、控制逻辑、现有 WinUI 回归及 MSI/Setup 验收通过；13 项固件状态机模拟测试通过。C3/RP2040 实体联调、BLE、SoftAP、OTA/FC 刷写、自动连接切换及多信号通用界面仍未完成，详见 docs/device-signals.md。USB 管理不要求绑定；网络接口仅支持认证读取。
+
+## 2026-10-26 插件与脚本开发版
+
+C3 runtime 与容量/USB 安装/回滚/规则在 FCS 仓库；FC 新增 `MainWindow.NodePlugins.cs` 与 `FcsPluginClient.cs`。Gateway 的 `FcsScripts.cs` 与受限 AST worker 共用于 Windows/.NET 10 host，用户源码不可任意导入或访问 I/O；动作由宿主校验。代码插件不开放到 MCP，HTTP host 仍只读。Windows 脚本另需 Python 3.10+，发布目录必须带 `fcs-script-runner.py`。具体格式与验收边界见 docs/fcs-plugin-contract.md；实机 WoL 待验收。

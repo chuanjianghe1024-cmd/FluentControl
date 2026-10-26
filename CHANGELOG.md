@@ -1,10 +1,16 @@
 # 更新记录
 
+## Unreleased — C3 plugins and Gateway scripts
+
+- FC 新增 C3 USB 插件安装、参数/启用、单次动作、规则、存储、回滚与安全模式管理；附 WoL 示例，实际唤醒待实机验收。
+- Gateway/Linux host 共用有预算的 Python 语法解释器，支持创建、验证、无副作用测试、多信号判断、WoL 和用户显式配置的 HTTPS 上传；默认不执行/上传。Windows 脚本功能另需 Python 3.10+，Docker 已包含。
+- Add USB-installed trusted C3 plugins and bounded local rules, shared Gateway script validation/dry-run, explicit WoL/HTTPS actions and an HA REST example. See [limits and setup](docs/fcs-plugin-contract.md). No MQTT discovery or hosted cloud service is included.
+
 ## Unreleased — optional Linux/Docker Gateway
 
 - FC 默认保留随包安装、按需运行的本机 Gateway；增加远程网关地址、受保护令牌、测试连接与切回本机入口，USB 配网仍在本机进行。
 - 增加 .NET 10 LAN-only 常驻宿主、amd64/arm64 Docker 和 systemd 部署示例、统一后台采集、受限远程只读 API 与有上限的持久历史；远程失联或样本过期不会继续驱动亮度。
-- Keep FC's bundled local Gateway as the default; add optional remote connections with protected credentials. Add a Linux/Docker LAN collector, authenticated read-only API and bounded history. See [deployment and verification boundaries](docs/fcs-gateway-host.md); remote USB, cloud, rule runtime and remote MCP are not implemented.
+- Keep FC's bundled local Gateway as the default; add optional remote connections with protected credentials. Add a Linux/Docker LAN collector, authenticated read-only API and bounded history. See [deployment and verification boundaries](docs/fcs-gateway-host.md); remote USB, hosted cloud sync and remote MCP are not implemented.
 
 ## Unreleased — node v2 and brightness transitions
 

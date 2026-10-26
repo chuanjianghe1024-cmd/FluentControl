@@ -6,6 +6,17 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 
+if (args.Length > 0 && args[0].StartsWith("--script-", StringComparison.Ordinal))
+{
+    try { await FcsScripts.CliAsync(args); } catch (Exception ex) { Console.Error.WriteLine(ex.Message); Environment.ExitCode = 1; }
+    return;
+}
+if (args.Length > 0 && args[0] is "--plugin-install" or "--node")
+{
+    try { if (!await FcsPluginCli.RunAsync(args)) throw new InvalidDataException("Usage: --plugin-install DEVICE PACKAGE | --node DEVICE OPERATION [ARGUMENTS.json]"); }
+    catch (Exception ex) { Console.Error.WriteLine(ex.Message); Environment.ExitCode = 1; }
+    return;
+}
 const string PipeName = "FluentControl.FcsGateway.v1";
 const string Version = "fcs-gateway/1";
 if (args.Length == 1 && args[0] == "--self-test")
@@ -46,6 +57,15 @@ Console.CancelKeyPress += (_, e) => { e.Cancel = true; lifetime.Cancel(); };
 using var service = new GatewayRegistry();
 using var usb = new FcsUsb();
 _ = Task.Run(() => service.RunDiscoveryLoopAsync(lifetime.Token));
+_ = new FcsScriptLoop(FcsScripts.DirectoryPath, async (input, cancel) =>
+{
+    var request = JsonSerializer.Serialize(new { operation = "node.request", deviceId = input.GetProperty("deviceId").GetString(),
+        command = "data.read", arguments = new { sensorId = input.GetProperty("sensorId").GetString(), signalId = input.GetProperty("signalId").GetString(), mode = "fresh" } });
+    var response = await FcsGatewayCommands.RunAsync(request, service, usb, cancel);
+    var envelope = JsonSerializer.SerializeToElement(response.Payload);
+    if (envelope.TryGetProperty("error", out _) || !envelope.GetProperty("result").GetProperty("ok").GetBoolean()) throw new IOException("Input unavailable.");
+    return envelope.GetProperty("result").Clone();
+}).RunAsync(lifetime.Token);
 // The gateway owns USB discovery even when the FC UI is closed. Re-probe on
 // port changes or every 30 seconds (for devices busy during the first attempt).
 _ = Task.Run(() => GatewayUsbDiscovery.RunAsync(usb, service, lifetime.Token));
@@ -433,7 +453,7 @@ internal static class GatewayChecks
         var capabilities = FcsGatewayCommands.RunAsync("{\"operation\":\"capabilities\",\"deviceId\":null,\"port\":\"AUTO\",\"command\":null,\"arguments\":null}",
             registry, serial, CancellationToken.None).GetAwaiter().GetResult();
         var cap = JsonSerializer.SerializeToElement(capabilities.Payload);
-        if (cap.GetProperty("pluginRuntime").GetString() != "not-implemented" ||
+        if (cap.GetProperty("pluginRuntime").GetString() != "usb-micropython-v1" ||
             cap.GetProperty("deviceCodeInstall").GetString() != "usb-only")
             throw new InvalidOperationException("Gateway plugin capability boundary invalid.");
         var unsafePort = FcsGatewayCommands.RunAsync("{\"operation\":\"usb.discover\",\"port\":\"../COM1\"}",

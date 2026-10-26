@@ -44,12 +44,12 @@ public static class FcsGatewayClient
     // Only typed Gateway commands are exposed. USB configuration travels only
     // over the current-user pipe; the Gateway never opens a LAN write endpoint.
     public static async Task<JsonDocument> QueryAsync(string operation, CancellationToken cancellation = default,
-        string? deviceId = null, string port = "AUTO", string? command = null, object? arguments = null)
+        string? deviceId = null, string port = "AUTO", string? command = null, object? arguments = null, bool localOnly = false)
     {
         if (operation is not ("status" or "list" or "discover" or "capabilities" or
             "usb.discover" or "usb.manage" or "usb.read" or "sample.read" or "node.request"))
             throw new ArgumentOutOfRangeException(nameof(operation));
-        if (FcsRemoteGateway.Enabled && operation is "status" or "list" or "discover" or "node.request")
+        if (!localOnly && FcsRemoteGateway.Enabled && operation is "status" or "list" or "discover" or "node.request")
             return await FcsRemoteGateway.QueryAsync(operation, deviceId, command, arguments, cancellation);
         if (!EnsureStarted()) throw new IOException("FCS Gateway is not installed.");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellation);

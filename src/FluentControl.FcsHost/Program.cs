@@ -10,6 +10,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+if (args.Length > 0 && args[0].StartsWith("--script-", StringComparison.Ordinal))
+{
+    try { await FcsScripts.CliAsync(args); } catch (Exception ex) { Console.Error.WriteLine(ex.Message); Environment.ExitCode = 1; }
+    return;
+}
 if (args is ["--self-test"]) { await HostChecks.RunAsync(); return; }
 var directory = Path.GetFullPath(Environment.GetEnvironmentVariable("FCS_DATA") ?? "data");
 Directory.CreateDirectory(directory);
@@ -33,6 +38,8 @@ builder.Logging.ClearProviders(); builder.Logging.AddSimpleConsole();
 builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 4096; options.Limits.MaxConcurrentConnections = 64; });
 builder.Services.AddSingleton(new GatewayHost(config, directory));
 builder.Services.AddHostedService<Collector>();
+builder.Services.AddSingleton(sp => new ScriptCollector(directory, sp.GetRequiredService<GatewayHost>()));
+builder.Services.AddHostedService<ScriptCollector>(sp => sp.GetRequiredService<ScriptCollector>());
 builder.Services.AddRateLimiter(options => options.AddConcurrencyLimiter("rpc", limiter =>
     { limiter.PermitLimit = 8; limiter.QueueLimit = 0; limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst; }));
 var app = builder.Build();
@@ -67,4 +74,15 @@ await app.RunAsync();
 internal sealed class Collector(GatewayHost host) : BackgroundService
 {
     protected override Task ExecuteAsync(CancellationToken stoppingToken) => host.RunAsync(stoppingToken);
+}
+
+internal sealed class ScriptCollector(string directory, GatewayHost host) : BackgroundService
+{
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) => new FcsScriptLoop(Path.Combine(directory, "scripts"), (input, cancel) =>
+    {
+        var envelope = JsonSerializer.SerializeToElement(host.Node(input.GetProperty("deviceId").GetString()!, "data.read",
+            JsonSerializer.SerializeToElement(new { sensorId = input.GetProperty("sensorId").GetString(), signalId = input.GetProperty("signalId").GetString(), mode = "fresh" })));
+        if (envelope.GetProperty("sampleAgeMilliseconds").GetInt32() > 5000) throw new IOException("Input stale.");
+        return Task.FromResult(envelope.GetProperty("result").Clone());
+    }).RunAsync(stoppingToken);
 }

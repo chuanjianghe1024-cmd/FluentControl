@@ -54,7 +54,7 @@
     <Copy SourceFiles="@(FcsGatewayPayload)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="CopyFcsGatewayToPublish" AfterTargets="Publish">
-    <ItemGroup><FcsGatewayPublished Include="$(OutDir)FluentControl.FcsGateway.exe;$(OutDir)FluentControl.FcsGateway.dll;$(OutDir)FluentControl.FcsGateway.deps.json;$(OutDir)FluentControl.FcsGateway.runtimeconfig.json" /></ItemGroup>
+    <ItemGroup><FcsGatewayPublished Include="$(OutDir)fcs-script-runner.py;$(OutDir)FluentControl.FcsGateway.exe;$(OutDir)FluentControl.FcsGateway.dll;$(OutDir)FluentControl.FcsGateway.deps.json;$(OutDir)FluentControl.FcsGateway.runtimeconfig.json" /></ItemGroup>
     <Copy SourceFiles="@(FcsGatewayPublished)" DestinationFolder="$(PublishDir)" />
   </Target>
   <!-- ApplicationIcon is already indexed by the SDK. Copy the native tray icon

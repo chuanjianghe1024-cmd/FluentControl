@@ -116,12 +116,12 @@ internal static class FcsGatewayCommands
                         lanOperations = new[] { "discover", "read.public" },
                         signalOperations = new[] { "device.capabilities", "signal.read" },
                         mcp = "stdio", cloudSync = "not-implemented",
-                        pluginRuntime = "not-implemented", deviceCodeInstall = "usb-only",
+                        pluginRuntime = "usb-micropython-v1", gatewayScriptRuntime = "fcs-python-subset/1", deviceCodeInstall = "usb-only",
                         wirelessRules = "planned" });
                 case "cloud.capabilities":
-                    return new(new { protocol = Protocol, supported = false, enabled = false,
-                        mode = "local-only", schema = "fcs-cloud-envelope/1",
-                        message = "No cloud transmission is implemented." });
+                    return new(new { protocol = Protocol, supported = true, defaultEnabled = false,
+                        mode = "explicit-https-script-targets", schema = "fcs-cloud-envelope/1",
+                        message = "HTTPS export requires an explicitly enabled local script and configured target; no hosted cloud account service is provided." });
                 case "device.capabilities":
                     return new(new { protocol = Protocol, device = await CapabilitiesAsync(identity, port, registry, usb, cancel) });
                 case "device.status":

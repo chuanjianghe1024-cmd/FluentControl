@@ -32,6 +32,10 @@ jobs:
         run: dotnet publish src/FluentControl.FcsHost -c Release -r linux-${{ matrix.arch }} --self-contained true -o host-out
       - name: Verify collection and history
         run: ./host-out/FluentControl.FcsHost --self-test
+      - name: Verify script interpreter and dry-run CLI
+        run: |
+          python3 -m unittest discover -s tests/gateway-scripts -v
+          python3 scripts/test-fcs-scripts.py ./host-out/FluentControl.FcsHost
       - name: Verify HTTP authorization boundary
         run: python3 scripts/test-fcs-host.py ./host-out/FluentControl.FcsHost
       - name: Build container

@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../FluentControl.FcsGateway/FcsScripts.cs" Link="FcsScripts.cs" />
+    <Content Include="../../tools/gateway-scripts/runner.py" Link="fcs-script-runner.py" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Compile Include="../FluentControl.FcsGateway/FcsNode.cs" Link="FcsNode.cs" />
   </ItemGroup>
 </Project>
