@@ -310,6 +310,34 @@ internal static class GatewayChecks
     public static void Run()
     {
         FcsMcp.SelfTest();
+        // The MCP transport is stdio JSON-RPC: verify real initialize/tools/list
+        // roundtrips without starting any physical device or changing settings.
+        var originalInput = Console.In;
+        var originalOutput = Console.Out;
+        using var mcpInput = new StringReader(
+            "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":1,\\"method\\":\\"initialize\\"}\\n" +
+            "{\\"jsonrpc\\":\\"2.0\\",\\"method\\":\\"notifications/initialized\\"}\\n" +
+            "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":2,\\"method\\":\\"tools/list\\"}\\n");
+        using var mcpOutput = new StringWriter();
+        try
+        {
+            Console.SetIn(mcpInput);
+            Console.SetOut(mcpOutput);
+            FcsMcp.RunAsync().GetAwaiter().GetResult();
+        }
+        finally
+        {
+            Console.SetIn(originalInput);
+            Console.SetOut(originalOutput);
+        }
+        var rpcLines = mcpOutput.ToString().Split('\\n', StringSplitOptions.RemoveEmptyEntries);
+        if (rpcLines.Length != 2) throw new InvalidOperationException("MCP stdio message count failed.");
+        using var rpcInit = JsonDocument.Parse(rpcLines[0]);
+        using var rpcTools = JsonDocument.Parse(rpcLines[1]);
+        if (rpcInit.RootElement.GetProperty("result").GetProperty("serverInfo").GetProperty("name").GetString() != "fluentcontrol-sensors" ||
+            rpcTools.RootElement.GetProperty("result").GetProperty("tools").GetArrayLength() < 5)
+            throw new InvalidOperationException("MCP initialize or tool-list serialization failed.");
+
         if (!GatewayRegistry.ValidId("c3-bh1750-1234") || GatewayRegistry.ValidId("../wrong"))
             throw new InvalidOperationException("Device identity validation failed");
         if (!GatewayRegistry.IsLocalAddress(IPAddress.Parse("192.168.1.7")) ||
