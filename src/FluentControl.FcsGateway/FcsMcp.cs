@@ -160,7 +160,7 @@ internal static class FcsMcp
             var values = new Dictionary<string, JsonElement>();
             foreach (var p in args.EnumerateObject())
                 if (p.Name != "deviceId" && !(p.Name == "confirmed" && nodeOperation == "sampling.set"))
-                    values.Add(p.Name, p.Value);
+                    if (!values.TryAdd(p.Name, p.Value)) throw new InvalidDataException("Repeated tool argument.");
             var nodeArgs = FcsNode.Arguments(nodeOperation, JsonSerializer.SerializeToElement(values));
             var response = await QueryGatewayAsync(new { operation = "node.request", deviceId = nodeId,
                 port = "AUTO", command = nodeOperation, arguments = nodeArgs }, cancel);
@@ -257,6 +257,10 @@ internal static class FcsMcp
 
     public static void SelfTest()
     {
+        using var duplicate = JsonDocument.Parse("""{"name":"fcs_data_read","arguments":{"deviceId":"test-node","sensorId":"a","sensorId":"b"}}""");
+        try { CallAsync(duplicate.RootElement, CancellationToken.None).GetAwaiter().GetResult(); throw new Exception("Repeated MCP argument accepted."); }
+        catch (InvalidDataException) { }
+
         if (Tools().Length < 5 || Tools().OfType<object>().Any(x => x is null))
             throw new InvalidOperationException("MCP tool catalog missing.");
         if (CanWrite && Tools().Length != 14 || !CanWrite && Tools().Length != 12)
