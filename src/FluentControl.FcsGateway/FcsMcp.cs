@@ -52,7 +52,7 @@ internal static class FcsMcp
         {
             new { name = "fcs_list_devices", description = "List FCS devices and last verified samples; never performs a management write.",
                 inputSchema = Input() },
-            new { name = "fcs_device_capabilities", description = "Read one device's sensor and signal inventory. USB legacy firmware exposes a flat signal adapter.",
+            new { name = "fcs_device_capabilities", description = "Read the node v2 physical sensor inventory and current driver capabilities.",
                 inputSchema = Input("deviceId") },
             new { name = "fcs_read_signal", description = "Read an individual sensor signal by stable deviceId, sensorId and signalId. Current firmware supports illuminance.",
                 inputSchema = Input("deviceId", "sensorId", "signalId") },
@@ -70,6 +70,29 @@ internal static class FcsMcp
                         @enum = new[] { "wireless.enable", "wireless.disable", "ble.enable", "ble.disable", "ap.start", "ap.stop" } },
                         confirmed = new { type = "boolean" } },
                     required = new[] { "deviceId", "setting", "confirmed" }, additionalProperties = false } });
+        }
+        foreach (var operation in FcsNode.Operations)
+        {
+            if (operation == "sampling.set" && !CanWrite) continue;
+            var fields = new Dictionary<string, object> { ["deviceId"] = new { type = "string" } };
+            var required = new List<string> { "deviceId" };
+            if (operation is "data.read" or "sampling.get" or "sampling.set" or "cache.read")
+                fields["sensorId"] = new { type = "string" };
+            if (operation is "data.read" or "cache.read") fields["signalId"] = new { type = "string" };
+            if (operation == "data.read") fields["mode"] = new { type = "string", @enum = new[] { "fresh", "latest" } };
+            if (operation == "cache.read")
+            { fields["limit"] = new { type = "integer", minimum = 1, maximum = 64 };
+              fields["afterSequence"] = new { type = "integer", minimum = -1 }; }
+            if (operation == "sampling.set")
+            {
+                fields["enabled"] = new { type = "boolean" };
+                fields["intervalMs"] = new { type = "integer", minimum = 200, maximum = 86400000 };
+                fields["confirmed"] = new { type = "boolean", @const = true };
+                required.AddRange(new[] { "sensorId", "enabled", "intervalMs", "confirmed" });
+            }
+            tools.Add(new { name = "fcs_" + operation.Replace('.', '_'),
+                description = "FCS node v2 " + operation + ". Capability checked; sampling writes require USB and explicit confirmation.",
+                inputSchema = new { type = "object", properties = fields, required, additionalProperties = false } });
         }
         return tools.ToArray();
     }
@@ -126,6 +149,25 @@ internal static class FcsMcp
     {
         var tool = Field(parameters, "name");
         var args = Parameters(parameters);
+        var nodeOperation = tool == "fcs_device_capabilities" ? "sensors.list" : tool == "fcs_read_signal" ? "data.read" : FcsNode.Operations.FirstOrDefault(op => tool == "fcs_" + op.Replace('.', '_'));
+        if (nodeOperation is not null)
+        {
+            var nodeId = Field(args, "deviceId");
+            if (!GatewayRegistry.ValidId(nodeId)) throw new InvalidDataException("Invalid device ID.");
+            if (nodeOperation == "sampling.set" && (!CanWrite ||
+                !args.TryGetProperty("confirmed", out var confirmed) || confirmed.ValueKind != JsonValueKind.True))
+                throw new InvalidDataException("Sampling write requires opt-in and confirmation.");
+            var values = new Dictionary<string, JsonElement>();
+            foreach (var p in args.EnumerateObject())
+                if (p.Name != "deviceId" && !(p.Name == "confirmed" && nodeOperation == "sampling.set"))
+                    values.Add(p.Name, p.Value);
+            var nodeArgs = FcsNode.Arguments(nodeOperation, JsonSerializer.SerializeToElement(values));
+            var response = await QueryGatewayAsync(new { operation = "node.request", deviceId = nodeId,
+                port = "AUTO", command = nodeOperation, arguments = nodeArgs }, cancel);
+            bool failed = response.TryGetProperty("error", out _) ||
+                response.TryGetProperty("result", out var result) && !result.GetProperty("ok").GetBoolean();
+            return Result(response, failed);
+        }
         string id = "";
         if (tool is "fcs_device_capabilities" or "fcs_read_signal" or "fcs_device_status" or "fcs_set_device_setting")
         {
@@ -217,7 +259,7 @@ internal static class FcsMcp
     {
         if (Tools().Length < 5 || Tools().OfType<object>().Any(x => x is null))
             throw new InvalidOperationException("MCP tool catalog missing.");
-        if (CanWrite && Tools().Length != 6 || !CanWrite && Tools().Length != 5)
+        if (CanWrite && Tools().Length != 14 || !CanWrite && Tools().Length != 12)
             throw new InvalidOperationException("MCP write gate invalid.");
     }
 }

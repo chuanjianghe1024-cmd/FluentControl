@@ -1,5 +1,13 @@
 # 更新记录
 
+## Unreleased — node v2 and brightness transitions
+
+- Gateway/MCP 增加 node/sensor/operation/data/sampling/cache/plugin v2 工具与能力检查；USB-only 采样写入默认不向 MCP 开放。
+- FC 按 sensorId/signalId 绑定光照，支持设备传感器清单选择。
+- 增加 1–3 秒归一化过渡编辑器、线性/S/自定义曲线和整数阶梯预览；独立采样与过渡调度。
+- Development implementation; C3, physical DDC and a real MCP host still require acceptance.
+
+
 ## 未发布 / Unreleased
 
 - 新增 FCS Gateway 最小独立运行进程、本机用户专属 Named Pipe 协议、局域网设备发现/实时状态；随 FC Windows 安装包默认捆绑，FCS 页面显示已添加/新发现设备、在线 lux、USB 配网与热点配网引导，插件/规则/事件页明确标为待实现。

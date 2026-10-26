@@ -135,6 +135,31 @@ internal sealed class GatewayRegistry : IDisposable
         !string.IsNullOrEmpty(e.Ip) && DateTimeOffset.UtcNow - e.Seen < TimeSpan.FromMinutes(10);
     public bool HasRecentUsb(string id) => devices.TryGetValue(id, out var e) &&
         !string.IsNullOrEmpty(e.UsbPort) && DateTimeOffset.UtcNow - e.UsbSeen < TimeSpan.FromSeconds(15);
+    public async Task<JsonElement> ReadNodeAsync(string id, string operation, JsonElement arguments, CancellationToken cancel)
+    {
+        arguments = FcsNode.Arguments(operation, arguments);
+        if (!FcsNode.Routes.TryGetValue(operation, out var path)) throw new InvalidDataException("USB required.");
+        if (!ValidId(id) || !devices.TryGetValue(id, out var entry) || !HasLan(id))
+            throw new IOException("No current LAN endpoint.");
+        if (operation != "operations.list")
+            FcsNode.Require(await ReadNodeAsync(id, "operations.list", default, cancel), operation, "lan");
+        var query = arguments.EnumerateObject().Select(p => Uri.EscapeDataString(p.Name) + "=" + Uri.EscapeDataString(p.Value.GetString()!));
+        var suffix = string.Join("&", query);
+        using var response = await client.GetAsync("http://" + entry.Ip + ":8766" + path +
+            (suffix.Length > 0 ? "?" + suffix : ""), HttpCompletionOption.ResponseHeadersRead, cancel);
+        if (response.Content.Headers.ContentLength is > 65536) throw new InvalidDataException("Node frame too large.");
+        await using var stream = await response.Content.ReadAsStreamAsync(cancel);
+        using var buffer = new MemoryStream();
+        var chunk = new byte[2048];
+        int size;
+        while ((size = await stream.ReadAsync(chunk, cancel)) > 0)
+        {
+            if (buffer.Length + size > 65536) throw new InvalidDataException("Node frame too large.");
+            buffer.Write(chunk, 0, size);
+        }
+        using var doc = JsonDocument.Parse(buffer.ToArray(), new JsonDocumentOptions { MaxDepth = 16 });
+        return FcsNode.Validate(doc.RootElement, id).Clone();
+    }
     public async Task<FcsDeviceCapabilities> ReadCapabilitiesAsync(string id, CancellationToken cancel)
     {
         if (!ValidId(id) || !devices.TryGetValue(id, out var entry) ||
@@ -309,6 +334,17 @@ internal static class GatewayChecks
 {
     public static void Run()
     {
+        foreach (var input in new[] { "{\"sensorId\":null}", "{\"sensorId\":\"../x\"}", "{\"mode\":\"bad\"}", "{\"mode\":\"fresh\",\"mode\":\"latest\"}" })
+        {
+            using var invalid = JsonDocument.Parse(input);
+            try { FcsNode.Arguments("data.read", invalid.RootElement); throw new Exception("Invalid node argument accepted."); }
+            catch (InvalidDataException) { }
+        }
+        using (var planned = JsonDocument.Parse("""{"ok":true,"operations":[{"id":"sampling.set","state":"planned","access":"write","transports":["usb"]}]}"""))
+        {
+            try { FcsNode.Require(planned.RootElement, "sampling.set", "usb"); throw new Exception("Planned operation accepted."); }
+            catch (InvalidDataException) { }
+        }
         FcsMcp.SelfTest();
         // The MCP transport is stdio JSON-RPC: verify real initialize/tools/list
         // roundtrips without starting any physical device or changing settings.

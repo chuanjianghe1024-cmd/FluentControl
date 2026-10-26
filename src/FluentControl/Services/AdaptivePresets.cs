@@ -27,6 +27,7 @@ public sealed class AdaptiveSubscription
 }
 public sealed class AdaptiveSettings
 {
+    public BrightnessTransitionSettings Transition { get; set; } = new();
     public bool Enabled { get; set; }
     public bool ThemeEnabled { get; set; }
     public string Mode { get; set; } = "ambient";
@@ -141,6 +142,7 @@ public static class AdaptivePresets
         ?? (string.IsNullOrWhiteSpace(s.TargetDisplayId) ? new List<string>() : new List<string> { s.TargetDisplayId });
     public static void Normalize(AdaptiveSettings s)
     {
+        s.Transition ??= new(); s.Transition.Normalize();
         try { Validate(s.Curve); } catch { s.Curve = Default("ambient"); s.PreviewEnabled = false; s.Enabled = false; }
         try { Validate(s.TimeCurve); if (s.TimeCurve.Axis != "clock") throw new InvalidDataException(); } catch { s.TimeCurve = Default("clock"); s.Enabled = false; }
         if (s.Curve.Axis == "clock") { s.TimeCurve = s.Curve; s.Curve = Default("ambient"); }

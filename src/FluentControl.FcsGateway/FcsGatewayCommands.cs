@@ -79,6 +79,23 @@ internal static class FcsGatewayCommands
             var arguments = root.TryGetProperty("arguments", out var args) ? args : default;
             switch (op)
             {
+                case "node.request":
+                {
+                    var command = Field(root, "command");
+                    arguments = FcsNode.Arguments(command, arguments);
+                    if (!GatewayRegistry.ValidId(identity)) throw new InvalidDataException("Invalid device identity.");
+                    JsonElement frame;
+                    string via;
+                    if (FcsNode.Routes.ContainsKey(command) && registry.HasLan(identity) && !registry.HasRecentUsb(identity))
+                    { frame = await registry.ReadNodeAsync(identity, command, arguments, cancel); via = "lan"; }
+                    else
+                    {
+                        var reply = await usb.NodeAsync(port, identity, command, arguments, cancel);
+                        frame = reply.Frame; via = "usb";
+                        registry.ReportUsb(new[] { new UsbDevice(reply.Port, identity) });
+                    }
+                    return new(new { protocol = Protocol, result = frame, transport = via });
+                }
                 case "list":
                     return new(new { protocol = Protocol, devices = registry.Snapshot() });
                 case "discover":

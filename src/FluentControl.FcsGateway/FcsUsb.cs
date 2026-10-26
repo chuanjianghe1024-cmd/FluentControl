@@ -72,12 +72,12 @@ internal sealed class FcsUsb : IDisposable
             if (c < 0) throw new IOException("USB device disconnected.");
             if (c != '\n')
             {
-                if (buffer.Count >= 8192) throw new InvalidDataException("USB response too large.");
+                if (buffer.Count >= 65536) throw new InvalidDataException("USB response too large.");
                 buffer.Add((byte)c); continue;
             }
             try
             {
-                using var doc = JsonDocument.Parse(buffer.ToArray(), new JsonDocumentOptions { MaxDepth = 8 });
+                using var doc = JsonDocument.Parse(buffer.ToArray(), new JsonDocumentOptions { MaxDepth = 16 });
                 var frame = doc.RootElement;
                 if (frame.TryGetProperty("requestId", out var received) && received.GetString() == token)
                     return frame.Clone();
@@ -213,6 +213,44 @@ internal sealed class FcsUsb : IDisposable
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TimeoutException or InvalidDataException or JsonException or InvalidOperationException or KeyNotFoundException) { }
                 }
                 throw new IOException("USB sensor unavailable.");
+            }, cancel);
+        }
+        finally { gate.Release(); }
+    }
+    public async Task<UsbManagedReply> NodeAsync(string selection, string deviceId, string operation,
+        JsonElement arguments, CancellationToken cancel)
+    {
+        arguments = FcsNode.Arguments(operation, arguments);
+        if (!ValidPort(selection) || !GatewayRegistry.ValidId(deviceId))
+            throw new InvalidDataException("Invalid node selection.");
+        await gate.WaitAsync(cancel);
+        try
+        {
+            return await Task.Run(() =>
+            {
+                foreach (var candidate in ResolvePorts(selection, deviceId))
+                {
+                    SerialPort port;
+                    try { port = Open(candidate); }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { continue; }
+                    using (port)
+                    {
+                        JsonElement hello;
+                        try { hello = Exchange(port, "FC", cancel, "{\"operation\":\"node.info\",\"arguments\":{}}"); }
+                        catch (Exception ex) when (ex is IOException or TimeoutException) { continue; }
+                        if (!hello.TryGetProperty("deviceId", out var id) || id.GetString() != deviceId) continue;
+                        FcsNode.Validate(hello, deviceId);
+                        var catalog = FcsNode.Validate(Exchange(port, "FC", cancel,
+                            "{\"operation\":\"operations.list\",\"arguments\":{}}"), deviceId);
+                        FcsNode.Require(catalog, operation, "usb");
+                        known[deviceId] = candidate;
+                        // Once sent, never replay a write after timeout, disconnect or rejected reply.
+                        var frame = FcsNode.Validate(Exchange(port, "FC", cancel,
+                            JsonSerializer.Serialize(new { operation, arguments })), deviceId);
+                        return new UsbManagedReply(frame, candidate);
+                    }
+                }
+                throw new IOException("Node USB endpoint unavailable.");
             }, cancel);
         }
         finally { gate.Release(); }
