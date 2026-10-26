@@ -52,9 +52,10 @@ internal static class FcsGatewayCommands
                 }
                 case "usb.manage":
                 {
-                    var result = await usb.ManageAsync(port, identity, Field(root, "command"), arguments, cancel);
-                    registry.ReportUsb(new[] { new UsbDevice(port, identity) });
-                    return new(new { protocol = Protocol, result });
+                    var managed = await usb.ManageAsync(port, identity, Field(root, "command"), arguments, cancel);
+                    // AUTO is a selection rule, never the physical COM port.
+                    registry.ReportUsb(new[] { new UsbDevice(managed.Port, identity) });
+                    return new(new { protocol = Protocol, result = managed.Frame });
                 }
                 case "usb.read":
                 {

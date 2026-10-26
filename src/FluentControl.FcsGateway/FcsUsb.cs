@@ -7,6 +7,7 @@ using Microsoft.Win32;
 
 internal sealed record UsbDevice(string Port, string Identity);
 internal sealed record UsbReading(string DeviceId, double Lux, DateTimeOffset Timestamp, string? Port = null);
+internal sealed record UsbManagedReply(JsonElement Frame, string Port);
 
 // The Gateway is the only FC-owned serial protocol host. Each command verifies a
 // fresh physical USB handshake and never trusts a caller-provided identity alone.
@@ -122,7 +123,7 @@ internal sealed class FcsUsb : IDisposable
         }
         finally { gate.Release(); }
     }
-    public async Task<JsonElement> ManageAsync(string selection, string deviceId, string op, JsonElement arguments, CancellationToken cancel)
+    public async Task<UsbManagedReply> ManageAsync(string selection, string deviceId, string op, JsonElement arguments, CancellationToken cancel)
     {
         if (!Allowed.Contains(op) || !GatewayRegistry.ValidId(deviceId) || !ValidPort(selection))
             throw new InvalidDataException("Unsupported USB management request.");
@@ -148,7 +149,7 @@ internal sealed class FcsUsb : IDisposable
                         var result = Exchange(port, "FC", cancel, payload);
                         if (Identity(result) != deviceId || !result.GetProperty("ok").GetBoolean())
                             throw new InvalidDataException("Device rejected USB command.");
-                        return result;
+                        return new UsbManagedReply(result, candidate);
                     }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TimeoutException or InvalidDataException or JsonException or InvalidOperationException or KeyNotFoundException) { }
                 }

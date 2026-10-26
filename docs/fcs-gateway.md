@@ -6,9 +6,15 @@
 - 同一个 Windows 用户最多运行一个 Gateway（mutex）；通过本机 Named Pipe `FluentControl.FcsGateway.v1` 通信，并启用 CurrentUserOnly。
 - Gateway 通过 UDP 42735 发现兼容设备，按固定 `http://发现来源IP:8766/v1/sample` 验证读取；只接受私有 IPv4 地址、`fc-device/1` 及合法 deviceId、lux/有效性数据。不会根据未认证广播内容执行管理命令。
 - 周期刷新，保留上次成功时间和最近有效 lux；12 秒没有成功数据标记离线，离线不将旧值显示为实时。
+- Gateway 在后台每 5 秒检查 USB 候选端口；端口改变或距上次探测满 30 秒时，对自动允许的 VID/PID 发送只读 PING 验证设备身份。串口探测与主动读取/管理共用独占门闩；设备暂时占用不会停止后续重试。无设备时不会打开任意 COM 口。
 - IPC 操作：`status`（进程状态）、`list`（设备快照）、`discover`（主动扫描 + 当前快照）。按请求一行 JSON/响应一行 JSON。
 - 既有 FC 光照读取仍保留直连兼容；Gateway 本身不修改设备网络配置、插拔 USB 或改变自动亮度。
 - `--self-test` 为纯本地格式与安全边界回归；它不是 ESP32-C3 实机测试。
+
+## P0 设备发现验收
+
+- 已实现：Gateway 自行发现 LAN/USB，使用稳定 sourceId 合并设备；原 USB 端口改变后新端口可更新同一身份，而不会新建第二台设备。USB 管理通过 AUTO 找到真实端口时，状态不再显示伪端口 AUTO。
+- 尚需 Windows 实机验收：带固件的 C3 插拔、占用 COM 口（Thonny）、USB 供电转纯电源、LAN 改 IP、睡眠唤醒、丢包及多设备并发。`--self-test` 只验证纯逻辑，**不能**代替串口与硬件验收。
 
 ## 下一阶段 / Not yet implemented
 

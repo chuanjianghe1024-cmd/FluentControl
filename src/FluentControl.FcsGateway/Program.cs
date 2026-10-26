@@ -41,6 +41,9 @@ Console.CancelKeyPress += (_, e) => { e.Cancel = true; lifetime.Cancel(); };
 using var service = new GatewayRegistry();
 using var usb = new FcsUsb();
 _ = Task.Run(() => service.RunDiscoveryLoopAsync(lifetime.Token));
+// The gateway owns USB discovery even when the FC UI is closed. Re-probe on
+// port changes or every 30 seconds (for devices busy during the first attempt).
+_ = Task.Run(() => GatewayUsbDiscovery.RunAsync(usb, service, lifetime.Token));
 while (!lifetime.IsCancellationRequested)
 {
     try
@@ -229,6 +232,50 @@ internal sealed class GatewayRegistry : IDisposable
     public void Dispose() { client.Dispose(); discovery.Dispose(); }
 }
 
+
+internal sealed class UsbScanSchedule
+{
+    private string? previous;
+    private DateTimeOffset lastScan;
+
+    public bool ShouldScan(IReadOnlyList<string> ports, DateTimeOffset now)
+    {
+        var signature = string.Join("|", ports.Select(port => port.ToUpperInvariant()));
+        if (signature == previous && now >= lastScan && now - lastScan < TimeSpan.FromSeconds(30))
+            return false;
+        previous = signature;
+        lastScan = now;
+        return true;
+    }
+}
+
+internal static class GatewayUsbDiscovery
+{
+    public static async Task RunAsync(FcsUsb usb, GatewayRegistry registry, CancellationToken cancel)
+    {
+        var schedule = new UsbScanSchedule();
+        while (!cancel.IsCancellationRequested)
+        {
+            try
+            {
+                var ports = FcsUsb.Ports("AUTO");
+                if (schedule.ShouldScan(ports, DateTimeOffset.UtcNow) && ports.Length > 0)
+                    registry.ReportUsb(await usb.DiscoverAsync("AUTO", cancel));
+            }
+            catch (OperationCanceledException) when (cancel.IsCancellationRequested) { break; }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or
+                InvalidDataException or InvalidOperationException or ArgumentException or
+                System.Security.SecurityException)
+            {
+                // A busy, removed or not-yet-ready USB device must not kill discovery.
+                // Discovery only performs a read-only PING; management is never automatic.
+            }
+            try { await Task.Delay(TimeSpan.FromSeconds(5), cancel); }
+            catch (OperationCanceledException) { break; }
+        }
+    }
+}
+
 internal static class GatewayChecks
 {
     public static void Run()
@@ -253,7 +300,22 @@ internal static class GatewayChecks
         if (!FcsUsb.ValidPort("AUTO") || !FcsUsb.ValidPort("com12") ||
             FcsUsb.ValidPort("../COM1") || FcsUsb.ValidPort("COM0"))
             throw new InvalidOperationException("USB port validation failed");
+        var scanSchedule = new UsbScanSchedule();
+        var start = DateTimeOffset.UtcNow;
+        if (!scanSchedule.ShouldScan(new[] { "COM4" }, start) ||
+            scanSchedule.ShouldScan(new[] { "com4" }, start.AddSeconds(5)) ||
+            !scanSchedule.ShouldScan(new[] { "COM7" }, start.AddSeconds(6)) ||
+            !scanSchedule.ShouldScan(new[] { "COM7" }, start.AddSeconds(37)))
+            throw new InvalidOperationException("USB port rescan scheduling failed.");
         using var registry = new GatewayRegistry();
+        registry.ReportUsb(new[] { new UsbDevice("COM4", "stable-c3") });
+        registry.ReportUsbSample(new UsbReading("stable-c3", 48.5, start, "COM4"), "COM4");
+        registry.ReportUsb(new[] { new UsbDevice("COM7", "stable-c3") });
+        var reconnected = registry.Snapshot();
+        if (reconnected.Length != 1 || reconnected[0].DeviceId != "stable-c3" ||
+            reconnected[0].UsbPort != "COM7" || reconnected[0].Lux != 48.5 ||
+            reconnected[0].Transport != "usb")
+            throw new InvalidOperationException("USB device identity or COM-port reattachment failed.");
         using var serial = new FcsUsb();
         var capabilities = FcsGatewayCommands.RunAsync("{\"operation\":\"capabilities\",\"deviceId\":null,\"port\":\"AUTO\",\"command\":null,\"arguments\":null}",
             registry, serial, CancellationToken.None).GetAwaiter().GetResult();
@@ -266,6 +328,6 @@ internal static class GatewayChecks
         var rejected = JsonSerializer.SerializeToElement(unsafePort.Payload);
         if (!rejected.TryGetProperty("error", out _))
             throw new InvalidOperationException("Unsafe serial port selection not rejected.");
-        Console.WriteLine("PASS: FCS gateway LAN/USB identity, IPC serialization and plugin management boundaries.");
+        Console.WriteLine("PASS: FCS gateway USB rescan, stable identity, LAN/USB IPC and management boundaries.");
     }
 }
