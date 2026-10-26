@@ -4,7 +4,7 @@ from pathlib import Path
 REPO = "chuanjianghe1024-cmd/FluentControl"
 BRANCH = "codex/test-release-0.3.201"
 def api(path):
-    return json.loads(subprocess.check_output(["gh", "api", "repos/" + REPO + "/" + path], text=True))
+    return json.loads(subprocess.check_output(["gh", "api", "repos/" + REPO + ("/" + path if path else "")], text=True))
 def main():
     if os.environ.get("GITHUB_REPOSITORY") != REPO or os.environ.get("GITHUB_REF") != "refs/heads/" + BRANCH:
         raise SystemExit("Unexpected repository/ref")
