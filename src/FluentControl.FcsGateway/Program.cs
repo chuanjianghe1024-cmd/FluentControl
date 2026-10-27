@@ -6,6 +6,10 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 
+if (args.Length == 1 && args[0] is "--manage" or "--manage-headless")
+{
+    await FcsManager.RunAsync(args[0] == "--manage"); return;
+}
 if (args.Length > 0 && args[0].StartsWith("--script-", StringComparison.Ordinal))
 {
     try { await FcsScripts.CliAsync(args); } catch (Exception ex) { Console.Error.WriteLine(ex.Message); Environment.ExitCode = 1; }
@@ -21,6 +25,7 @@ const string PipeName = "FluentControl.FcsGateway.v1";
 const string Version = "fcs-gateway/1";
 if (args.Length == 1 && args[0] == "--self-test")
 {
+    FcsRecoveryChecks.Run();
     GatewayChecks.Run();
     return;
 }

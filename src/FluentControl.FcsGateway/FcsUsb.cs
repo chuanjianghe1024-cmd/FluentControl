@@ -263,5 +263,11 @@ internal sealed class FcsUsb : IDisposable
             ? choices.OrderByDescending(p => p.Equals(remembered, StringComparison.OrdinalIgnoreCase))
             : choices;
     }
+    public async Task ExclusiveAsync(Func<Task> action, CancellationToken cancel)
+    {
+        await gate.WaitAsync(cancel);
+        try { known.Clear(); await action(); }
+        finally { gate.Release(); }
+    }
     public void Dispose() => gate.Dispose();
 }

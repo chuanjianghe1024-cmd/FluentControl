@@ -287,3 +287,9 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 ## 2026-10-26 插件与脚本开发版
 
 C3 runtime 与容量/USB 安装/回滚/规则在 FCS 仓库；FC 新增 `MainWindow.NodePlugins.cs` 与 `FcsPluginClient.cs`。Gateway 的 `FcsScripts.cs` 与受限 AST worker 共用于 Windows/.NET 10 host，用户源码不可任意导入或访问 I/O；动作由宿主校验。代码插件不开放到 MCP，HTTP host 仍只读。Windows 脚本另需 Python 3.10+，发布目录必须带 `fcs-script-runner.py`。具体格式与验收边界见 docs/fcs-plugin-contract.md；实机 WoL 待验收。
+
+## 2026-10-27 FCS 管理职责拆分（开发版）
+
+Gateway `--manage` 自带本机浏览器管理页面（tools/fcs-manager），关闭 FC 后仍可运行。FC 自动调节页只读取 Gateway 清单、勾选订阅、选择信号和管理客户端历史，不做物理发现/配网/插件安装。FC 的 FCS 页面提供启动入口及远端网关设置。旧 Wi-Fi 向导保留测试代码，生产入口已迁出。
+
+FcsRecovery 接受完整 frozen-mpy 恢复 ZIP，明确 COM + 清空确认，先校验包及实际 ESP32-C3/4MB，再独占 USB 擦除、写入、验证；不自动重试、不改 eFuse。发布构建通过固定上游 SHA 下载独立 esptool，用户不需安装 Python/Thonny。FCS 新固件将核心模块冻结，非加密/非插件沙箱；真实硬件验收尚需用户完成。Linux/Docker 只读 host 不开放这些本机管理接口。完整操作与限制见 docs/fcs-gateway.md。

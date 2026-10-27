@@ -55,6 +55,9 @@ jobs:
         run: dotnet run --project tests/FluentControl.Tests -c Release -- --native
       - name: Compile Fluent setup frontend
         run: dotnet build installer/FluentControl.Setup/FluentControl.Setup.csproj -c Release
+      - name: Prepare pinned standalone USB recovery tool
+        shell: pwsh
+        run: ./scripts/Get-Esptool.ps1
       - name: Build and test independent FCS Gateway
         run: |
           dotnet build src/FluentControl.FcsGateway/FluentControl.FcsGateway.csproj -c Release
@@ -77,7 +80,10 @@ jobs:
           ./scripts/Test-DdcHost.ps1
           ./scripts/Test-Startup.ps1
           if (-not (Test-Path 'publish/FluentControl.FcsGateway.exe')) { throw 'Bundled FCS Gateway is missing.' }
+          if (-not (Test-Path 'publish/esptool/esptool.exe')) { throw 'Bundled recovery tool is missing.' }
           if (-not (Test-Path 'publish/fcs-script-runner.py')) { throw 'Bundled FCS script worker is missing.' }
+          python scripts/test-fcs-manager.py ./publish/FluentControl.FcsGateway.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Gateway manager checks failed.' }
           python scripts/test-fcs-scripts.py ./publish/FluentControl.FcsGateway.exe
           if ($LASTEXITCODE -ne 0) { throw 'Gateway script checks failed.' }
       - name: Build single compressed offline MSI

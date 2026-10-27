@@ -97,60 +97,7 @@ public sealed partial class MainWindow
             var picker = new ComboBox { Header = T("光照数据订阅", "Light data subscription"), ItemsSource = sources, SelectedItem = sources.FirstOrDefault(x => x.Id == s.ActiveSourceId), MinWidth = 240 };
             picker.SelectionChanged += (_, _) => { if (picker.SelectedItem is LightSourceSubscription source) { s.ActiveSourceId = source.Id; SaveAdaptiveSettings(); BuildSettings(); } }; section.Children.Add(picker);
             BuildSavedLightSources(section);
-            var localPort = new TextBox { Header = T("本地传感器端口", "Local sensor port"), Text = "auto", PlaceholderText = "auto / COM5", MaxLength = 16 };
-            section.Children.Add(localPort);
-            var discover = new Button { Content = T("发现并订阅本地传感器", "Discover and subscribe to local sensors"), IsEnabled = !uiTest && s.LightSources.Count < 32 };
-            discover.Click += async (_, _) =>
-            {
-                discover.IsEnabled = false;
-                var revision = adaptiveRevision;
-                using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(25));
-                localDiscovery?.Cancel(); localDiscovery = cancellation;
-                try
-                {
-                    var devices = await LocalLightSensor.DiscoverAsync(localPort.Text.Trim(), cancellation.Token);
-                    if (closed || revision != adaptiveRevision) return;
-                    if (devices.Count == 0) { ShowStatus(T("未发现兼容传感器，请关闭 Thonny 并检查主板程序和端口。", "No compatible sensor found. Close Thonny and check firmware and port."), InfoBarSeverity.Warning); return; }
-                    string? first = null;
-                    foreach (var device in devices)
-                    {
-                        var item = s.LightSources.FirstOrDefault(x => x.DeviceId == device.Identity);
-                        if (item is null && s.LightSources.Count < 32)
-                        {
-                            item = new LightSourceSubscription { Name = device.Identity, DeviceId = device.Identity,
-                                Url = "fc-usb://" + (localPort.Text.Trim().Equals("auto", StringComparison.OrdinalIgnoreCase) ? "auto" : device.Port.ToLowerInvariant()) };
-                            s.LightSources.Add(item);
-                        }
-                        if (item is not null)
-                        {
-                            item.Url = "fc-usb://" + (localPort.Text.Trim().Equals("auto", StringComparison.OrdinalIgnoreCase) ? "auto" : device.Port.ToLowerInvariant());
-                            item.SignedDevice = false;
-                        }
-                        first ??= item?.Id;
-                    }
-                    if (first is not null) { s.ActiveSourceId = first; s.RecordLightHistory = true; s.Enabled = false; SaveAdaptiveSettings(); BuildSettings(); }
-                }
-                catch (OperationCanceledException) { }
-                catch { if (!closed) ShowStatus(T("未发现兼容传感器，请关闭 Thonny 并检查主板程序和端口。", "No compatible sensor found. Close Thonny and check firmware and port."), InfoBarSeverity.Warning); }
-                finally { if (ReferenceEquals(localDiscovery, cancellation)) localDiscovery = null; if (!closed) discover.IsEnabled = s.LightSources.Count < 32; }
-            };
-            section.Children.Add(discover);
-            BuildSensorDeviceSettings(section, localPort);
-            var name = new TextBox { Header = T("名称", "Name"), MaxLength = 100 };
-            var url = new TextBox { Header = T("数据链接（HTTP / HTTPS）", "Data URL (HTTP / HTTPS)"), PlaceholderText = "http://127.0.0.1:8765/light.json", MaxLength = 2048 };
-            section.Children.Add(name); section.Children.Add(url);
-            var add = new Button { Content = T("添加光照来源", "Add light source"), IsEnabled = s.LightSources.Count < 32 };
-            add.Click += (_, _) =>
-            {
-                try
-                {
-                    var uri = LightFeed.UriFor(url.Text.Trim());
-                    if (s.LightSources.Any(x => x.Url == uri.AbsoluteUri) || string.IsNullOrWhiteSpace(name.Text)) throw new InvalidDataException();
-                    var item = new LightSourceSubscription { Name = name.Text.Trim(), Url = uri.AbsoluteUri };
-                    s.LightSources.Add(item); s.ActiveSourceId = item.Id; s.RecordLightHistory = true; s.Enabled = false; SaveAdaptiveSettings(); BuildSettings();
-                }
-                catch { ShowStatus(T("请输入名称和有效且不重复的 HTTP/HTTPS 数据链接。", "Enter a name and a valid, unique HTTP/HTTPS data URL."), InfoBarSeverity.Error); }
-            }; section.Children.Add(add);
+            BuildFcsSubscriptions(section);
             if (s.LightSources.FirstOrDefault(x => x.Id == s.ActiveSourceId) is { } selected)
             {
                 section.Children.Add(Text(selected.Url));

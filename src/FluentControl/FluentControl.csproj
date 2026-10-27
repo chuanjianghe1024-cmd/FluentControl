@@ -25,6 +25,7 @@
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />
     <ProjectReference Include="../FluentControl.DdcHost/FluentControl.DdcHost.csproj" ReferenceOutputAssembly="false" AdditionalProperties="SelfContained=$(SelfContained)" />
     <ProjectReference Include="../FluentControl.FcsGateway/FluentControl.FcsGateway.csproj" ReferenceOutputAssembly="false" AdditionalProperties="SelfContained=$(SelfContained)" />
+    <Content Include="../../tools/esptool/**/*" Link="esptool/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <EmbeddedResource Include="Services/Locales.json" LogicalName="FluentControl.Locales.json" />
     <!-- Noncommercial license notice travels with every offline build/installer. -->
     <Content Include="../../LICENSE" Link="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

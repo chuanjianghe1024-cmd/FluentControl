@@ -66,3 +66,17 @@ Windows build 成功通过完整验证后额外上传 `FCS-Gateway-x64` Artifact
 ## 插件与脚本开发版
 
 FC 传感器设置提供「C3 插件与规则」：读取存储、安装、配置/启用、手动动作、规则应用、回滚、卸载、安全模式恢复。Gateway 命令行可创建、验证和干运行复杂脚本，详见 [操作与 SDK](fcs-plugin-contract.md)。
+
+## 2026-10-27：独立设备管理与 USB 重装（开发版）
+
+运行 `FluentControl.FcsGateway.exe --manage` 打开本机浏览器管理端；服务与 FC 生命周期分离。FC 的 FCS 页面只有启动入口及远端 Gateway 连接设置，自动调节页通过勾选设备订阅信号，不再提供 USB 扫描、配网、插件安装。订阅按 deviceId/sensorId/signalId 保留，取消订阅不删除设备。当前 FC 自动亮度只订阅可读取的 illuminance/lx；设备完整传感器由 FCS 展示。
+
+管理端绑定随机 loopback 端口，通过 URL fragment 传递会话 bearer，页面取走后移除 fragment；管理请求验证 Host/Origin 和 bearer，不开放 CORS。设备卡片合并同一 ID 的 USB/LAN，详情读取 sensors.list。USB 配网、设备插件及规则、恢复出厂集中在这里。网关脚本单独列出已安装配置；创建、验证与干运行继续使用 --script-* CLI。管理端关闭不停止 Gateway；会话服务器最长运行 8 小时。
+
+USB 重装选择明确的 COM 与 FCS `fcs.recovery/1` ZIP，先校验板型、容量、大小和 SHA-256，再检查实际芯片/4 MB Flash，持有串口互斥锁执行 erase-flash/write-flash/verify-flash。清除用户配置、插件及 Wi-Fi；不自动重试、不写 eFuse，失败可再次进入 BOOT 后重装。不需要 Thonny 或另装 Python，完整 Windows 包附带 esptool v5.1.0（上游 GPL 许可证和下载包 SHA 固定）。恢复包从 FCS 的 C3 frozen recovery firmware 构建产物获取，应用源码 ZIP 不可用于重装。
+
+SHA-256 用于完整性检查，不是发布者签名；只安装可信来源的恢复包。重装验证通过不等于传感器实机功能验收。管理端当前为 Windows 本机 USB Gateway；Linux/Docker host 继续使用既有只读网络接口，此变更不开放远程写入或跨主机刷写。
+
+### Standalone manager and recovery
+
+Run `FluentControl.FcsGateway.exe --manage` for the local device dashboard. FC only subscribes; the Gateway owns discovery, USB configuration, plugins and recovery. Recovery requires an explicitly selected COM port and erase confirmation. Use the complete Windows package (bundled esptool) and a trusted FCS frozen recovery ZIP. All user data is erased. No eFuses are burned; physical BOOT recovery remains available. Linux/Docker read-only hosting is unchanged. Actual C3 flashing and sensor acceptance remain separate from automated checks.

@@ -10,6 +10,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="../../tools/gateway-scripts/runner.py" Link="fcs-script-runner.py" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <EmbeddedResource Include="../../tools/fcs-manager/manager.html" LogicalName="FcsManager.manager.html" />
+    <EmbeddedResource Include="../../tools/fcs-manager/manager.js" LogicalName="FcsManager.manager.js" />
+    <Content Include="../../tools/esptool/**/*" Link="esptool/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />
   </ItemGroup>
   <Target Name="GetFcsGatewayPayload" Returns="@(FcsGatewayPayload)">

@@ -780,7 +780,16 @@
     "Remove plugin": "移除外掛",
     "Exit safe mode (keep plugins disabled)": "退出安全模式（保持外掛停用）",
     "Enable C3 background sampling (1 second)": "啟用 C3 背景取樣（1 秒）",
-    "Disable C3 background sampling": "停用 C3 背景取樣"
+    "Disable C3 background sampling": "停用 C3 背景取樣",
+    "Subscribe to FCS devices": "訂閱 FCS 裝置",
+    "Open FCS device manager": "開啟 FCS 裝置管理",
+    "Refresh available devices": "重新整理可訂閱裝置",
+    "Could not open FCS. Check the installation.": "無法開啟 FCS，請檢查安裝。",
+    "FCS is unavailable. Open device manager to check.": "FCS 暫時無法使用，請開啟裝置管理檢查。",
+    "Cannot subscribe. Check the connection and readable illuminance signal.": "無法訂閱，請檢查連線及可讀取的光照訊號。",
+    "FCS manages devices, Wi-Fi, plugins and USB recovery independently of FC.": "FCS 獨立管理裝置、Wi-Fi、外掛與 USB 重裝。",
+    "Select to subscribe; deselecting does not remove the device. Enable automatic brightness separately on the presets page.": "勾選以訂閱；取消勾選不刪除裝置。自動亮度需在預設頁另行開啟。",
+    "FCS found a new device. Select it in Automatic adjustment to subscribe.": "FCS 發現新裝置，請到自動調節勾選訂閱。"
   },
   "ja-JP": {
     "Reading devices…": "デバイスを読み込み中…",
@@ -1563,7 +1572,16 @@
     "Remove plugin": "プラグインを削除",
     "Exit safe mode (keep plugins disabled)": "セーフモードを終了（無効のまま）",
     "Enable C3 background sampling (1 second)": "C3 バックグラウンド計測を有効化（1 秒）",
-    "Disable C3 background sampling": "C3 バックグラウンド計測を無効化"
+    "Disable C3 background sampling": "C3 バックグラウンド計測を無効化",
+    "Subscribe to FCS devices": "FCS デバイスを購読",
+    "Open FCS device manager": "FCS デバイス管理を開く",
+    "Refresh available devices": "利用可能なデバイスを更新",
+    "Could not open FCS. Check the installation.": "FCS を開けません。インストールを確認してください。",
+    "FCS is unavailable. Open device manager to check.": "FCS を利用できません。デバイス管理を確認してください。",
+    "Cannot subscribe. Check the connection and readable illuminance signal.": "購読できません。接続と照度信号を確認してください。",
+    "FCS manages devices, Wi-Fi, plugins and USB recovery independently of FC.": "FCS は FC と独立してデバイス、Wi-Fi、プラグイン、USB 復旧を管理します。",
+    "Select to subscribe; deselecting does not remove the device. Enable automatic brightness separately on the presets page.": "選択して購読します。解除してもデバイスは削除されません。自動輝度はプリセットで有効にしてください。",
+    "FCS found a new device. Select it in Automatic adjustment to subscribe.": "FCS が新しいデバイスを検出しました。自動調整で選択して購読してください。"
   },
   "ko-KR": {
     "Reading devices…": "장치 읽는 중…",
@@ -2346,7 +2364,16 @@
     "Remove plugin": "플러그인 제거",
     "Exit safe mode (keep plugins disabled)": "안전 모드 종료(플러그인 비활성화 유지)",
     "Enable C3 background sampling (1 second)": "C3 백그라운드 샘플링 활성화(1초)",
-    "Disable C3 background sampling": "C3 백그라운드 샘플링 비활성화"
+    "Disable C3 background sampling": "C3 백그라운드 샘플링 비활성화",
+    "Subscribe to FCS devices": "FCS 장치 구독",
+    "Open FCS device manager": "FCS 장치 관리자 열기",
+    "Refresh available devices": "사용 가능한 장치 새로 고침",
+    "Could not open FCS. Check the installation.": "FCS를 열 수 없습니다. 설치를 확인하세요.",
+    "FCS is unavailable. Open device manager to check.": "FCS를 사용할 수 없습니다. 장치 관리자를 확인하세요.",
+    "Cannot subscribe. Check the connection and readable illuminance signal.": "구독할 수 없습니다. 연결과 조도 신호를 확인하세요.",
+    "FCS manages devices, Wi-Fi, plugins and USB recovery independently of FC.": "FCS는 FC와 독립적으로 장치, Wi-Fi, 플러그인 및 USB 복구를 관리합니다.",
+    "Select to subscribe; deselecting does not remove the device. Enable automatic brightness separately on the presets page.": "선택하면 구독됩니다. 선택 해제해도 장치는 삭제되지 않습니다. 자동 밝기는 프리셋에서 별도로 활성화하세요.",
+    "FCS found a new device. Select it in Automatic adjustment to subscribe.": "FCS가 새 장치를 찾았습니다. 자동 조정에서 선택해 구독하세요."
   },
   "de-DE": {
     "Reading devices…": "Geräte werden gelesen…",
@@ -3129,7 +3156,16 @@
     "Remove plugin": "Plugin entfernen",
     "Exit safe mode (keep plugins disabled)": "Abgesicherten Modus beenden (Plugins bleiben deaktiviert)",
     "Enable C3 background sampling (1 second)": "C3-Hintergrundmessung aktivieren (1 Sekunde)",
-    "Disable C3 background sampling": "C3-Hintergrundmessung deaktivieren"
+    "Disable C3 background sampling": "C3-Hintergrundmessung deaktivieren",
+    "Subscribe to FCS devices": "FCS-Geräte abonnieren",
+    "Open FCS device manager": "FCS-Geräteverwaltung öffnen",
+    "Refresh available devices": "Verfügbare Geräte aktualisieren",
+    "Could not open FCS. Check the installation.": "FCS konnte nicht geöffnet werden. Installation prüfen.",
+    "FCS is unavailable. Open device manager to check.": "FCS nicht verfügbar. Geräteverwaltung prüfen.",
+    "Cannot subscribe. Check the connection and readable illuminance signal.": "Abonnement fehlgeschlagen. Verbindung und Beleuchtungsstärkesignal prüfen.",
+    "FCS manages devices, Wi-Fi, plugins and USB recovery independently of FC.": "FCS verwaltet Geräte, WLAN, Plugins und USB-Wiederherstellung unabhängig von FC.",
+    "Select to subscribe; deselecting does not remove the device. Enable automatic brightness separately on the presets page.": "Auswählen zum Abonnieren. Abwählen löscht kein Gerät. Automatische Helligkeit separat bei den Vorgaben aktivieren.",
+    "FCS found a new device. Select it in Automatic adjustment to subscribe.": "FCS hat ein neues Gerät gefunden. Unter Automatische Anpassung abonnieren."
   },
   "fr-FR": {
     "Reading devices…": "Lecture des appareils…",
@@ -3912,7 +3948,16 @@
     "Remove plugin": "Supprimer l’extension",
     "Exit safe mode (keep plugins disabled)": "Quitter le mode sans échec (extensions désactivées)",
     "Enable C3 background sampling (1 second)": "Activer les mesures C3 en arrière-plan (1 seconde)",
-    "Disable C3 background sampling": "Désactiver les mesures C3 en arrière-plan"
+    "Disable C3 background sampling": "Désactiver les mesures C3 en arrière-plan",
+    "Subscribe to FCS devices": "S’abonner aux appareils FCS",
+    "Open FCS device manager": "Ouvrir le gestionnaire FCS",
+    "Refresh available devices": "Actualiser les appareils disponibles",
+    "Could not open FCS. Check the installation.": "Impossible d’ouvrir FCS. Vérifiez l’installation.",
+    "FCS is unavailable. Open device manager to check.": "FCS indisponible. Vérifiez le gestionnaire.",
+    "Cannot subscribe. Check the connection and readable illuminance signal.": "Abonnement impossible. Vérifiez la connexion et le signal d’éclairement.",
+    "FCS manages devices, Wi-Fi, plugins and USB recovery independently of FC.": "FCS gère les appareils, le Wi-Fi, les extensions et la restauration USB indépendamment de FC.",
+    "Select to subscribe; deselecting does not remove the device. Enable automatic brightness separately on the presets page.": "Cochez pour vous abonner ; décocher ne supprime pas l’appareil. Activez séparément la luminosité automatique dans les préréglages.",
+    "FCS found a new device. Select it in Automatic adjustment to subscribe.": "FCS a détecté un nouvel appareil. Sélectionnez-le dans Réglage automatique."
   },
   "es-ES": {
     "Reading devices…": "Leyendo dispositivos…",
@@ -4695,6 +4740,15 @@
     "Remove plugin": "Eliminar complemento",
     "Exit safe mode (keep plugins disabled)": "Salir del modo seguro (complementos desactivados)",
     "Enable C3 background sampling (1 second)": "Activar muestreo C3 en segundo plano (1 segundo)",
-    "Disable C3 background sampling": "Desactivar muestreo C3 en segundo plano"
+    "Disable C3 background sampling": "Desactivar muestreo C3 en segundo plano",
+    "Subscribe to FCS devices": "Suscribirse a dispositivos FCS",
+    "Open FCS device manager": "Abrir el administrador FCS",
+    "Refresh available devices": "Actualizar dispositivos disponibles",
+    "Could not open FCS. Check the installation.": "No se pudo abrir FCS. Compruebe la instalación.",
+    "FCS is unavailable. Open device manager to check.": "FCS no disponible. Compruebe el administrador.",
+    "Cannot subscribe. Check the connection and readable illuminance signal.": "No se puede suscribir. Compruebe la conexión y la señal de iluminancia.",
+    "FCS manages devices, Wi-Fi, plugins and USB recovery independently of FC.": "FCS administra dispositivos, Wi-Fi, complementos y recuperación USB independientemente de FC.",
+    "Select to subscribe; deselecting does not remove the device. Enable automatic brightness separately on the presets page.": "Seleccione para suscribirse; desmarcar no elimina el dispositivo. Active el brillo automático por separado en los ajustes preestablecidos.",
+    "FCS found a new device. Select it in Automatic adjustment to subscribe.": "FCS detectó un nuevo dispositivo. Selecciónelo en Ajuste automático."
   }
 }
