@@ -6,8 +6,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-// Local UI only: loopback, random bearer in URL fragment, strict Host/Origin,
-// no CORS, no externally supplied command lines or device URLs.
+// Local UI only. A bounded one-request TCP connection avoids HTTP.sys URL ACLs
+// and administrator rights. No proxy, chunked requests, CORS, or keep-alive.
 internal static class FcsManager
 {
     public static string Imports => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentControl", "RecoveryImports");
@@ -15,77 +15,100 @@ internal static class FcsManager
     {
         var executable = Environment.ProcessPath ?? throw new IOException("Missing executable.");
         Process.Start(new ProcessStartInfo(executable, "--serve") { UseShellExecute = false, CreateNoWindow = true });
-        var probe = new TcpListener(IPAddress.Loopback, 0); probe.Start();
-        var port = ((IPEndPoint)probe.LocalEndpoint).Port; probe.Stop();
-        var origin = "http://127.0.0.1:" + port;
+        var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
+        var origin = "http://127.0.0.1:" + ((IPEndPoint)listener.LocalEndpoint).Port;
         var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-        using var listener = new HttpListener(); listener.Prefixes.Add(origin + "/"); listener.Start();
         if (launch) Process.Start(new ProcessStartInfo(origin + "/#" + token) { UseShellExecute = true });
-        else Console.WriteLine(origin + "/#" + token); // Explicit headless diagnostic mode, not a persistent log.
+        else Console.WriteLine(origin + "/#" + token);
         using var life = new CancellationTokenSource(TimeSpan.FromHours(8));
-        using var stop = life.Token.Register(listener.Stop);
-        while (!life.IsCancellationRequested)
+        using var capacity = new SemaphoreSlim(8);
+        try
         {
-            HttpListenerContext c;
-            try { c = await listener.GetContextAsync(); } catch (HttpListenerException) when (life.IsCancellationRequested) { break; }
-            _ = HandleAsync(c, origin, token, life.Token);
+            while (!life.IsCancellationRequested)
+            {
+                var client = await listener.AcceptTcpClientAsync(life.Token);
+                if (!await capacity.WaitAsync(0, life.Token)) { client.Dispose(); continue; }
+                _ = ServeAsync(client, capacity, origin, token, life.Token);
+            }
         }
+        catch (OperationCanceledException) when (life.IsCancellationRequested) { }
+        finally { listener.Stop(); }
     }
     internal static bool Authorized(string? host, string? suppliedOrigin, string? authorization, string origin, string token) =>
         host == new Uri(origin).Authority && (suppliedOrigin is null || suppliedOrigin == origin) && authorization == "Bearer " + token;
-    private static async Task HandleAsync(HttpListenerContext context, string origin, string token, CancellationToken cancel)
+    private static async Task ServeAsync(TcpClient client, SemaphoreSlim capacity, string origin, string token, CancellationToken cancel)
     {
-        var q = context.Request; var r = context.Response;
-        r.Headers["Cache-Control"] = "no-store"; r.Headers["X-Content-Type-Options"] = "nosniff";
-        r.Headers["Referrer-Policy"] = "no-referrer";
-        r.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
-        try
+        using (client)
+        using (var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancel))
         {
-            if (q.Headers["Host"] != new Uri(origin).Authority) { r.StatusCode = 403; return; }
-            var path = q.Url!.AbsolutePath;
-            if (q.HttpMethod == "GET" && path is "/" or "/manager.js")
+            deadline.CancelAfter(TimeSpan.FromSeconds(45)); cancel = deadline.Token;
+            var stream = client.GetStream();
+            async Task Respond(int status, byte[] body, string type = "application/json")
             {
-                var resource = path == "/" ? "manager.html" : "manager.js";
-                using var stream = typeof(FcsManager).Assembly.GetManifestResourceStream("FcsManager." + resource) ?? throw new IOException("Missing UI.");
-                r.ContentType = resource.EndsWith("html") ? "text/html; charset=utf-8" : "text/javascript; charset=utf-8";
-                await stream.CopyToAsync(r.OutputStream, cancel); return;
+                var header = $"HTTP/1.1 {status} {(status == 200 ? "OK" : "Error")}\r\nContent-Type: {type}\r\nContent-Length: {body.Length}\r\nConnection: close\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'\r\n\r\n";
+                await stream.WriteAsync(Encoding.ASCII.GetBytes(header), cancel); await stream.WriteAsync(body, cancel);
             }
-            if (!Authorized(q.Headers["Host"], q.Headers["Origin"], q.Headers["Authorization"], origin, token)) { r.StatusCode = 403; return; }
-            if (q.HttpMethod != "POST") { r.StatusCode = 405; return; }
-            using var data = new MemoryStream(); var buffer = new byte[8192]; int n;
-            var limit = path == "/package" ? 6 * 1024 * 1024 : 4096;
-            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancel); deadline.CancelAfter(TimeSpan.FromSeconds(45));
-            while ((n = await q.InputStream.ReadAsync(buffer, deadline.Token)) > 0)
-            { if (data.Length + n > limit) throw new InvalidDataException("Request too large."); data.Write(buffer, 0, n); }
-            string output;
-            if (path == "/package")
+            try
             {
-                Directory.CreateDirectory(Imports);
-                var bytes = data.ToArray(); var name = Convert.ToHexString(SHA256.HashData(bytes)) + ".zip";
-                var file = Path.Combine(Imports, name);
-                await File.WriteAllBytesAsync(file, bytes, deadline.Token);
-                try { using var verified = FcsRecovery.ReadPackage(file); }
-                catch { File.Delete(file); throw; }
-                output = JsonSerializer.Serialize(new { path = file });
+                var header = new List<byte>(); var one = new byte[1];
+                while (true)
+                {
+                    if (header.Count >= 8192 || await stream.ReadAsync(one, cancel) != 1) throw new IOException("Invalid HTTP header.");
+                    header.Add(one[0]);
+                    var n = header.Count;
+                    if (n >= 4 && header[n-4] == 13 && header[n-3] == 10 && header[n-2] == 13 && header[n-1] == 10) break;
+                }
+                var lines = Encoding.ASCII.GetString(header.ToArray()).Split("\r\n"); var first = lines[0].Split(' ');
+                if (first.Length != 3 || first[2] != "HTTP/1.1") throw new IOException("Invalid HTTP request.");
+                var headers = new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var line in lines.Skip(1).Where(x => x.Length != 0))
+                {
+                    var index = line.IndexOf(':');
+                    if (index <= 0 || char.IsWhiteSpace(line[0]) || !headers.TryAdd(line[..index], line[(index+1)..].Trim())) throw new IOException("Invalid HTTP headers.");
+                }
+                string? Get(string key) => headers.GetValueOrDefault(key);
+                if (Get("Host") != new Uri(origin).Authority) { await Respond(403, "{}"u8.ToArray()); return; }
+                if (headers.ContainsKey("Transfer-Encoding")) throw new IOException("Chunked requests not supported.");
+                var method = first[0]; var path = first[1];
+                if (method == "GET" && path is "/" or "/manager.js")
+                {
+                    var resource = path == "/" ? "manager.html" : "manager.js";
+                    using var input = typeof(FcsManager).Assembly.GetManifestResourceStream("FcsManager." + resource) ?? throw new IOException("Missing UI.");
+                    using var content = new MemoryStream(); await input.CopyToAsync(content, cancel);
+                    await Respond(200, content.ToArray(), path == "/" ? "text/html; charset=utf-8" : "text/javascript; charset=utf-8"); return;
+                }
+                if (!Authorized(Get("Host"), Get("Origin"), Get("Authorization"), origin, token)) { await Respond(403, "{}"u8.ToArray()); return; }
+                if (method != "POST") { await Respond(405, "{}"u8.ToArray()); return; }
+                var limit = path == "/package" ? 6 * 1024 * 1024 : 4096;
+                if (!int.TryParse(Get("Content-Length"), out int length) || length < 0 || length > limit) throw new IOException("Invalid request length.");
+                var data = new byte[length]; await stream.ReadExactlyAsync(data, cancel);
+                string output;
+                if (path == "/package")
+                {
+                    Directory.CreateDirectory(Imports);
+                    var file = Path.Combine(Imports, Convert.ToHexString(SHA256.HashData(data)) + ".zip");
+                    await File.WriteAllBytesAsync(file, data, cancel);
+                    try { using var verified = FcsRecovery.ReadPackage(file); }
+                    catch { File.Delete(file); throw; }
+                    output = JsonSerializer.Serialize(new { path = file });
+                }
+                else if (path == "/rpc")
+                {
+                    var json = Encoding.UTF8.GetString(data); using var doc = JsonDocument.Parse(json);
+                    var operation = doc.RootElement.GetProperty("operation").GetString();
+                    if (operation is not ("list" or "discover" or "usb.discover" or "usb.manage" or "node.request" or
+                        "scripts.list" or "recovery.ports" or "recovery.start" or "recovery.status")) throw new InvalidDataException("Unsupported manager operation.");
+                    output = await QueryAsync(json, cancel);
+                }
+                else { await Respond(404, "{}"u8.ToArray()); return; }
+                await Respond(200, Encoding.UTF8.GetBytes(output));
             }
-            else if (path == "/rpc")
+            catch (Exception ex) when (ex is IOException or JsonException or InvalidOperationException or KeyNotFoundException or OperationCanceledException or ArgumentException or SocketException)
             {
-                var json = Encoding.UTF8.GetString(data.ToArray()); using var doc = JsonDocument.Parse(json);
-                var operation = doc.RootElement.GetProperty("operation").GetString();
-                if (operation is not ("list" or "discover" or "usb.discover" or "usb.manage" or "node.request" or
-                    "scripts.list" or "recovery.ports" or "recovery.start" or "recovery.status")) throw new InvalidDataException("Unsupported manager operation.");
-                output = await QueryAsync(json, deadline.Token);
+                try { await Respond(400, "{\"error\":\"Operation failed; check the device and selected package.\"}"u8.ToArray()); } catch { }
             }
-            else { r.StatusCode = 404; return; }
-            r.ContentType = "application/json";
-            await r.OutputStream.WriteAsync(Encoding.UTF8.GetBytes(output), deadline.Token);
+            finally { capacity.Release(); }
         }
-        catch (Exception ex) when (ex is IOException or JsonException or InvalidOperationException or KeyNotFoundException or OperationCanceledException or ArgumentException)
-        {
-            r.StatusCode = 400;
-            try { await r.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("{\"error\":\"Operation failed; check the device and selected package.\"}"), cancel); } catch { }
-        }
-        finally { r.Close(); }
     }
     public static async Task<string> QueryAsync(string json, CancellationToken cancel)
     {
