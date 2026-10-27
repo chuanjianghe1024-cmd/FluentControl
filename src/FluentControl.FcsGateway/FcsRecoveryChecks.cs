@@ -18,7 +18,7 @@ internal static class FcsRecoveryChecks
             File.Delete(path); using var zip = ZipFile.Open(path, ZipArchiveMode.Create);
             void Entry(string name, byte[] value) { using var s = zip.CreateEntry(name).Open(); s.Write(value); }
             Entry("firmware.bin", data); Entry("LICENSE-MicroPython.txt", Array.Empty<byte>()); Entry("README.txt", Array.Empty<byte>());
-            Entry("manifest.json", JsonSerializer.SerializeToUtf8Bytes(new { format = "fcs.recovery/1", chip, board = "fcs-c3-bh1750-gpio4-3",
+            Entry("manifest.json", JsonSerializer.SerializeToUtf8Bytes(new { format = "fcs.recovery/2", identityFormat = "FCSID001", identityOffset = 0x3ff000, identitySize = 4096, chip, board = "fcs-c3-bh1750-gpio4-3",
                 flashBytes = 4194304, offset = 0, core = "frozen-mpy", size = data.Length, sha256 = hash ?? Convert.ToHexString(SHA256.HashData(data)) }));
             if (traversal) Entry("../outside", data);
         }

@@ -83,6 +83,8 @@ internal static class FcsGatewayCommands
             {
                 case "recovery.ports":
                     return new(new { protocol = Protocol, ports = System.IO.Ports.SerialPort.GetPortNames().Order().ToArray() });
+                case "recovery.inspect":
+                    return new(new { protocol = Protocol, identity = await FcsRecovery.InspectAsync(port, usb, cancel) });
                 case "recovery.start":
                     return new(new { protocol = Protocol, recovery = FcsRecovery.Start(port, arguments, usb) });
                 case "recovery.status":

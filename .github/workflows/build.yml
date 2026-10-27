@@ -88,7 +88,7 @@ jobs:
           ./scripts/Test-DdcHost.ps1
           ./scripts/Test-Startup.ps1
           if (-not (Test-Path 'publish/FluentControl.FcsGateway.exe')) { throw 'Bundled FCS Gateway is missing.' }
-          if (-not (Test-Path 'publish/esptool/esptool.exe')) { throw 'Bundled recovery tool is missing.' }
+          if (-not (Test-Path 'publish/esptool/fcs-recovery.exe')) { throw 'Bundled recovery tool is missing.' }
           if (-not (Test-Path 'publish/fcs-script-runner.py')) { throw 'Bundled FCS script worker is missing.' }
           python scripts/test-fcs-manager.py ./publish/FluentControl.FcsGateway.exe
           if ($LASTEXITCODE -ne 0) { throw 'Gateway manager checks failed.' }

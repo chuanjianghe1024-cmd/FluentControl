@@ -99,7 +99,7 @@ internal static class FcsManager
                     var json = Encoding.UTF8.GetString(data); using var doc = JsonDocument.Parse(json);
                     var operation = doc.RootElement.GetProperty("operation").GetString();
                     if (operation is not ("list" or "discover" or "usb.discover" or "usb.manage" or "node.request" or
-                        "scripts.list" or "recovery.ports" or "recovery.start" or "recovery.status")) throw new InvalidDataException("Unsupported manager operation.");
+                        "scripts.list" or "recovery.inspect" or "recovery.ports" or "recovery.start" or "recovery.status")) throw new InvalidDataException("Unsupported manager operation.");
                     output = await QueryAsync(json, cancel);
                 }
                 else { await Respond(404, "{}"u8.ToArray()); return; }

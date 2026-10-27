@@ -9,7 +9,8 @@ assert.equal(req.headers().authorization,'Bearer '+token);const q=JSON.parse(req
 if(q.operation==='list'||q.operation==='discover')r.devices=[{deviceId:'fixture-c3',status:'online',usbPort:'COM7',ip:'192.168.1.42'},{deviceId:'lan-only',status:'online',ip:'192.168.1.43'}];
 if(q.operation==='usb.discover')r.usbDevices=[];
 if(q.operation==='scripts.list')r.scripts=[{id:'gateway-rule',enabled:false,status:'configured'}];
-if(q.operation==='recovery.ports')r.ports=['COM7'];
+if(q.operation==='recovery.ports')r.ports=['COM7','COM8'];
+if(q.operation==='recovery.inspect'){if(q.port==='COM8')r.error='identity_missing';else r.identity={board:'fcs-c3-bh1750-gpio4-3',mac:'102030405060',identity:'a'.repeat(64)};}
 if(q.operation==='usb.manage')r.result={ok:true,sourceId:q.deviceId,state:'ready'};
 if(q.operation==='node.request'){
 r.result={ok:true,protocol:'fcs-node/2',deviceId:q.deviceId};
@@ -28,6 +29,10 @@ page.once('dialog',d=>d.dismiss());await page.locator('#factory').click();assert
 page.once('dialog',d=>d.accept());await page.locator('#enable').click();await page.waitForFunction(()=>document.getElementById('status').textContent==='操作完成');assert.equal(enabled,true);
 await page.locator('#close-detail').click();await page.getByRole('button',{name:'管理设备'}).nth(1).click();await page.locator('#device-title').filter({hasText:'lan-only'}).waitFor();assert.equal(await page.locator('#wifi-save').isDisabled(),true);assert.equal(await page.locator('#install').isDisabled(),true);
 await page.locator('#close-detail').click();await page.locator('#scripts').click();await page.locator('#script-list').filter({hasText:'gateway-rule'}).waitFor();await page.locator('#close-gateway').click();
-await page.locator('#recover').click();await page.locator('#port option').waitFor({state:'attached'});await page.locator('#flash').click();assert.equal(calls.filter(x=>x.operation==='recovery.start').length,0);
+await page.locator('#recover').click();await page.locator('#port option').waitFor({state:'attached'});assert.equal(await page.locator('#flash').isDisabled(),true);
+await page.locator('#verify-device').click();await page.locator('#identity-result').filter({hasText:'102030405060'}).waitFor();assert.equal(await page.locator('#flash').isDisabled(),false);
+await page.locator('#flash').click();assert.equal(calls.filter(x=>x.operation==='recovery.start').length,0);
+await page.selectOption('#port','COM8');assert.equal(await page.locator('#flash').isDisabled(),true);
+await page.locator('#verify-device').click();await page.locator('#recovery-log').filter({hasText:'identity_missing'}).waitFor();assert.equal(await page.locator('#flash').isDisabled(),true);
 assert.deepEqual(errors,[]);console.log('Manager UI: discovery, device details, plugin settings, cancel boundaries, LAN permissions and recovery confirmation passed');
 }finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});

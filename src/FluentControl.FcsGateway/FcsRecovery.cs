@@ -27,28 +27,50 @@ internal static class FcsRecovery
         if (entry.Length > 4096) throw new InvalidDataException("Manifest too large.");
         using var stream = entry.Open(); using var doc = JsonDocument.Parse(stream);
         var m = doc.RootElement;
-        if (m.GetProperty("format").GetString() != "fcs.recovery/1" || m.GetProperty("chip").GetString() != "esp32c3" ||
+        if (m.GetProperty("format").GetString() != "fcs.recovery/2" || m.GetProperty("chip").GetString() != "esp32c3" ||
             m.GetProperty("board").GetString() != "fcs-c3-bh1750-gpio4-3" || m.GetProperty("flashBytes").GetInt32() != 4194304 ||
+            m.GetProperty("identityFormat").GetString() != "FCSID001" ||
+            m.GetProperty("identityOffset").GetInt32() != 0x3ff000 || m.GetProperty("identitySize").GetInt32() != 4096 ||
             m.GetProperty("offset").GetInt32() != 0 || m.GetProperty("core").GetString() != "frozen-mpy")
             throw new InvalidDataException("Recovery package is for a different board.");
         var firmware = zip.GetEntry("firmware.bin")!;
-        if (firmware.Length < 65536 || firmware.Length > 4 * 1024 * 1024 || firmware.Length != m.GetProperty("size").GetInt32())
+        if (firmware.Length < 65536 || firmware.Length > 2 * 1024 * 1024 || firmware.Length != m.GetProperty("size").GetInt32())
             throw new InvalidDataException("Invalid firmware size.");
         using var content = firmware.Open(); using var bytes = new MemoryStream(); content.CopyTo(bytes); var data = bytes.ToArray();
         if (!Convert.ToHexString(SHA256.HashData(data)).Equals(m.GetProperty("sha256").GetString(), StringComparison.OrdinalIgnoreCase) || data[0] != 0xe9)
             throw new InvalidDataException("Firmware hash/header mismatch.");
         return new(data);
     }
+    private static string Tool => Path.Combine(AppContext.BaseDirectory, "esptool", "fcs-recovery.exe");
+    private static void RequirePort(string port)
+    {
+        if (!FcsUsb.ValidPort(port) || port.Equals("AUTO", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Explicit USB port required.");
+        if (!File.Exists(Tool)) throw new IOException("Use the complete Gateway package with the identity recovery tool.");
+    }
+    public static async Task<object> InspectAsync(string port, FcsUsb usb, CancellationToken cancel)
+    {
+        RequirePort(port);
+        string output = "";
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+        deadline.CancelAfter(TimeSpan.FromSeconds(35));
+        await usb.ExclusiveAsync(async () => { output = await RunAsync(Tool, port, Array.Empty<string>(), deadline.Token); }, deadline.Token);
+        var line = output.Split('\n').SingleOrDefault(x => x.StartsWith("FCS_RESULT=", StringComparison.Ordinal));
+        if (line is null) throw new IOException("Device identity could not be verified. No erase performed.");
+        using var doc = JsonDocument.Parse(line[11..]);
+        return doc.RootElement.Clone();
+    }
     public static object Start(string port, JsonElement args, FcsUsb usb)
     {
-        if (!FcsUsb.ValidPort(port) || port.Equals("AUTO", StringComparison.OrdinalIgnoreCase) ||
+        RequirePort(port);
+        var identity = args.GetProperty("identity").GetString();
+        if (identity is null || !System.Text.RegularExpressions.Regex.IsMatch(identity, "^[a-f0-9]{64}$") ||
             !args.GetProperty("confirmErase").GetBoolean()) throw new InvalidDataException("Explicit USB port and erase confirmation required.");
         var path = Path.GetFullPath(args.GetProperty("path").GetString()!);
         if (Path.GetDirectoryName(path) != Path.GetFullPath(FcsManager.Imports)) throw new InvalidDataException("Select an imported recovery package.");
         using var package = ReadPackage(path);
         var firmware = package.Firmware; // Verified bytes, not a path reopened after validation.
-        var tool = Path.Combine(AppContext.BaseDirectory, "esptool", "esptool.exe");
-        if (!File.Exists(tool)) throw new IOException("Bundled esptool is missing. Use the complete Gateway package.");
+        var tool = Tool;
         lock (Sync)
         {
             if (state == "running") throw new IOException("Recovery already running.");
@@ -64,16 +86,10 @@ internal static class FcsRecovery
                 await File.WriteAllBytesAsync(image, firmware, timeout.Token);
                 await usb.ExclusiveAsync(async () =>
                 {
-                    // Probe chip and flash before any destructive command. --chip refuses other ESP chips.
-                    var info = await RunAsync(tool, port, new[] { "flash-id" }, timeout.Token);
-                    if (!info.Contains("4MB", StringComparison.OrdinalIgnoreCase) && !info.Contains("4 MB", StringComparison.OrdinalIgnoreCase))
-                        throw new InvalidDataException("Expected a 4 MB flash device; no erase performed.");
-                    SetMessage("Erasing settings and firmware; keep USB connected");
-                    await RunAsync(tool, port, new[] { "erase-flash" }, timeout.Token);
-                    SetMessage("Writing firmware; keep USB connected");
-                    await RunAsync(tool, port, new[] { "write-flash", "--flash-size", "4MB", "0x0", image }, timeout.Token);
-                    SetMessage("Verifying firmware");
-                    await RunAsync(tool, port, new[] { "verify-flash", "0x0", image }, timeout.Token);
+                    SetMessage("Rechecking FCS identity, reinstalling and verifying; keep USB connected");
+                    // The worker keeps one physical connection from identity check through verify.
+                    // It excludes the manufacturing sector from every erase/write operation.
+                    await RunAsync(tool, port, new[] { "--image", image, "--expected", identity }, timeout.Token);
                 }, timeout.Token);
                 lock (Sync) { state = "succeeded"; message = "Firmware verified. Press RESET if needed, scan devices and configure Wi-Fi again. Sensor hardware has not been verified by flashing."; }
             }
@@ -89,7 +105,7 @@ internal static class FcsRecovery
     private static async Task<string> RunAsync(string tool, string port, string[] command, CancellationToken cancel)
     {
         var start = new ProcessStartInfo(tool) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
-        foreach (var arg in new[] { "--chip", "esp32c3", "--port", port, "--baud", "115200" }.Concat(command)) start.ArgumentList.Add(arg);
+        foreach (var arg in new[] { "--port", port }.Concat(command)) start.ArgumentList.Add(arg);
         using var process = Process.Start(start) ?? throw new IOException("Could not start esptool.");
         async Task<string> Read(StreamReader reader)
         {
@@ -102,7 +118,7 @@ internal static class FcsRecovery
         {
             var stdout = Read(process.StandardOutput); var stderr = Read(process.StandardError);
             await Task.WhenAll(stdout, stderr, process.WaitForExitAsync(cancel));
-            if (process.ExitCode != 0) throw new IOException("USB flashing failed. Close other serial tools, enter BOOT mode, then retry. No automatic retry was performed.");
+            if (process.ExitCode != 0) throw new IOException("FCS identity verification or recovery failed. Unknown/uninitialized boards are not eligible. Close serial tools and check BOOT mode. No automatic retry was performed.");
             return await stdout;
         }
         finally { try { if (!process.HasExited) process.Kill(true); } catch (InvalidOperationException) { } }

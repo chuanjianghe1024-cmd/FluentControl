@@ -14,3 +14,18 @@ Invoke-WebRequest 'https://raw.githubusercontent.com/espressif/esptool/v5.1.0/LI
 & (Join-Path $target 'esptool.exe') version
 if ($LASTEXITCODE -ne 0) { throw 'esptool smoke test failed' }
 Remove-Item $unpack -Recurse -Force
+
+# Build the constrained worker against esptool's Python API so a recovery never
+# releases/reopens its physical connection between verification and erase/write.
+$build = Join-Path ([IO.Path]::GetTempPath()) ('fcs-worker-' + [guid]::NewGuid().ToString('N'))
+python -m venv $build
+$python = Join-Path $build 'Scripts/python.exe'
+& $python -m pip install --disable-pip-version-check esptool==5.1.0 pyinstaller==6.16.0
+if ($LASTEXITCODE -ne 0) { throw 'Recovery worker dependency setup failed' }
+& $python -m PyInstaller --noconfirm --clean --onefile --name fcs-recovery --collect-all esptool --distpath $target --workpath (Join-Path $build 'work') --specpath $build (Join-Path $PSScriptRoot '../tools/fcs-recovery/worker.py')
+if ($LASTEXITCODE -ne 0) { throw 'Recovery worker build failed' }
+Copy-Item (Join-Path $PSScriptRoot '../tools/fcs-recovery/worker.py') $target
+& (Join-Path $target 'fcs-recovery.exe') --help
+if ($LASTEXITCODE -ne 0) { throw 'Recovery worker smoke check failed' }
+python -m unittest discover -s tests/fcs-recovery -v
+if ($LASTEXITCODE -ne 0) { throw 'Recovery refusal/preservation tests failed' }

@@ -80,3 +80,12 @@ SHA-256 用于完整性检查，不是发布者签名；只安装可信来源的
 ### Standalone manager and recovery
 
 Run `FluentControl.FcsGateway.exe --manage` for the local device dashboard. FC only subscribes; the Gateway owns discovery, USB configuration, plugins and recovery. Recovery requires an explicitly selected COM port and erase confirmation. Use the complete Windows package (bundled esptool) and a trusted FCS frozen recovery ZIP. All user data is erased. No eFuses are burned; physical BOOT recovery remains available. Linux/Docker read-only hosting is unchanged. Actual C3 flashing and sensor acceptance remain separate from automated checks.
+
+
+## 身份验证恢复（替代上文无标识的早期重装流程）
+
+恢复现在仅接受 `fcs.recovery/2`，并要求制造时通过专用 Thonny 固件及初始化脚本写入 FCSID001 标识。COM、USB VID/PID、ESP32-C3 和 4 MB 都不是 FCS 身份证明。管理页面先“验证 FCS 设备”，匹配板型和芯片 MAC 后才启用重装；后台同样验证，不依赖按钮保护。程序损坏可用 BOOT 模式读取标识，不依赖旧电脑登记。
+
+恢复工具是打包的 `esptool/fcs-recovery.exe`：同一物理连接内读标识、验证、擦除、写入及读回，无重连重试。固定 4 KB 身份区不进入擦除范围，固件分区表也必须保留它。无强制重装未知设备入口。首次制作、标识完全丢失需维护者用 Thonny 首装。说明见 FCS 仓库 `docs/c3-install-recovery.md`。旧构建不具备这些保护，应使用本次新构建。
+
+Identity-gated recovery requires a manufacturing marker bound to the factory MAC and the exact board. The bundled worker validates and flashes over one physical connection, preserves the reserved 4 KiB sector, and refuses unknown devices. First-time enrollment is a separate, explicit Thonny workflow. This prevents accidental flashing, not deliberate forgery. Real hardware acceptance is pending.

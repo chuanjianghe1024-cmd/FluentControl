@@ -293,3 +293,8 @@ C3 runtime 与容量/USB 安装/回滚/规则在 FCS 仓库；FC 新增 `MainWin
 Gateway `--manage` 自带本机浏览器管理页面（tools/fcs-manager），关闭 FC 后仍可运行。FC 自动调节页只读取 Gateway 清单、勾选订阅、选择信号和管理客户端历史，不做物理发现/配网/插件安装。FC 的 FCS 页面提供启动入口及远端网关设置。旧 Wi-Fi 向导保留测试代码，生产入口已迁出。
 
 FcsRecovery 接受完整 frozen-mpy 恢复 ZIP，明确 COM + 清空确认，先校验包及实际 ESP32-C3/4MB，再独占 USB 擦除、写入、验证；不自动重试、不改 eFuse。发布构建通过固定上游 SHA 下载独立 esptool，用户不需安装 Python/Thonny。FCS 新固件将核心模块冻结，非加密/非插件沙箱；真实硬件验收尚需用户完成。Linux/Docker 只读 host 不开放这些本机管理接口。完整操作与限制见 docs/fcs-gateway.md。
+
+
+### 身份验证恢复更新
+
+FcsRecovery/worker.py 改为 fcs.recovery/2 + FCSID001 固定扇区验证，UI 先 inspect 再 start；实际读标识/擦除/写入保持同一串口连接。擦除范围不含身份区，无未知设备强刷入口；首装由 FCS Thonny 自定义 bin 与显式初始化脚本完成。75 项固件模拟测试和恢复拒绝/保留测试已有本地验证，新 Windows/固件构建与实机需分别验收。
