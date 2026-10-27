@@ -26,7 +26,7 @@ await page.locator('#plugins').click();await page.locator('#plugin-id option').w
 // Dismissing a destructive action must not send a command.
 page.once('dialog',d=>d.dismiss());await page.locator('#factory').click();assert.equal(calls.filter(x=>x.command==='factory.reset').length,0);
 page.once('dialog',d=>d.accept());await page.locator('#enable').click();await page.waitForFunction(()=>document.getElementById('status').textContent==='操作完成');assert.equal(enabled,true);
-await page.locator('#close-detail').click();await page.getByRole('button',{name:'管理设备'}).nth(1).click();assert.equal(await page.locator('#usb-controls').isDisabled(),true);
+await page.locator('#close-detail').click();await page.getByRole('button',{name:'管理设备'}).nth(1).click();await page.locator('#device-title').filter({hasText:'lan-only'}).waitFor();assert.equal(await page.locator('#wifi-save').isDisabled(),true);assert.equal(await page.locator('#install').isDisabled(),true);
 await page.locator('#close-detail').click();await page.locator('#scripts').click();await page.locator('#script-list').filter({hasText:'gateway-rule'}).waitFor();await page.locator('#close-gateway').click();
 await page.locator('#recover').click();await page.locator('#port option').waitFor({state:'attached'});await page.locator('#flash').click();assert.equal(calls.filter(x=>x.operation==='recovery.start').length,0);
 assert.deepEqual(errors,[]);console.log('Manager UI: discovery, device details, plugin settings, cancel boundaries, LAN permissions and recovery confirmation passed');
