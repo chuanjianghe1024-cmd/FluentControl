@@ -6,9 +6,9 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 
-if (args.Length == 1 && args[0] is "--manage" or "--manage-headless")
+if (args.Length == 0 || args.Length == 1 && args[0] is "--manage" or "--manage-headless")
 {
-    await FcsManager.RunAsync(args[0] == "--manage"); return;
+    await FcsManager.RunAsync(args.Length == 0 || args[0] == "--manage"); return;
 }
 if (args.Length > 0 && args[0].StartsWith("--script-", StringComparison.Ordinal))
 {

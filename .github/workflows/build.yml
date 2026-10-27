@@ -62,6 +62,14 @@ jobs:
         run: |
           dotnet build src/FluentControl.FcsGateway/FluentControl.FcsGateway.csproj -c Release
           dotnet run --project src/FluentControl.FcsGateway/FluentControl.FcsGateway.csproj -c Release -- --self-test
+      - name: Test FCS manager UI without physical hardware
+        shell: pwsh
+        run: |
+          npm install --prefix "$env:RUNNER_TEMP/fcs-ui" --no-audit --no-fund playwright@1.62.1
+          if ($LASTEXITCODE -ne 0) { throw 'Playwright setup failed.' }
+          $env:NODE_PATH = "$env:RUNNER_TEMP/fcs-ui/node_modules"
+          node tests/fcs-manager/ui.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'FCS manager UI checks failed.' }
       - name: Build WinUI application
         run: dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
       - name: Publish portable standalone FCS Gateway
