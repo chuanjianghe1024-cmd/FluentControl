@@ -67,9 +67,14 @@ internal static class FcsManager
                     if (index <= 0 || char.IsWhiteSpace(line[0]) || !headers.TryAdd(line[..index], line[(index+1)..].Trim())) throw new IOException("Invalid HTTP headers.");
                 }
                 string? Get(string key) => headers.GetValueOrDefault(key);
-                if (Get("Host") != new Uri(origin).Authority) { await Respond(403, "{}"u8.ToArray()); return; }
                 if (headers.ContainsKey("Transfer-Encoding")) throw new IOException("Chunked requests not supported.");
                 var method = first[0]; var path = first[1];
+                var limit = path == "/package" ? 6 * 1024 * 1024 : 4096;
+                if (!int.TryParse(Get("Content-Length") ?? "0", out int length) || length < 0 || length > limit) throw new IOException("Invalid request length.");
+                // Drain the bounded body before rejecting: closing a socket with unread
+                // request data causes Windows to reset it and discard the HTTP error body.
+                var data = new byte[length]; await stream.ReadExactlyAsync(data, cancel);
+                if (Get("Host") != new Uri(origin).Authority) { await Respond(403, "{}"u8.ToArray()); return; }
                 if (method == "GET" && path is "/" or "/manager.js")
                 {
                     var resource = path == "/" ? "manager.html" : "manager.js";
@@ -79,9 +84,6 @@ internal static class FcsManager
                 }
                 if (!Authorized(Get("Host"), Get("Origin"), Get("Authorization"), origin, token)) { await Respond(403, "{}"u8.ToArray()); return; }
                 if (method != "POST") { await Respond(405, "{}"u8.ToArray()); return; }
-                var limit = path == "/package" ? 6 * 1024 * 1024 : 4096;
-                if (!int.TryParse(Get("Content-Length"), out int length) || length < 0 || length > limit) throw new IOException("Invalid request length.");
-                var data = new byte[length]; await stream.ReadExactlyAsync(data, cancel);
                 string output;
                 if (path == "/package")
                 {
