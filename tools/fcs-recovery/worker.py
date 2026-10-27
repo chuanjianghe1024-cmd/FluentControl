@@ -85,6 +85,7 @@ def main():
         if esp.CHIP_NAME != 'ESP32-C3':
             raise ValueError('Not an ESP32-C3; no flash written')
         esp = api.run_stub(esp)
+        api.attach_flash(esp)
         result = operate(esp, api, image, a.expected)
         print('FCS_RESULT=' + json.dumps(result), flush=True)
         api.reset_chip(esp)
