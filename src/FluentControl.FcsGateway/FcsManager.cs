@@ -105,7 +105,7 @@ internal static class FcsManager
                 else { await Respond(404, "{}"u8.ToArray()); return; }
                 await Respond(200, Encoding.UTF8.GetBytes(output));
             }
-            catch (Exception ex) when (ex is IOException or JsonException or InvalidOperationException or KeyNotFoundException or OperationCanceledException or ArgumentException or SocketException)
+            catch (Exception ex) when (ex is IOException or InvalidDataException or JsonException or InvalidOperationException or KeyNotFoundException or OperationCanceledException or ArgumentException or SocketException)
             {
                 try { await Respond(400, "{\"error\":\"Operation failed; check the device and selected package.\"}"u8.ToArray()); } catch { }
             }
