@@ -1,5 +1,10 @@
 # 更新记录
 
+## Unreleased — C3 hardware focus
+
+- 后续设备与新增能力统一面向 ESP32-C3；CH552 停止新增功能，保留已有固件、资料、旧读取实现及配置，不再安排新版节点订阅适配。
+- Target ESP32-C3 for new hardware and device capabilities. Freeze CH552 feature development while retaining existing firmware, documentation, legacy reading paths and configuration; no new node-subscription adapter is planned.
+
 ## Unreleased — C3 plugins and Gateway scripts
 
 - FC 新增 C3 USB 插件安装、参数/启用、单次动作、规则、存储、回滚与安全模式管理；附 WoL 示例，实际唤醒待实机验收。

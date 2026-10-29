@@ -1,5 +1,8 @@
 ![FluentControl — Windows DDC/CI monitor brightness, system audio, mouse and desktop controls](docs/assets/social-preview.png)
 
+> **FCS 硬件路线（2026-10-29）：** 新增设备统一采用 ESP32-C3。CH552 停止新增功能，已有固件与旧读取路径保留；不承诺新版节点订阅、插件或恢复支持。
+> **FCS hardware direction:** New devices target ESP32-C3. CH552 feature development is frozen; existing firmware and legacy reading paths remain, without new node-subscription, plugin or recovery support.
+
 # FluentControl · 聚合控制
 
 **多屏、声音、麦克风与鼠标，一个面板就够。**  
