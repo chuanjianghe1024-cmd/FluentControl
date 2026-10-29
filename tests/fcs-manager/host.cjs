@@ -43,6 +43,7 @@ const net=require('node:net');
     await page.getByRole('heading',{name:'◉ fixture-c3'}).waitFor();
     // Registration survives an actual host restart, without restoring historical live data.
     await stop();await start();await page.locator('#refresh').click();
+    await page.waitForFunction(()=>!document.getElementById('refresh').disabled);
     await page.getByRole('button',{name:'管理设备'}).click();
     await page.locator('#device-title').filter({hasText:'fixture-c3'}).waitFor();
     for(const id of ['wifi-save','install','plugins','rules'])assert.equal(await page.locator('#'+id).isDisabled(),true);
