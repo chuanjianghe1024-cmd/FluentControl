@@ -38,6 +38,17 @@ jobs:
           python3 scripts/test-fcs-scripts.py ./host-out/FluentControl.FcsHost
       - name: Verify HTTP authorization boundary
         run: python3 scripts/test-fcs-host.py ./host-out/FluentControl.FcsHost
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Verify shared manager UI on the real Linux host
+        env:
+          NODE_PATH: ${{ runner.temp }}/fcs-ui/node_modules
+        run: |
+          npm install --prefix "$RUNNER_TEMP/fcs-ui" --no-audit --no-fund playwright@1.62.1
+          node "$NODE_PATH/playwright/cli.js" install --with-deps chromium
+          node tests/fcs-manager/ui.cjs
+          node tests/fcs-manager/host.cjs ./host-out/FluentControl.FcsHost
       - name: Build container
         run: docker build -f deploy/fcs/Dockerfile -t fcs-host:test .
       - name: Verify container

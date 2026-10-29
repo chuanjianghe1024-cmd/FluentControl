@@ -27,6 +27,14 @@ public sealed partial class MainWindow
         {
             try
             {
+                if (FcsRemoteGateway.Enabled)
+                {
+                    var settings = state.Settings.RemoteGateway ?? throw new InvalidDataException("Missing Gateway settings.");
+                    var address = FcsRemoteGateway.ValidateAddress(settings.Address, settings.AllowPrivateHttp);
+                    // Never copy the FC reader token into a URL/browser. The manager authenticates separately.
+                    Process.Start(new ProcessStartInfo(address.AbsoluteUri) { UseShellExecute = true });
+                    return;
+                }
                 var path = System.IO.Path.Combine(AppContext.BaseDirectory, "FluentControl.FcsGateway.exe");
                 Process.Start(new ProcessStartInfo(path, "--manage") { UseShellExecute = false, CreateNoWindow = true });
             }

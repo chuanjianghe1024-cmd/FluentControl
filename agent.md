@@ -306,3 +306,9 @@ FcsRecovery 接受完整 frozen-mpy 恢复 ZIP，明确 COM + 清空确认，先
 ### 身份验证恢复更新
 
 FcsRecovery/worker.py 改为 fcs.recovery/2 + FCSID001 固定扇区验证，UI 先 inspect 再 start；实际读标识/擦除/写入保持同一串口连接。擦除范围不含身份区，无未知设备强刷入口；首装由 FCS Thonny 自定义 bin 与显式初始化脚本完成。75 项固件模拟测试和恢复拒绝/保留测试已有本地验证，新 Windows/固件构建与实机需分别验收。
+
+## 2026-10-29：统一 Windows/Linux 管理体验（开发版）
+
+两端嵌入同一份 manager.html/js，通过共享 FcsManagement 的 manager.capabilities 与脚本清单报告实际能力。Linux 新增带独立 manager.token 的管理登录、主动 LAN 发现、设备登记增改/移除；配置原子保存并即时生效。既有 gateway.token 保持 FC/HA 只读；Linux 不开放 USB、设备写入或刷写。FC 管理入口跟随当前网关，远程只打开验证后的根 URL，不传递读取令牌。操作与反向代理 Origin 设置见 [宿主说明](docs/fcs-gateway-host.md)。
+
+验证包括宿主自检、真实 HTTP 权限/来源/配置持久化边界和两端共用页面回归；Windows 安装包与 Linux x64/arm64 CI 单独核对，实体 C3/NAS/Pi 仍须实测。CH552 保留旧内容，不扩展能力。

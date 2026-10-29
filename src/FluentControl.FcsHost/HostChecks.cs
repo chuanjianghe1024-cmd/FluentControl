@@ -41,6 +41,17 @@ internal static class HostChecks
             var history = new HostHistory(directory); Check(history.Read("test-node").Length > 0);
             using var restarted = new GatewayHost(new HostConfig { Nodes = [new("test-node", "192.168.1.8")] }, directory);
             try { restarted.Node("test-node", "data.read", args.RootElement); throw new Exception("History restored as live"); } catch (IOException) { }
+            restarted.SaveNode("test-node", "192.168.1.9");
+            var saved = JsonSerializer.Deserialize<HostConfig>(File.ReadAllText(Path.Combine(directory, "nodes.json")))!;
+            Check(saved.Nodes.Single().Ip == "192.168.1.9");
+            try { restarted.SaveNode("bad", "127.0.0.1"); throw new Exception("Accepted loopback node"); } catch (InvalidDataException) { }
+            try { restarted.Node("test-node", "data.read", args.RootElement); throw new Exception("Changed route reused live sample"); } catch (IOException) { }
+            restarted.RemoveNode("test-node");
+            Check(restarted.Snapshot().Length == 0);
+            Check(new HostHistory(directory).Read("test-node").Length > 0);
+            for (var i = 0; i < 32; i++) restarted.SaveNode("node-" + i, "192.168.1.9");
+            try { restarted.SaveNode("extra", "192.168.1.9"); throw new Exception("Exceeded node limit"); } catch (InvalidDataException) { }
+            Check(JsonSerializer.Deserialize<HostConfig>(File.ReadAllText(Path.Combine(directory, "nodes.json")))!.Nodes.Length == 32);
             for (var i = 0; i < 4200; i++) history.Add("test-node", DateTimeOffset.UtcNow, first);
             history.Flush(); Check(File.ReadLines(Path.Combine(directory, "history.jsonl")).Count() == 4096);
             Check(new FileInfo(Path.Combine(directory, "history.jsonl")).Length <= 8 * 1024 * 1024);

@@ -19,6 +19,12 @@ try:
     assert fetch('/rpc',payload,{'Authorization':'Bearer '+token,'Origin':'https://evil.example'})[0]==403
     status,data=fetch('/rpc',payload,{'Authorization':'Bearer '+token,'Origin':base.rstrip('/')})
     assert status==200 and json.loads(data)['protocol']=='fcs-gateway/1'
+    status,data=fetch('/rpc',b'{"operation":"manager.capabilities"}',{'Authorization':'Bearer '+token})
+    capabilities=json.loads(data)
+    assert status==200 and capabilities['managerVersion']==1
+    assert capabilities['capabilities']['usbManagement'] and capabilities['capabilities']['recovery']
+    assert not capabilities['capabilities']['nodeConfiguration']
+    assert fetch('/rpc',b'{"operation":"nodes.save","deviceId":"unknown","ip":"192.168.1.2"}',{'Authorization':'Bearer '+token})[0]==400
     assert fetch('/rpc',b'{"operation":"shutdown"}',{'Authorization':'Bearer '+token})[0]==400
     assert fetch('/package',b'not a recovery zip',{'Authorization':'Bearer '+token})[0]==400
     print('FCS manager: real HTTP authentication, origin and package rejection checks passed')

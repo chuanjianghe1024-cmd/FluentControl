@@ -89,3 +89,9 @@ Run `FluentControl.FcsGateway.exe --manage` for the local device dashboard. FC o
 恢复工具是打包的 `esptool/fcs-recovery.exe`：同一物理连接内读标识、验证、擦除、写入及读回，无重连重试。固定 4 KB 身份区不进入擦除范围，固件分区表也必须保留它。无强制重装未知设备入口。首次制作、标识完全丢失需维护者用 Thonny 首装。说明见 FCS 仓库 `docs/c3-install-recovery.md`。旧构建不具备这些保护，应使用本次新构建。
 
 Identity-gated recovery requires a manufacturing marker bound to the factory MAC and the exact board. The bundled worker validates and flashes over one physical connection, preserves the reserved 4 KiB sector, and refuses unknown devices. First-time enrollment is a separate, explicit Thonny workflow. This prevents accidental flashing, not deliberate forgery. Real hardware acceptance is pending.
+
+## 2026-10-29：统一 Windows/Linux 管理体验（开发版）
+
+两端嵌入同一份 manager.html/js，通过共享 FcsManagement 的 manager.capabilities 与脚本清单报告实际能力。Linux 新增带独立 manager.token 的管理登录、主动 LAN 发现、设备登记增改/移除；配置原子保存并即时生效。既有 gateway.token 保持 FC/HA 只读；Linux 不开放 USB、设备写入或刷写。FC 管理入口跟随当前网关，远程只打开验证后的根 URL，不传递读取令牌。操作与反向代理 Origin 设置见 [宿主说明](fcs-gateway-host.md)。
+
+验证包括宿主自检、真实 HTTP 权限/来源/配置持久化边界和两端共用页面回归；Windows 安装包与 Linux x64/arm64 CI 单独核对，实体 C3/NAS/Pi 仍须实测。CH552 保留旧内容，不扩展能力。

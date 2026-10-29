@@ -2,8 +2,9 @@ FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG TARGETARCH
 WORKDIR /src
 COPY src/FluentControl.FcsHost/ src/FluentControl.FcsHost/
-COPY src/FluentControl.FcsGateway/FcsNode.cs src/FluentControl.FcsGateway/FcsScripts.cs src/FluentControl.FcsGateway/
+COPY src/FluentControl.FcsGateway/FcsNode.cs src/FluentControl.FcsGateway/FcsScripts.cs src/FluentControl.FcsGateway/FcsManagement.cs src/FluentControl.FcsGateway/
 COPY tools/gateway-scripts/ tools/gateway-scripts/
+COPY tools/fcs-manager/ tools/fcs-manager/
 RUN dotnet publish src/FluentControl.FcsHost/FluentControl.FcsHost.csproj -c Release -a $TARGETARCH --self-contained false -o /out
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0

@@ -1,11 +1,12 @@
 const {chromium}=require('playwright');
 const fs=require('node:fs');const path=require('node:path');const assert=require('node:assert/strict');
-(async()=>{const browser=await chromium.launch({headless:true,channel:process.platform==='win32'?'msedge':undefined});try{
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.FCS_TEST_BROWSER,channel:process.platform==='win32'?'msedge':undefined});try{
 const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));const calls=[];
 const folder=path.resolve('tools/fcs-manager');const token='fixture-secret';let enabled=false;
 await page.route('http://127.0.0.1:18765/**',async route=>{const req=route.request(),p=new URL(req.url()).pathname;
 if(req.method()==='GET'){return route.fulfill({contentType:p==='/manager.js'?'text/javascript':'text/html',body:fs.readFileSync(path.join(folder,p==='/manager.js'?'manager.js':'manager.html'))})}
 assert.equal(req.headers().authorization,'Bearer '+token);const q=JSON.parse(req.postData());calls.push(q);let r={protocol:'fcs-gateway/1'};
+if(q.operation==='manager.capabilities')r={...r,managerVersion:1,platform:'windows',capabilities:{usbDiscovery:true,usbManagement:true,recovery:true,scriptsList:true,nodeConfiguration:false},scriptCommand:'FluentControl.FcsGateway.exe',limitations:'USB required'};
 if(q.operation==='list'||q.operation==='discover')r.devices=[{deviceId:'fixture-c3',status:'online',usbPort:'COM7',ip:'192.168.1.42'},{deviceId:'lan-only',status:'online',ip:'192.168.1.43'}];
 if(q.operation==='usb.discover')r.usbDevices=[];
 if(q.operation==='scripts.list')r.scripts=[{id:'gateway-rule',enabled:false,status:'configured'}];

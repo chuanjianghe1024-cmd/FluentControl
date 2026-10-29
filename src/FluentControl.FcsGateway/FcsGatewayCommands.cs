@@ -77,7 +77,7 @@ internal static class FcsGatewayCommands
             var port = Field(root, "port", "AUTO");
             var identity = Field(root, "deviceId");
             var arguments = root.TryGetProperty("arguments", out var args) ? args : default;
-            if (FcsRecovery.Busy && op is not ("recovery.status" or "list" or "status" or "scripts.list"))
+            if (FcsRecovery.Busy && op is not ("recovery.status" or "list" or "status" or "scripts.list" or "manager.capabilities"))
                 return new(new { protocol = Protocol, error = "maintenance" });
             switch (op)
             {
@@ -89,17 +89,10 @@ internal static class FcsGatewayCommands
                     return new(new { protocol = Protocol, recovery = FcsRecovery.Start(port, arguments, usb) });
                 case "recovery.status":
                     return new(new { protocol = Protocol, recovery = FcsRecovery.Status });
+                case "manager.capabilities":
+                    return new(FcsManagement.Capabilities(usb: true, configureNodes: false));
                 case "scripts.list":
-                {
-                    var scripts = new List<object>();
-                    if (Directory.Exists(FcsScripts.DirectoryPath))
-                    foreach (var file in Directory.EnumerateFiles(FcsScripts.DirectoryPath, "*.json").Take(32))
-                    {
-                        try { var job = FcsScripts.Load(file); scripts.Add(new { id = job.GetProperty("id").GetString(), enabled = job.GetProperty("enabled").GetBoolean(), status = "configured" }); }
-                        catch { scripts.Add(new { id = Path.GetFileNameWithoutExtension(file), enabled = false, status = "invalid" }); }
-                    }
-                    return new(new { protocol = Protocol, directory = FcsScripts.DirectoryPath, scripts });
-                }
+                    return new(FcsManagement.Scripts(FcsScripts.DirectoryPath));
                 case "node.request":
                 {
                     var command = Field(root, "command");

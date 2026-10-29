@@ -36,8 +36,19 @@ with tempfile.TemporaryDirectory(prefix="fcs-host-") as folder:
                 raise RuntimeError("Host did not start")
             token = (Path(folder) / "gateway.token").read_text().strip()
 
-            def call(body, credential=None):
+            manager_token = (Path(folder) / "manager.token").read_text().strip()
+            assert manager_token != token
+            for path, content_type in [("/", "text/html"), ("/manager.js", "text/javascript")]:
+                with urllib.request.urlopen(base + path) as reply:
+                    assert content_type in reply.headers["Content-Type"]
+                    assert reply.headers["Cache-Control"] == "no-store"
+                    assert "frame-ancestors 'none'" in reply.headers["Content-Security-Policy"]
+                    assert len(reply.read()) > 100
+
+            def call(body, credential=None, origin=None):
                 headers = {"Content-Type": "application/json"}
+                if origin:
+                    headers["Origin"] = origin
                 if credential:
                     headers["Authorization"] = "Bearer " + credential
                 request = urllib.request.Request(base + "/rpc", data=body, headers=headers)
@@ -56,6 +67,30 @@ with tempfile.TemporaryDirectory(prefix="fcs-host-") as folder:
             assert call(b'{"operation":"node.request","deviceId":"test","command":"sampling.set"}', token)[0] == 400
             assert call(b'{"operation":"status","operation":"list"}', token)[0] == 400
             assert call(b" " * 4097, token)[0] in (400, 413)
+            assert call(b'{"operation":"manager.capabilities"}', token)[0] == 403
+            status, body = call(b'{"operation":"manager.capabilities"}', manager_token, base)
+            assert status == 200 and body["managerVersion"] == 1
+            assert body["capabilities"]["nodeConfiguration"] and not body["capabilities"]["usbManagement"]
+            assert call(b'{"operation":"manager.capabilities"}', manager_token, "https://evil.example")[0] == 403
+            assert call(b'{"operation":"list"}', token, "https://evil.example")[0] == 403
+            save = b'{"operation":"nodes.save","deviceId":"manual-c3","ip":"192.168.1.250"}'
+            assert call(save, token)[0] == 403
+            assert call(save, manager_token, "https://evil.example")[0] == 403
+            assert call(save, manager_token, base)[0] == 200
+            config = json.loads((Path(folder) / "nodes.json").read_text())
+            assert config["Nodes"] == [{"DeviceId": "manual-c3", "Ip": "192.168.1.250"}]
+            status, body = call(b'{"operation":"list"}', token)
+            assert status == 200 and body["devices"][0]["deviceId"] == "manual-c3"
+            for ip in ["127.0.0.1", "8.8.8.8", "http://192.168.1.1", "169.254.169.254"]:
+                assert call(json.dumps({"operation": "nodes.save", "deviceId": "bad", "ip": ip}).encode(), manager_token)[0] == 400
+            assert call(b'{"operation":"scripts.list"}', manager_token)[0] == 200
+            assert call(b'{"operation":"usb.manage"}', manager_token)[0] == 400
+            assert call(b'{"operation":"recovery.start"}', manager_token)[0] == 400
+            assert call(b'{"operation":"node.request","deviceId":"manual-c3","command":"sampling.set"}', manager_token)[0] == 400
+            assert call(b'{"operation":"nodes.remove","deviceId":"manual-c3"}', token)[0] == 403
+            assert call(b'{"operation":"nodes.remove","deviceId":"manual-c3"}', manager_token)[0] == 200
+            assert json.loads((Path(folder) / "nodes.json").read_text())["Nodes"] == []
+            print("Manager assets, split credentials, origin checks and persistent node registration passed.")
             print("HTTP boundary passed: authentication, protocol, USB/write/shutdown rejection, duplicate and size limits.")
         except BaseException:
             log.flush()

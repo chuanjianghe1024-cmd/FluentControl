@@ -1,5 +1,11 @@
 # 更新记录
 
+## Unreleased — shared Windows/Linux Gateway manager
+
+- Windows/Linux 共用设备管理页面、宿主能力与脚本清单；FC 打开当前选中网关的管理页。
+- Linux 新增独立管理令牌登录、主动局域网扫描、无需重启的设备登记；FC/HA 原令牌仍只读。Linux USB/设备插件安装/刷写仍不可用，页面与后端均限制。
+- Share the Gateway manager across Windows/Linux with capability-aware controls, separate Linux management credentials and persistent live node registration. Device LAN access remains read-only; physical acceptance is pending.
+
 ## Unreleased — C3 hardware focus
 
 - 后续设备与新增能力统一面向 ESP32-C3；CH552 停止新增功能，保留已有固件、资料、旧读取实现及配置，不再安排新版节点订阅适配。

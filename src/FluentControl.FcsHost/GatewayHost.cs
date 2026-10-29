@@ -94,12 +94,15 @@ internal sealed class GatewayHost : IDisposable
     }
     private readonly ConcurrentDictionary<string, State> nodes = new(StringComparer.Ordinal);
     private readonly HttpClient client;
-    private readonly HostConfig config;
+    private HostConfig config;
+    private readonly string configPath;
+    private readonly object configurationGate = new();
+    private readonly SemaphoreSlim discoveryGate = new(1, 1);
     public readonly HostHistory History;
     public TimeSpan Freshness => TimeSpan.FromMilliseconds(config.PollMilliseconds * 3 + 4000);
     public GatewayHost(HostConfig config, string directory, HttpMessageHandler? handler = null)
     {
-        config.Validate(); this.config = config;
+        config.Validate(); this.config = config; configPath = Path.Combine(directory, "nodes.json");
         client = new HttpClient(handler ?? new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false, UseProxy = false })
             { Timeout = TimeSpan.FromSeconds(3) };
         foreach (var node in config.Nodes) nodes[node.DeviceId] = new State(node);
@@ -180,6 +183,50 @@ internal sealed class GatewayHost : IDisposable
             sampleAgeMilliseconds = (int)Math.Max(0, Stopwatch.GetElapsedTime(sample.ReceivedTicks).TotalMilliseconds),
             maxAgeMilliseconds = (int)Freshness.TotalMilliseconds };
     }
+    // Serializes manual and scheduled discovery with configuration changes.
+    public async Task ScanAsync(CancellationToken cancel)
+    {
+        await discoveryGate.WaitAsync(cancel);
+        try { await DiscoverAsync(cancel); }
+        finally { discoveryGate.Release(); }
+    }
+    private void Persist(HostConfig next)
+    {
+        next.Validate();
+        var temporary = configPath + ".tmp";
+        using (var stream = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            JsonSerializer.Serialize(stream, next, new JsonSerializerOptions { WriteIndented = true });
+            stream.Flush(true);
+        }
+        File.Move(temporary, configPath, true);
+        Volatile.Write(ref config, next);
+    }
+    public object SaveNode(string id, string ip)
+    {
+        if (!FcsNode.ValidId(id) || !HostConfig.LocalIp(ip)) throw new InvalidDataException("Invalid node.");
+        lock (configurationGate)
+        {
+            if (!nodes.ContainsKey(id) && nodes.Count >= 32) throw new InvalidDataException("Node limit reached.");
+            var node = new HostNode(id, ip);
+            Persist(config with { Nodes = config.Nodes.Where(n => n.DeviceId != id).Append(node).ToArray() });
+            // A changed route must not reuse old live samples or metadata.
+            nodes.AddOrUpdate(id, _ => new State(node), (_, old) => old.Node == node ? old : new State(node));
+        }
+        return new { protocol = "fcs-gateway/1", devices = Snapshot() };
+    }
+    public object RemoveNode(string id)
+    {
+        if (!FcsNode.ValidId(id)) throw new InvalidDataException("Invalid node.");
+        lock (configurationGate)
+        {
+            Persist(config with { Nodes = config.Nodes.Where(n => n.DeviceId != id).ToArray() });
+            nodes.TryRemove(id, out _);
+        }
+        // Removes the registration, not device settings or saved history.
+        // A subsequent explicit/automatic discovery may find the device again.
+        return new { protocol = "fcs-gateway/1", devices = Snapshot() };
+    }
     private async Task DiscoverAsync(CancellationToken cancel)
     {
         using var udp = new UdpClient(0) { EnableBroadcast = true };
@@ -200,8 +247,11 @@ internal sealed class GatewayHost : IDisposable
                         var candidate = new HostNode(id!, reply.RemoteEndPoint.Address.ToString());
                         // The subsequent v2 poll validates identity before exposing anything online.
                         // Explicitly configured IPs always take precedence.
-                        if (!config.Nodes.Any(n => n.DeviceId == id))
-                            nodes.AddOrUpdate(id!, _ => new State(candidate), (_, old) => old.Node == candidate ? old : new State(candidate));
+                        lock (configurationGate)
+                        {
+                            if (nodes.Count < 32 && !config.Nodes.Any(n => n.DeviceId == id))
+                                nodes.AddOrUpdate(id!, _ => new State(candidate), (_, old) => old.Node == candidate ? old : new State(candidate));
+                        }
                     }
                 }
                 catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException) { }
@@ -218,7 +268,7 @@ internal sealed class GatewayHost : IDisposable
             {
                 if (config.Discover && DateTimeOffset.UtcNow - discoveryAt > TimeSpan.FromSeconds(30))
                 {
-                    try { await DiscoverAsync(cancel); } catch (SocketException) { }
+                    try { await ScanAsync(cancel); } catch (SocketException) { }
                     discoveryAt = DateTimeOffset.UtcNow;
                 }
                 await Parallel.ForEachAsync(nodes.Values, new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = cancel },

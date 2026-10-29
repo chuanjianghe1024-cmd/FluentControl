@@ -71,3 +71,9 @@ Firmware, board/sensor combinations and official setup links live in [FluentCont
 FC 默认使用自带的本机 Gateway，无需其他设备或 Docker。NAS / 树莓派上的 Linux 网关可选；[部署与功能边界](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/fcs-gateway-host.md)。
 
 FC defaults to its bundled local Gateway. An optional Linux/Docker Gateway can collect continuously on a compatible NAS or Raspberry Pi. This is development work pending release and physical acceptance; see the deployment guide above.
+
+### 网关管理页 / Gateway manager
+
+开发版中，“打开 FCS 设备管理”会打开当前选中的本机或远程网关。Windows/Linux 共用设备列表和详情；Linux 使用独立的 `manager.token` 登录，可扫描或手动登记局域网设备。FC/HA 的 `gateway.token` 保持只读。Linux 仍不支持 USB 配网、设备插件安装和重装；这些操作使用 Windows 网关。详见[管理与部署](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/fcs-gateway-host.md)。
+
+Development builds open the selected local or remote Gateway manager. Windows/Linux share the device UI; Linux uses a separate management token for LAN discovery and registration. FC/HA reader credentials remain read-only, and USB management/recovery remain Windows-only.
