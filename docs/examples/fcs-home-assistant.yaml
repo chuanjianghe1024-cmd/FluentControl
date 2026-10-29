@@ -1,0 +1,44 @@
+# Development example; requires the optional FCS LAN host and Home Assistant.
+# Replace c3-replace-me in payload, unique_id and availability together.
+# secrets.yaml: fcs_gateway_authorization: "Bearer <64-hex-token>"
+# Merge into configuration.yaml; do not overwrite existing sensor entries.
+sensor:
+  - platform: rest
+    name: FCS Illuminance
+    unique_id: fcs_c3-replace-me_ambient-01_illuminance
+    resource: https://gateway.example/rpc
+    method: POST
+    headers:
+      Authorization: !secret fcs_gateway_authorization
+      Content-Type: application/json
+    payload: >-
+      {"operation":"node.request","deviceId":"c3-replace-me","command":"data.read","arguments":{"sensorId":"ambient-01","signalId":"illuminance","mode":"fresh"}}
+    scan_interval: 2
+    timeout: 5
+    verify_ssl: true
+    device_class: illuminance
+    state_class: measurement
+    unit_of_measurement: lx
+    availability: >-
+      {% set root = value_json | default({}, true) %}
+      {% set node = root.get('result', {}) %}
+      {% set rows = node.get('data', []) | selectattr('sensorId', 'equalto', 'ambient-01') | selectattr('signalId', 'equalto', 'illuminance') | list %}
+      {% set age = root.get('sampleAgeMilliseconds', -1) %}
+      {% set ttl = root.get('maxAgeMilliseconds', 0) %}
+      {% set sample = rows[0] if rows | length == 1 else {} %}
+      {% set reading = sample.get('value') %}
+      {{ root.get('protocol') == 'fcs-gateway/1'
+         and node.get('protocol') == 'fcs-node/2'
+         and node.get('deviceId') == 'c3-replace-me'
+         and node.get('ok') is sameas true
+         and rows | length == 1
+         and sample.get('valid') is sameas true
+         and sample.get('fresh') is sameas true
+         and sample.get('unit') == 'lx'
+         and sample.get('valueType') == 'number'
+         and reading is number and reading is not boolean and 0 <= reading <= 200000
+         and age is number and ttl is number and ttl > 0 and 0 <= age <= 5000 and age <= ttl }}
+    value_template: >-
+      {% set node = (value_json | default({}, true)).get('result', {}) %}
+      {% set rows = node.get('data', []) | selectattr('sensorId', 'equalto', 'ambient-01') | selectattr('signalId', 'equalto', 'illuminance') | list %}
+      {{ rows[0].value if rows | length == 1 else none }}

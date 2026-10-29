@@ -44,15 +44,17 @@ public static class FcsGatewayClient
     // Only typed Gateway commands are exposed. USB configuration travels only
     // over the current-user pipe; the Gateway never opens a LAN write endpoint.
     public static async Task<JsonDocument> QueryAsync(string operation, CancellationToken cancellation = default,
-        string? deviceId = null, string port = "AUTO", string? command = null, object? arguments = null)
+        string? deviceId = null, string port = "AUTO", string? command = null, object? arguments = null, bool localOnly = false)
     {
         if (operation is not ("status" or "list" or "discover" or "capabilities" or
-            "usb.discover" or "usb.manage" or "usb.read" or "sample.read"))
+            "usb.discover" or "usb.manage" or "usb.read" or "sample.read" or "node.request"))
             throw new ArgumentOutOfRangeException(nameof(operation));
+        if (!localOnly && FcsRemoteGateway.Enabled && operation is "status" or "list" or "discover" or "node.request")
+            return await FcsRemoteGateway.QueryAsync(operation, deviceId, command, arguments, cancellation);
         if (!EnsureStarted()) throw new IOException("FCS Gateway is not installed.");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         timeout.CancelAfter(TimeSpan.FromSeconds(operation == "usb.discover" ? 34 :
-            operation == "usb.manage" ? 22 : operation == "sample.read" ? 24 :
+            operation == "node.request" ? 40 : operation == "usb.manage" ? 22 : operation == "sample.read" ? 24 :
             operation == "discover" ? 7 : 4));
         using var pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut,
             PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
@@ -76,6 +78,16 @@ public static class FcsGatewayClient
         catch { json.Dispose(); throw; }
     }
 
+    public static async Task<JsonElement> NodeAsync(string deviceId, string operation, object? arguments = null,
+        CancellationToken cancellation = default, string port = "AUTO")
+    {
+        using var reply = await QueryAsync("node.request", cancellation, deviceId, port, operation, arguments ?? new { });
+        var frame = reply.RootElement.GetProperty("result");
+        if (frame.GetProperty("protocol").GetString() != "fcs-node/2" || frame.GetProperty("deviceId").GetString() != deviceId)
+            throw new InvalidDataException("Node identity changed.");
+        if (!frame.GetProperty("ok").GetBoolean()) throw new IOException("Node operation: " + frame.GetProperty("error").GetProperty("code").GetString());
+        return frame.Clone();
+    }
     public static async Task<IReadOnlyList<FcsDeviceStatus>> ListAsync(bool refresh, CancellationToken cancellation = default)
     {
         using var result = await QueryAsync(refresh ? "discover" : "list", cancellation);
@@ -121,28 +133,42 @@ public static class FcsGatewayClient
         if (!LocalLightProtocol.IsLocal(source.Url) || string.IsNullOrWhiteSpace(source.DeviceId))
             throw new InvalidDataException("Expected a bound USB sensor identity.");
         var port = LocalLightProtocol.PortFor(source.Url);
-        return await ReadDeviceAsync(source.DeviceId, port, cancellation);
+        return await ReadDeviceAsync(source.DeviceId, port, source.SensorId, source.SignalId, cancellation);
     }
     public static Task<LightSample> ReadLanAutoAsync(LightSourceSubscription source, CancellationToken cancellation)
     {
         if (!NetworkSignalSensor.IsPublicLightEndpoint(source.Url) || string.IsNullOrWhiteSpace(source.DeviceId))
             throw new InvalidDataException("Expected a public FCS source.");
-        return ReadDeviceAsync(source.DeviceId, "AUTO", cancellation);
+        return ReadDeviceAsync(source.DeviceId, "AUTO", source.SensorId, source.SignalId, cancellation);
     }
-    private static async Task<LightSample> ReadDeviceAsync(string id, string port, CancellationToken cancellation)
+    private static async Task<LightSample> ReadDeviceAsync(string id, string port, string sensorId, string signalId, CancellationToken cancellation)
     {
-        using var json = await QueryAsync("sample.read", cancellation, deviceId: id, port: port);
-        var root = json.RootElement.GetProperty("sample");
-        if (root.GetProperty("deviceId").GetString() != id)
-            throw new InvalidDataException("Device identity changed.");
-        var value = root.GetProperty("lux").GetDouble();
-        if (!double.IsFinite(value) || value < 0 || value > 200000)
-            throw new InvalidDataException("Invalid Gateway light sample.");
-        if (!root.GetProperty("timestamp").TryGetDateTimeOffset(out var timestamp) ||
-            timestamp < DateTimeOffset.UtcNow.AddMinutes(-1) ||
-            timestamp > DateTimeOffset.UtcNow.AddSeconds(10))
-            throw new InvalidDataException("Stale Gateway light sample.");
-        return new LightSample { Format = "fluentcontrol.light-sample", Version = 1,
-            SourceId = id, Timestamp = timestamp, Lux = value, Valid = true };
+        if (signalId != "illuminance") throw new InvalidDataException("Only illuminance drives brightness.");
+        var requestedAt = DateTimeOffset.UtcNow;
+        var remote = FcsRemoteGateway.Enabled;
+        using var reply = await QueryAsync("node.request", cancellation, id, port, "data.read", new { sensorId, signalId, mode = "fresh" });
+        var frame = reply.RootElement.GetProperty("result");
+        if (frame.GetProperty("protocol").GetString() != "fcs-node/2" || frame.GetProperty("deviceId").GetString() != id ||
+            !frame.GetProperty("ok").GetBoolean()) throw new InvalidDataException("Invalid node reply.");
+        var timestamp = DateTimeOffset.UtcNow;
+        if (remote || reply.RootElement.TryGetProperty("sampleAgeMilliseconds", out _))
+        {
+            var age = reply.RootElement.GetProperty("sampleAgeMilliseconds").GetInt32();
+            var maxAge = reply.RootElement.GetProperty("maxAgeMilliseconds").GetInt32();
+            if (age < 0 || maxAge <= 0 || age > Math.Min(maxAge, 10000)) throw new InvalidDataException("Stale Gateway sample.");
+            timestamp = requestedAt.AddMilliseconds(-age);
+            if (DateTimeOffset.UtcNow - timestamp > TimeSpan.FromSeconds(10)) throw new InvalidDataException("Delayed Gateway sample.");
+        }
+        var matches = frame.GetProperty("data").EnumerateArray().Where(item =>
+            item.GetProperty("sensorId").GetString() == sensorId && item.GetProperty("signalId").GetString() == signalId).ToArray();
+        if (matches.Length != 1) throw new InvalidDataException("Ambiguous signal.");
+        var value = matches[0];
+        if (!value.GetProperty("valid").GetBoolean() || !value.GetProperty("fresh").GetBoolean() ||
+            value.GetProperty("unit").GetString() != "lx" || value.GetProperty("valueType").GetString() != "number")
+            throw new InvalidDataException("Signal is not a fresh light sample.");
+        var lux = value.GetProperty("value").GetDouble();
+        if (!double.IsFinite(lux) || lux < 0 || lux > 200000) throw new InvalidDataException("Invalid lux.");
+        return new LightSample { Format = "fluentcontrol.light-sample", Version = 1, SourceId = id,
+            Timestamp = timestamp, Lux = lux, Valid = true };
     }
 }

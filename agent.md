@@ -1,5 +1,13 @@
 # FluentControl 项目结构、开发规范与计划
 
+## 硬件路线调整（2026-10-29）
+
+后续新增硬件与设备端能力统一面向 ESP32-C3。CH552 停止新增功能，仅保留已有源码、HEX、接线、测试资料与既有 USB 读取实现；不删除历史版本或旧设备配置。
+
+CH552 不再安排 fcs-node/2、新版勾选订阅适配、插件、规则、Wi-Fi、HA 或 Gateway 恢复支持；旧固件配合原有兼容版本/工具使用，不承诺新版节点管理支持。此前审视清单中的“CH552 新订阅兼容适配”任务取消，不再作为 C3 发布阻塞项。保留已有检查用于防止误删或破坏，不新增 CH552 功能验收。C3 仍须完成恢复、长期运行、WoL 与联动的实机验收。
+
+旧协议清理不得顺带删除保留的 CH552 实现、资料或现有读取路径。RP2040 既有内容也保留，后续新硬件选型以 C3 为准。
+
 本文件是桌面仓库统一维护的工程与 AI 协作指南，适用于整个仓库。`AGENTS.md` 是自动发现入口；修改规则时只维护本文件。
 
 先理解用户本次目标，检查工作区已有修改，再做必要的局部变更；保留用户工作。按当前用户授权范围提交或发布，不把此前的测试结论套用到新改动上。
@@ -33,7 +41,7 @@
 - `docs/profile-library-design.md`：配置组织与迁移的详细设计备忘录，实施状态以本文件和代码为准。
 - `docs/fcs-platform-plan.md`：FCS 多传感器平台、Gateway、设备端代码插件、规则/事件、恢复策略、FC 集成与插件社区规划；规划不代表功能已实现。
 - `docs/fcs-gateway.md`：已实现 Gateway 进程、USB/LAN IPC 的操作说明与未完成的独立安装边界。
-- `docs/fcs-plugin-contract.md`：插件包/规则包的协议、权限、安装、恢复与社区分类草案；插件运行仍未实现。
+- `docs/fcs-plugin-contract.md`：当前插件/规则/脚本首版的协议、权限、安装、恢复与执行限制。
 - `docs/licensing-policy.md`：非商业许可迁移边界、历史 MIT 版本，以及软件许可与社区插件内容许可的分离。
 - `docs/code-signing.md`：签名方案与实际执行条件。
 
@@ -283,3 +291,24 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 ### 当前正式版 v0.3.140
 
 设备管理与认证局域网读取使用 Windows build #140 / `768fd670aab805833da8c28d9ee1a31bf3327e31`。Repository CI、Windows 编译、控制逻辑、现有 WinUI 回归及 MSI/Setup 验收通过；13 项固件状态机模拟测试通过。C3/RP2040 实体联调、BLE、SoftAP、OTA/FC 刷写、自动连接切换及多信号通用界面仍未完成，详见 docs/device-signals.md。USB 管理不要求绑定；网络接口仅支持认证读取。
+
+## 2026-10-26 插件与脚本开发版
+
+C3 runtime 与容量/USB 安装/回滚/规则在 FCS 仓库；FC 新增 `MainWindow.NodePlugins.cs` 与 `FcsPluginClient.cs`。Gateway 的 `FcsScripts.cs` 与受限 AST worker 共用于 Windows/.NET 10 host，用户源码不可任意导入或访问 I/O；动作由宿主校验。代码插件不开放到 MCP，HTTP host 仍只读。Windows 脚本另需 Python 3.10+，发布目录必须带 `fcs-script-runner.py`。具体格式与验收边界见 docs/fcs-plugin-contract.md；实机 WoL 待验收。
+
+## 2026-10-27 FCS 管理职责拆分（开发版）
+
+Gateway `--manage` 自带本机浏览器管理页面（tools/fcs-manager），关闭 FC 后仍可运行。FC 自动调节页只读取 Gateway 清单、勾选订阅、选择信号和管理客户端历史，不做物理发现/配网/插件安装。FC 的 FCS 页面提供启动入口及远端网关设置。旧 Wi-Fi 向导保留测试代码，生产入口已迁出。
+
+FcsRecovery 接受完整 frozen-mpy 恢复 ZIP，明确 COM + 清空确认，先校验包及实际 ESP32-C3/4MB，再独占 USB 擦除、写入、验证；不自动重试、不改 eFuse。发布构建通过固定上游 SHA 下载独立 esptool，用户不需安装 Python/Thonny。FCS 新固件将核心模块冻结，非加密/非插件沙箱；真实硬件验收尚需用户完成。Linux/Docker 只读 host 不开放这些本机管理接口。完整操作与限制见 docs/fcs-gateway.md。
+
+
+### 身份验证恢复更新
+
+FcsRecovery/worker.py 改为 fcs.recovery/2 + FCSID001 固定扇区验证，UI 先 inspect 再 start；实际读标识/擦除/写入保持同一串口连接。擦除范围不含身份区，无未知设备强刷入口；首装由 FCS Thonny 自定义 bin 与显式初始化脚本完成。75 项固件模拟测试和恢复拒绝/保留测试已有本地验证，新 Windows/固件构建与实机需分别验收。
+
+## 2026-10-29：统一 Windows/Linux 管理体验（开发版）
+
+两端嵌入同一份 manager.html/js，通过共享 FcsManagement 的 manager.capabilities 与脚本清单报告实际能力。Linux 新增带独立 manager.token 的管理登录、主动 LAN 发现、设备登记增改/移除；配置原子保存并即时生效。既有 gateway.token 保持 FC/HA 只读；Linux 不开放 USB、设备写入或刷写。FC 管理入口跟随当前网关，远程只打开验证后的根 URL，不传递读取令牌。操作与反向代理 Origin 设置见 [宿主说明](docs/fcs-gateway-host.md)。
+
+验证包括宿主自检、真实 HTTP 权限/来源/配置持久化边界和两端共用页面回归；Windows 安装包与 Linux x64/arm64 CI 单独核对，实体 C3/NAS/Pi 仍须实测。CH552 保留旧内容，不扩展能力。

@@ -1,5 +1,8 @@
 ![FluentControl — Windows DDC/CI monitor brightness, system audio, mouse and desktop controls](docs/assets/social-preview.png)
 
+> **FCS 硬件路线（2026-10-29）：** 新增设备统一采用 ESP32-C3。CH552 停止新增功能，已有固件与旧读取路径保留；不承诺新版节点订阅、插件或恢复支持。
+> **FCS hardware direction:** New devices target ESP32-C3. CH552 feature development is frozen; existing firmware and legacy reading paths remain, without new node-subscription, plugin or recovery support.
+
 # FluentControl · 聚合控制
 
 **多屏、声音、麦克风与鼠标，一个面板就够。**  
@@ -191,3 +194,14 @@ The current branch adopts [PolyForm Noncommercial 1.0.0](LICENSE) from this tran
 USB 设备管理、C3 配网参考固件与签名局域网光照订阅的范围、安装方法和未完成项见 [设备信号规范](docs/device-signals.md)。这些改动随 v0.3.140 发布；旧 v0.3.135 不包含。
 
 See the [device signals guide](docs/device-signals.md) for USB management, C3 provisioning reference firmware, signed LAN subscriptions and limitations. These additions ship in v0.3.140 and are not part of v0.3.135.
+
+
+### 可选常驻网关 / Optional always-on Gateway
+
+FC 默认使用自带的本机 Gateway，无需其他设备或 Docker。NAS / 树莓派上的 Linux 网关可选；[部署与功能边界](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/docs/fcs-gateway-host.md)。
+
+FC defaults to its bundled local Gateway. An optional Linux/Docker Gateway can collect continuously on a compatible NAS or Raspberry Pi. This is development work pending release and physical acceptance; see the deployment guide above.
+
+### C3 插件与 Gateway 脚本 / C3 plugins and Gateway scripts
+
+开发版增加 FC 内的 USB 插件管理、C3 本地 WoL 规则，以及 Gateway 复杂脚本创建/验证/干运行。安装后默认禁用，实际唤醒须测试；Windows 脚本功能需 Python 3.10+。Development builds add USB plugin management, local C3 WoL rules, and Gateway script creation/validation/dry-run; hardware acceptance is pending. [操作与限制 / Setup and limits](docs/fcs-plugin-contract.md).

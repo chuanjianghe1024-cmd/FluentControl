@@ -12,6 +12,14 @@ internal static class DeviceSignalTests
             Check(WifiSetupNetwork.TryUrl(JsonSerializer.SerializeToElement(new { state = status, ip = "192.168.1.25" })) is null);
         foreach (var ip in new[] { "", "0.0.0.0", "127.0.0.1", "224.0.0.1", "169.254.1.1", "::1", "http://evil.test/" })
             Check(WifiSetupNetwork.TryUrl(JsonSerializer.SerializeToElement(new { state = "connected", ip })) is null);
+        Check(!new FcsRemoteSettings().Enabled);
+        Check(FcsRemoteGateway.ValidateAddress("https://gateway.example/", false).Scheme == "https");
+        Check(FcsRemoteGateway.ValidateAddress("http://127.0.0.1:8767", false).IsLoopback);
+        Check(FcsRemoteGateway.ValidateAddress("http://192.168.1.8:8767", true).Host == "192.168.1.8");
+        foreach (var address in new[] { "http://192.168.1.8", "http://gateway.example", "https://user:secret@gateway.example", "https://gateway.example/rpc", "https://gateway.example/?token=secret" })
+        { try { FcsRemoteGateway.ValidateAddress(address, false); throw new Exception("Unsafe Gateway address accepted"); } catch (InvalidDataException) { } }
+        try { FcsRemoteGateway.ValidateAddress("http://8.8.8.8", true); throw new Exception("Public HTTP accepted"); } catch (InvalidDataException) { }
+        try { await FcsRemoteGateway.QueryAsync("usb.manage", "test", "reset", null, default); throw new Exception("Remote write accepted"); } catch (InvalidDataException) { }
         var key = new string('1', 64); var nonce = new string('a', 32);
         Check(DeviceSignals.Verify(key, "message", DeviceSignals.Mac(key, "message")));
         Check(!DeviceSignals.Verify(key, "changed", DeviceSignals.Mac(key, "message")));

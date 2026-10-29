@@ -1,5 +1,36 @@
 # 更新记录
 
+## Unreleased — shared Windows/Linux Gateway manager
+
+- Windows/Linux 共用设备管理页面、宿主能力与脚本清单；FC 打开当前选中网关的管理页。
+- Linux 新增独立管理令牌登录、主动局域网扫描、无需重启的设备登记；FC/HA 原令牌仍只读。Linux USB/设备插件安装/刷写仍不可用，页面与后端均限制。
+- Share the Gateway manager across Windows/Linux with capability-aware controls, separate Linux management credentials and persistent live node registration. Device LAN access remains read-only; physical acceptance is pending.
+
+## Unreleased — C3 hardware focus
+
+- 后续设备与新增能力统一面向 ESP32-C3；CH552 停止新增功能，保留已有固件、资料、旧读取实现及配置，不再安排新版节点订阅适配。
+- Target ESP32-C3 for new hardware and device capabilities. Freeze CH552 feature development while retaining existing firmware, documentation, legacy reading paths and configuration; no new node-subscription adapter is planned.
+
+## Unreleased — C3 plugins and Gateway scripts
+
+- FC 新增 C3 USB 插件安装、参数/启用、单次动作、规则、存储、回滚与安全模式管理；附 WoL 示例，实际唤醒待实机验收。
+- Gateway/Linux host 共用有预算的 Python 语法解释器，支持创建、验证、无副作用测试、多信号判断、WoL 和用户显式配置的 HTTPS 上传；默认不执行/上传。Windows 脚本功能另需 Python 3.10+，Docker 已包含。
+- Add USB-installed trusted C3 plugins and bounded local rules, shared Gateway script validation/dry-run, explicit WoL/HTTPS actions and an HA REST example. See [limits and setup](docs/fcs-plugin-contract.md). No MQTT discovery or hosted cloud service is included.
+
+## Unreleased — optional Linux/Docker Gateway
+
+- FC 默认保留随包安装、按需运行的本机 Gateway；增加远程网关地址、受保护令牌、测试连接与切回本机入口，USB 配网仍在本机进行。
+- 增加 .NET 10 LAN-only 常驻宿主、amd64/arm64 Docker 和 systemd 部署示例、统一后台采集、受限远程只读 API 与有上限的持久历史；远程失联或样本过期不会继续驱动亮度。
+- Keep FC's bundled local Gateway as the default; add optional remote connections with protected credentials. Add a Linux/Docker LAN collector, authenticated read-only API and bounded history. See [deployment and verification boundaries](docs/fcs-gateway-host.md); remote USB, hosted cloud sync and remote MCP are not implemented.
+
+## Unreleased — node v2 and brightness transitions
+
+- Gateway/MCP 增加 node/sensor/operation/data/sampling/cache/plugin v2 工具与能力检查；USB-only 采样写入默认不向 MCP 开放。
+- FC 按 sensorId/signalId 绑定光照，支持设备传感器清单选择。
+- 增加 1–3 秒归一化过渡编辑器、线性/S/自定义曲线和整数阶梯预览；独立采样与过渡调度。
+- Development implementation; C3, physical DDC and a real MCP host still require acceptance.
+
+
 ## 未发布 / Unreleased
 
 - 新增 FCS Gateway 最小独立运行进程、本机用户专属 Named Pipe 协议、局域网设备发现/实时状态；随 FC Windows 安装包默认捆绑，FCS 页面显示已添加/新发现设备、在线 lux、USB 配网与热点配网引导，插件/规则/事件页明确标为待实现。

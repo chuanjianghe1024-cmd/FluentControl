@@ -28,6 +28,10 @@ jobs:
         run: '"$RUNNER_TEMP/fc-ci/bin/python" scripts/check-repository.py'
       - name: Validate device firmware state machine
         run: python3 -m unittest discover -s tests/devices -v
+      - name: Test script budgets and HA availability templates
+        run: |
+          python3 -m unittest discover -s tests/gateway-scripts -v
+          "$RUNNER_TEMP/fc-ci/bin/python" -m unittest discover -s tests/integrations -v
       - name: Lint GitHub Actions syntax and expressions
         run: |
           curl --fail --location --retry 2 --output "$RUNNER_TEMP/actionlint.tar.gz" \
