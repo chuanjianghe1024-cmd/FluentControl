@@ -7,7 +7,7 @@
 
 Windows 11 风格 · Windows x64 · 离线 Setup / MSI 安装 · 8 种界面语言
 
-[![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm_Noncommercial-orange.svg)](LICENSE)
+[![License: Personal Noncommercial](https://img.shields.io/badge/License-Personal_Noncommercial-orange.svg)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/chuanjianghe1024-cmd/FluentControl)](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest)
 [![Windows build](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/workflows/build.yml/badge.svg)](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/workflows/build.yml)
 [![Downloads](https://img.shields.io/github/downloads/chuanjianghe1024-cmd/FluentControl/total)](https://github.com/chuanjianghe1024-cmd/FluentControl/releases)
@@ -123,9 +123,9 @@ FCM 对应 `fc-sensor-models`，FCSD 对应 `FCS-Drivers`；这些简称不改�
 
 欢迎通过 [Issues](https://github.com/chuanjianghe1024-cmd/FluentControl/issues) 提交问题、功能建议和型号兼容性反馈。报告时附上软件版本、显示器型号、连接方式和复现步骤；诊断信息请先检查并移除不想公开的内容。参与开发请先看[贡献指南](CONTRIBUTING.md)；工程与 AI 协作入口见 [agent.md](agent.md)。社区贡献使用 PR，维护者当前保留直推权限；未来评审流程见[维护手册](docs/maintaining.md)。
 
-### 开源许可
+### 使用许可
 
-当前分支自本次许可切换提交起采用 [PolyForm Noncommercial 1.0.0](LICENSE)，不授予商业使用权。既有 MIT 许可版本及此前已取得的许可不因本次变更而追溯撤销，详见 [历史 MIT 许可副本](LICENSE-MIT-LEGACY.md) 与 [许可说明](docs/licensing-policy.md)。第三方组件遵循各自许可证。完整操作说明见 [Wiki 用户手册](https://github.com/chuanjianghe1024-cmd/FluentControl/wiki)，也可在仓库内阅读[手册源文件](docs/wiki/Home.md)。
+当前版本自本次许可切换提交起采用 [个人非商业使用许可 1.0](LICENSE)，仅限自然人个人非商业自用。禁止商业项目集成、企业或客户用途、收费服务和软件/固件/成品销售；独立再分发不获授权，向官方贡献的有限例外见许可。此前 MIT / PolyForm 授权不追溯撤销，第三方内容按原许可处理。详见 [许可说明](docs/licensing-policy.md)。这不是 OSI 开源许可。完整操作说明见 [Wiki 用户手册](https://github.com/chuanjianghe1024-cmd/FluentControl/wiki)及[手册源文件](docs/wiki/Home.md)。
 
 ---
 
@@ -240,7 +240,7 @@ Bug reports, feature ideas and monitor compatibility reports are welcome in [Iss
 
 ### License
 
-The current branch adopts [PolyForm Noncommercial 1.0.0](LICENSE) from this transition commit forward and does not grant commercial-use rights. Previously granted MIT licenses for earlier versions are not retroactively revoked; see [LICENSE-MIT-LEGACY.md](LICENSE-MIT-LEGACY.md) and the [licensing policy](docs/licensing-policy.md). Third-party components retain their own licenses.
+From this licensing-change commit, the current version uses the [Personal Noncommercial Use License 1.0](LICENSE), solely for an individual's own noncommercial use. Commercial integration, business/customer use, paid services and sales of software, firmware or physical products are prohibited. Independent redistribution is not granted; see the limited upstream contribution exception. Prior MIT / PolyForm grants are not retroactively revoked, and third-party terms remain unchanged. See the [licensing policy](docs/licensing-policy.md). This is not an OSI open-source license.
 
 ### Device integration v0.3.140 / 设备接入 v0.3.140
 

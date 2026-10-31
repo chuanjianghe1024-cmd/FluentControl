@@ -10,11 +10,9 @@
 
 后续重点包括更多型号的色温/场景与原厂导航适配、显示器 USB/HID 协议研究、WMI 实机验收与厂商接口评估、混合 DPI 和热插拔体验，以及在线配置分享与适配报告服务。应用自动联动、定时应用整套配置、ICC/MHC2、C3/CH552 固件、HID/BLE 光照接入、FC 刷写和偏好学习也尚未实现。光照相关 Windows/WinUI/MSI/Setup 自动化已通过；实体 RP2040 完整联调、真实显示器及混合 DPI 仍待确认。计划不代表已有支持或承诺日期。
 
-### MIT 许可证
+### 使用许可
 
-本仓库采用 **[MIT License](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE)**。允许使用、修改、分发和商业使用，包括在闭源项目中使用；分发软件副本或实质部分时，需要保留版权与许可声明。软件按“现状”提供，完整条款以 LICENSE 为准。
-
-第三方依赖和单独注明许可的内容继续适用各自许可证。本仓库的 MIT 声明不改变独立网站仓库或外部参考项目的许可。
+本手册描述的历史 v0.3.135 仍按其随附 MIT 许可处理。当前主分支采用[个人非商业使用许可 1.0](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE)：仅限个人非商业自用，不允许商业项目集成、企业/客户用途、收费服务、销售或独立再分发；有限的官方 fork/PR 贡献例外见 LICENSE。历史 MIT / PolyForm 授权不追溯撤销。第三方及独立仓库许可不受本次变更影响。
 
 ### 怎样参与
 
@@ -40,9 +38,9 @@ This guide covers v0.3.135. Current features include monitor controls, system Vo
 
 Planned work includes broader model adaptation, monitor USB/HID research, physical WMI validation and OEM interfaces, mixed-DPI/hot-plug improvements, and online sharing/adaptation services. Automatic application rules, scheduled whole-profile application, ICC/MHC2 management, C3/CH552 firmware, HID/BLE light input, flashing and learning are unimplemented. Light-related Windows/WinUI/MSI/Setup automation passed; physical RP2040 integration, real displays and mixed DPI remain unverified. Plans are not support claims or delivery dates.
 
-### MIT license
+### Usage license
 
-This repository uses the **[MIT License](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE)**. It permits use, modification, distribution and commercial use, including in closed-source projects, provided the copyright and permission notice is retained in copies or substantial portions. The software is provided as-is; the LICENSE contains the full terms. Third-party dependencies and separately licensed content retain their own licenses, and this does not relicense the independent website repository or reference projects.
+Historical v0.3.135 retains its accompanying MIT terms. Current main uses the [Personal Noncommercial Use License 1.0](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE), solely for personal noncommercial use. Commercial integration, business/customer use, paid services, sales and independent redistribution are not permitted; see LICENSE for the limited upstream fork/PR exception. Earlier MIT / PolyForm grants are not revoked. Third-party and independent-repository terms remain unchanged.
 
 ### Contribute
 

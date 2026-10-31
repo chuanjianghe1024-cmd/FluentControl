@@ -6,7 +6,7 @@
 
 [下载最新正式版](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · [本版更新](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/tag/v0.3.135) · [反馈问题](https://github.com/chuanjianghe1024-cmd/FluentControl/issues)
 
-采用 [MIT 许可证](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE)。
+本手册描述的历史版本按其随附 MIT 许可处理。当前主分支改用[个人非商业使用许可 1.0](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE)，仅限个人非商业自用；历史授权不追溯撤销。
 
 ## 从这里开始
 
@@ -44,6 +44,6 @@ FluentControl brings monitor controls, system audio, input and mouse settings in
 - [Logs, diagnostics and compatibility reports](Diagnostics-and-Compatibility.md)
 - [Roadmap and contributing](Roadmap-and-Contributing.md)
 
-Licensed under the [MIT License](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE). Each page includes an English section. Available hardware controls depend on the display, firmware, connection and active mode. The FC software menu, native OSD enablement and native navigation are separate capabilities. Local profiles and pairing work offline; the online sharing service and adapter catalog are not deployed, and monitor USB/HID control is not implemented. Native RP2040 USB light subscriptions, history and scheduled brightness/FC themes are released; automatic app switching and scheduled whole-profile application remain future work.
+The historical release described here retains its accompanying MIT license. Current main uses the [Personal Noncommercial Use License 1.0](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE), solely for personal noncommercial use; earlier grants remain effective. Each page includes an English section. Available hardware controls depend on the display, firmware, connection and active mode. The FC software menu, native OSD enablement and native navigation are separate capabilities. Local profiles and pairing work offline; the online sharing service and adapter catalog are not deployed, and monitor USB/HID control is not implemented. Native RP2040 USB light subscriptions, history and scheduled brightness/FC themes are released; automatic app switching and scheduled whole-profile application remain future work.
 
 For source structure and engineering conventions, see [agent.md](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/agent.md). For changes after this guide's baseline, see the [changelog](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/CHANGELOG.md).

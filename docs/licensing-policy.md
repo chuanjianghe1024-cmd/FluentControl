@@ -1,18 +1,27 @@
-# 许可策略与迁移说明 / Licensing Policy
+# 许可策略与迁移说明 / Licensing policy
 
-当前 FC 与 FCS 分支自许可切换提交起采用 PolyForm Noncommercial License 1.0.0。它允许许可条款定义范围内的非商业用途，但不授予商业使用权；这是 source-available（源码可见）许可，不是 OSI 批准的传统开源许可。商业产品、收费服务或其他可能不被许可覆盖的用途，需要版权持有者另行明确授权；目前没有标准商业许可流程。
+2026-10-31 起，本次许可切换提交及后续采用新许可的版本，使用 [个人非商业使用许可 1.0](../LICENSE)。仅允许自然人个人非商业自用；商业项目集成、企业内部业务、客户用途、收费服务、软件/固件/实体销售和独立再分发均未获授权。向官方贡献的有限 fork/PR 例外见 LICENSE。不是 OSI 开源许可，不再使用 PolyForm 名称描述当前许可。
 
-## 历史 MIT 授权
+From the licensing-change commit on 2026-10-31, versions adopting it use the [Personal Noncommercial Use License 1.0](../LICENSE). Only an individual's own noncommercial use is permitted. Commercial integration, internal business operations, customer use, paid services, sales and independent redistribution are not granted. LICENSE provides a limited upstream fork/PR exception. This is not an OSI open-source license and must not be described as PolyForm.
 
-FC 先前公开版本的 LICENSE 为 MIT，原文保存在 [LICENSE-MIT-LEGACY.md](../LICENSE-MIT-LEGACY.md)。既有发布标签及此前已合法取得的 MIT 许可不会因当前分支更换 LICENSE 而被追溯撤销。此前分发版本依其当时随附的许可处理；当前分支的新变更依当前 LICENSE 处理。第三方依赖、资源和代码片段继续遵循各自许可。
+## 历史授权 / Earlier grants
 
-## 仓库与内容边界
+既有 [MIT](../LICENSE-MIT-LEGACY.md) 和 [PolyForm Noncommercial](../LICENSE-POLYFORM-LEGACY.md) 授权不追溯撤销。历史副本仅用于记录先前版本条款，不是当前新增内容的可选双许可。v0.3.140 标签仍携带 MIT；此前下载者按对应版本条款使用。不得重写历史标签或替换已发布附件来宣称追溯限制。
 
-- FluentControl：当前分支采用 PolyForm Noncommercial；历史 MIT 授权保留。
-- FluentControl-Sensors：当前分支采用相同非商业许可；添加 LICENSE 不会自动公开私有仓库。
-- FluentControl-Web（FCW）：网站源码仓库继续私有，不自动继承 FC/FCS 许可。
-- 插件代码与用户发布内容不自动继承 FC/FCS 软件许可。未来网站条款需分别规定公开/私有可见性、托管/分发授权、作者权利、撤回规则和第三方许可。
+Existing [MIT](../LICENSE-MIT-LEGACY.md) and [PolyForm Noncommercial](../LICENSE-POLYFORM-LEGACY.md) grants are not retroactively revoked. These archived texts document earlier versions, not alternative licenses for new material. The v0.3.140 tag still carries MIT. Do not rewrite tags or replace released assets to claim retroactive restrictions.
 
-## 插件目录（规划）
+## 项目与第三方边界 / Project and third-party boundaries
 
-来源、审核和可见性是独立维度：来源为官方/社区；审核状态为官方审查代码、已在明确设备与固件组合上验证安装、未验证；用户内容可公开或私有。代码审查不等于实机安装验证。是否允许付费插件尚未决定，本次不实现支付或分成。本文不是法律意见，正式公开前建议由熟悉目标司法辖区的律师审阅。
+本轮统一 FC、FCM（fc-sensor-models）和 FCSD（FCS-Drivers）的许可。CLD（coverage-loop-desktop）明确排除；私有 FCS 和 FCW 不因本次公开仓库修改而自动更换许可或公开。FCSD 仅发布有权按所声明条款分发的产物，不能用公开 README 重授权私有源码或第三方代码。
+
+This change covers FC, FCM (fc-sensor-models) and FCSD (FCS-Drivers). CLD (coverage-loop-desktop) is excluded. Private FCS and FCW are not automatically relicensed or made public. FCSD must distribute only artifacts it is entitled to distribute under the declared terms; its README cannot relicense private sources or third-party code.
+
+第三方依赖、资源、参考模型及嵌入内容遵循原许可；来源或授权不明的资源不由本许可补授权。既有外部贡献也不得在无相应授权时被重新许可。贡献者保留著作权，不因贡献授予维护者额外商业转授权。插件和用户内容不自动继承本许可。
+
+Third-party dependencies, assets, reference models and embedded material retain their original terms. Unknown permissions are not supplied by this license. Existing external contributions must not be relicensed without the required rights. Contributors retain copyright and do not automatically grant maintainers commercial sublicensing rights. Plugins and user content do not automatically inherit this license.
+
+## 分发 / Distribution
+
+后续 FC 构建沿用项目文件将根 LICENSE 复制为 LICENSE.txt 的流程；发布前核对包内许可与来源提交一致，并保留第三方声明。FCSD 新包必须附 LICENSE.txt 和第三方声明，在中英发行说明及 manifest 中写明 LicenseRef-Personal-Noncommercial-1.0 及适用范围；不能将旧 MIT / PolyForm 构建仅改标签当作新许可构建。模型下载包也附同版许可；生产摆盘是技术资料，不授予商业生产许可。
+
+Future FC builds retain the project rule copying the root LICENSE as LICENSE.txt; verify it matches the source commit and preserve third-party notices. New FCSD packages must include LICENSE.txt and third-party notices, with LicenseRef-Personal-Noncommercial-1.0 and its scope in bilingual notes and the manifest. Relabeling an older MIT / PolyForm build does not relicense it. Model bundles must include the matching license; production plate documentation grants no commercial manufacturing permission.
