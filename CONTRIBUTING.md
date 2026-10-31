@@ -4,7 +4,7 @@
 
 ## 中文
 
-欢迎贡献代码、翻译、文档、问题复现和显示器兼容性记录。当前分支采用 [个人非商业使用许可 1.0](LICENSE)，仅限个人非商业自用，并允许许可列明的向官方贡献 fork/PR 例外；此前 MIT / PolyForm 授权不追溯撤销。提交贡献前请确认你有权按项目当前许可提供贡献；引入第三方代码或数据前，记录来源和原许可证。详见 [许可说明](docs/licensing-policy.md)。
+欢迎贡献代码、翻译、文档、问题复现和显示器兼容性记录。当前分支采用 [PolyForm Noncommercial 1.0.0](LICENSE)，允许许可定义范围内的非商业使用、修改和分发，不限个人自用；此前合法取得的授权不追溯撤销。提交贡献前请确认你有权按项目当前许可提供贡献；引入第三方代码或数据前，记录来源和原许可证。详见 [许可说明](docs/licensing-policy.md)。
 
 ### 从哪里开始
 
@@ -79,7 +79,7 @@ dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
 
 ## English
 
-Code, translations, documentation, reproductions and monitor compatibility evidence are welcome. The current branch uses the [Personal Noncommercial Use License 1.0](LICENSE), limited to an individual's own noncommercial use with a narrow upstream fork/PR contribution exception; earlier MIT / PolyForm grants remain effective. Submit only work you have the right to license under the project terms. Preserve third-party notices and provenance. See the [licensing policy](docs/licensing-policy.md).
+Code, translations, documentation, reproductions and monitor compatibility evidence are welcome. The current branch uses [PolyForm Noncommercial 1.0.0](LICENSE), permitting noncommercial use, modification and distribution as defined in the license, not limited to personal use; earlier lawful grants remain effective. Submit only work you have the right to license under the project terms. Preserve third-party notices and provenance. See the [licensing policy](docs/licensing-policy.md).
 
 ### Start here
 

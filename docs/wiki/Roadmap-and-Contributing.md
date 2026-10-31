@@ -12,7 +12,7 @@
 
 ### 使用许可
 
-本手册描述的历史 v0.3.135 仍按其随附 MIT 许可处理。当前主分支采用[个人非商业使用许可 1.0](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE)：仅限个人非商业自用，不允许商业项目集成、企业/客户用途、收费服务、销售或独立再分发；有限的官方 fork/PR 贡献例外见 LICENSE。历史 MIT / PolyForm 授权不追溯撤销。第三方及独立仓库许可不受本次变更影响。
+本手册描述的历史 v0.3.135 仍按其随附 MIT 许可处理。当前主分支采用[PolyForm Noncommercial 1.0.0](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE)：允许许可定义的非商业使用、修改和分发，包括条款列明的机构用途；一般商业用途未获授权，具体范围以 LICENSE 为准。历史 MIT / PolyForm 授权不追溯撤销。第三方及独立仓库许可不受本次变更影响。
 
 ### 怎样参与
 
@@ -40,7 +40,7 @@ Planned work includes broader model adaptation, monitor USB/HID research, physic
 
 ### Usage license
 
-Historical v0.3.135 retains its accompanying MIT terms. Current main uses the [Personal Noncommercial Use License 1.0](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE), solely for personal noncommercial use. Commercial integration, business/customer use, paid services, sales and independent redistribution are not permitted; see LICENSE for the limited upstream fork/PR exception. Earlier MIT / PolyForm grants are not revoked. Third-party and independent-repository terms remain unchanged.
+Historical v0.3.135 retains its accompanying MIT terms. Current main uses the [PolyForm Noncommercial 1.0.0](https://github.com/chuanjianghe1024-cmd/FluentControl/blob/main/LICENSE), permitting noncommercial use, modification and distribution, including the organization uses listed in LICENSE. General commercial use is not granted; the full license governs. Earlier MIT / PolyForm grants are not revoked. Third-party and independent-repository terms remain unchanged.
 
 ### Contribute
 
