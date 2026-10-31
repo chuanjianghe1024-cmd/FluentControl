@@ -1,6 +1,24 @@
 {
-  "description": "Windows 多屏聚合控制：DDC/CI 亮度与显示器配置、系统音量和输入、鼠标、桌面组件。Fluent desktop controls for monitors, audio and mouse.",
+  "description": "Windows 显示器控制与亮度调节工具，支持 DDC/CI 屏幕控制、多屏联动、对比度、输入源切换、系统音量和桌面组件。Windows monitor brightness control via DDC/CI, multi-monitor management and input switching.",
   "homepage": "https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest",
-  "topics": ["windows", "windows-11", "winui3", "csharp", "dotnet", "ddc-ci", "monitor-control", "brightness-control", "multi-monitor", "volume-control", "desktop-widget", "fluent-design", "windows-utility"],
+  "topics": [
+    "windows",
+    "windows-11",
+    "winui3",
+    "csharp",
+    "dotnet",
+    "ddc-ci",
+    "monitor-control",
+    "brightness-control",
+    "multi-monitor",
+    "volume-control",
+    "desktop-widget",
+    "fluent-design",
+    "windows-utility",
+    "ddcci",
+    "display-control",
+    "screen-brightness",
+    "monitor-brightness"
+  ],
   "socialPreview": "docs/assets/social-preview.png"
 }
