@@ -12,7 +12,7 @@ Windows 11 风格 · Windows x64 · 离线 Setup / MSI 安装 · 8 种界面语�
 [![Windows build](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/workflows/build.yml/badge.svg)](https://github.com/chuanjianghe1024-cmd/FluentControl/actions/workflows/build.yml)
 [![Downloads](https://img.shields.io/github/downloads/chuanjianghe1024-cmd/FluentControl/total)](https://github.com/chuanjianghe1024-cmd/FluentControl/releases)
 
-[简体中文](#zh-cn) · [English](#en) · [下载 / Download](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · [使用手册 / Wiki](https://github.com/chuanjianghe1024-cmd/FluentControl/wiki) · [更新记录 / Changelog](CHANGELOG.md) · [反馈 / Issues](https://github.com/chuanjianghe1024-cmd/FluentControl/issues)
+[简体中文](#zh-cn) · [English](#en) · [下载 / Download](https://github.com/chuanjianghe1024-cmd/FluentControl/releases/latest) · [使用手册 / Wiki](https://github.com/chuanjianghe1024-cmd/FluentControl/wiki) · [更新记录 / Changelog](CHANGELOG.md) · [配套硬件 / Hardware](https://github.com/chuanjianghe1024-cmd/fc-sensor-models) · [反馈 / Issues](https://github.com/chuanjianghe1024-cmd/FluentControl/issues)
 
 <a id="zh-cn"></a>
 
@@ -65,6 +65,18 @@ FluentControl 是一款面向 Windows 的 **DDC/CI 显示器亮度与多屏控�
 显示器可用功能取决于型号、固件、连接方式和当前模式。HDR、节能模式、转接器及扩展坞可能限制调节；带有音频输出也不一定支持显示器硬件音量遥控。FC 软件菜单已提供，**直接打开和导航显示器原厂 OSD 仍需经过验证的型号适配**。v0.3.92 提供实验性的[本地 OSD 配对助手](docs/osd-pairing.md)：自动列出已声明的未知指令，逐次试发并按观察到的效果绑定遥控，支持部分配对和可选文件分享，无需上传。
 
 **本地预设、JSON 导入导出已可用。** 配置分享站与在线型号适配库尚未部署，在线查询及报告提交暂不可用。计划域名为 [fctrl.app](https://fctrl.app)，配套网站独立维护于 [FluentControl-Web](https://github.com/chuanjianghe1024-cmd/FluentControl-Web)。
+
+### 配套硬件
+
+[fc-sensor-models](https://github.com/chuanjianghe1024-cmd/fc-sensor-models) 是 **FluentControl 官方配套硬件模型仓库**，提供传感器外壳、安装结构、Fusion 主模型、STL/STEP/3MF 打印文件和装配说明。硬件模型独立迭代，通过 Git tag 保存版本。
+
+[![FC 传感器外壳 L7 装配预览](https://github.com/chuanjianghe1024-cmd/fc-sensor-models/raw/main/fc-enclosure/images/assembly.png)](https://github.com/chuanjianghe1024-cmd/fc-sensor-models/tree/main/fc-enclosure)
+
+当前外壳面向 **ESP32-C3 SuperMini + BH1750/GY-302** 模块组合。L7 实物配合与胶接仍待验证，验证/生产摆盘目前是方案，不能当作已验证的量产工程。
+
+[查看模型](https://github.com/chuanjianghe1024-cmd/fc-sensor-models) · [打印文件与摆盘](https://github.com/chuanjianghe1024-cmd/fc-sensor-models/tree/main/fc-enclosure/print) · [装配说明](https://github.com/chuanjianghe1024-cmd/fc-sensor-models/blob/main/fc-enclosure/ASSEMBLY.md) · [设备接入](docs/device-signals.md)
+
+FC 提供桌面控制；FCS 提供设备接入、协议和固件；模型仓库提供机械结构。FCS 的[固件、安装与接线资料](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors/blob/main/c3/README.md)仍在私有仓库，需要访问权限。先核对板卡与兼容固件，再打印、装配并在 FC 配置设备；完整实机联调状态以对应说明为准。
 
 ### 后续方向
 
@@ -149,6 +161,18 @@ Primarily designed for **Windows 11 x64**. Fully exit the previous version from 
 Available monitor controls depend on the model, firmware, connection and active mode. HDR, power-saving modes, adapters and docks may restrict adjustments. An audio output does not necessarily provide remote control of the monitor's hardware volume. The FC software menu is available; **opening and navigating a monitor's native OSD requires a verified model-specific adapter**. v0.3.92 includes an experimental [local OSD pairing assistant](docs/osd-pairing.md): automatically discover advertised unknown commands, test them one at a time, bind observed effects and optionally exchange files without uploading or signing in.
 
 **Local presets and JSON import/export are available.** The sharing service and online adapter catalog have not been deployed, so online lookup and report submission are not available yet. The planned domain is [fctrl.app](https://fctrl.app); the companion website is maintained separately in [FluentControl-Web](https://github.com/chuanjianghe1024-cmd/FluentControl-Web).
+
+### Companion hardware
+
+[fc-sensor-models](https://github.com/chuanjianghe1024-cmd/fc-sensor-models) is the **official FluentControl companion hardware model repository**, with sensor enclosures, mounting structures, Fusion masters, STL/STEP/3MF exports and assembly guides. Hardware models evolve independently and use Git tags for version history.
+
+[![FC sensor enclosure L7 assembly preview](https://github.com/chuanjianghe1024-cmd/fc-sensor-models/raw/main/fc-enclosure/images/assembly.png)](https://github.com/chuanjianghe1024-cmd/fc-sensor-models/tree/main/fc-enclosure)
+
+The current enclosure targets **ESP32-C3 SuperMini + BH1750/GY-302** modules. L7 physical fit and bonding remain unverified; validation/production plate folders currently contain plans, not qualified production projects.
+
+[Models](https://github.com/chuanjianghe1024-cmd/fc-sensor-models) · [Print files and plate plans](https://github.com/chuanjianghe1024-cmd/fc-sensor-models/tree/main/fc-enclosure/print) · [Assembly guide](https://github.com/chuanjianghe1024-cmd/fc-sensor-models/blob/main/fc-enclosure/ASSEMBLY.md) · [Device integration](docs/device-signals.md)
+
+FC handles desktop controls; FCS handles device integration, protocols and firmware; the model repository handles mechanical designs. FCS [firmware, setup and wiring resources](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors/blob/main/c3/README.md) remain private and require access. Confirm board compatibility and firmware availability before printing, assembling and configuring the device in FC. Check the relevant guides for hardware acceptance status.
 
 ### Roadmap
 
