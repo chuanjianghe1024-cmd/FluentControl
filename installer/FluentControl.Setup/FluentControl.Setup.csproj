@@ -22,7 +22,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Runtime.Serialization" />
-    <PackageReference Include="WixToolset.BootstrapperApplicationApi" Version="7.0.0" />
+    <PackageReference Include="WixToolset.BootstrapperApplicationApi" Version="7.0.1" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
     <Resource Include="../../docs/assets/app-icon.png" Link="Assets/FluentControl.png" />
     <EmbeddedResource Include="Locales.json" />
