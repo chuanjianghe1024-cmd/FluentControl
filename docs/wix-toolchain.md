@@ -4,7 +4,7 @@
 
 ## 版本与许可
 
-- `.config/dotnet-tools.json` 精确固定 WiX 7.0.0；`Build-Msi.ps1` 从同一清单读取版本，恢复和加载完全一致的 `WixToolset.UI.wixext`。避免主工具与扩展分开升级、或缓存选中其他版本。
+- `.config/dotnet-tools.json` 精确固定 WiX 7.0.1；`Build-Msi.ps1` 从同一清单读取版本，恢复和加载完全一致的 `WixToolset.UI.wixext`。避免主工具与扩展分开升级、或缓存选中其他版本。
 - 工具恢复后执行 `dotnet tool run wix eula accept wix7`，成功后再恢复扩展、编译 MSI。这会在执行构建的用户/计算机上记录 WiX 7 EULA 的接受状态。
 - 脚本仅支持稳定的 7.x 版本，在运行工具、签名或产生输出前拒绝其他主版本和预发布版本。此授权不延伸到未来新协议；Dependabot 保留补丁更新 PR，未来主版本由维护者单独审查。
 - [WiX 7.0.0 OSMF EULA](https://github.com/wixtoolset/wix/blob/v7.0.0/OSMFEULA.txt) 与 [MS-RL 源码许可证](https://github.com/wixtoolset/wix/blob/v7.0.0/LICENSE.TXT) 分开。此次接受协议未开通赞助、订阅或付款。将来用于创收时，维护者须重新评估费用适用性。
@@ -27,3 +27,9 @@ WiX 5/7 加载器分别查找 `wixext5` / `wixext7`，不能保留旧扩展。UI
 ## 已定位的 WiX 7 UI 差异
 
 首轮 Windows 回归确认：静默安装/升级/卸载成功，但真实向导停在目录浏览窗口。WiX 7 的 BrowseDlg 不再内置 OK 的 SetTargetPath/EndDialog 事件，而由宿主 UI 集合定义；本项目自定义 UI 已显式补上路径检查、目录提交和关闭对话框事件。保留既有向导回归，不用跳过 UI 测试来掩盖问题。参考 [WiX 7 标准 UI 接线](https://github.com/wixtoolset/wix/blob/v7.0.0/src/ext/UI/wixlib/WixUI_InstallDir.wxs)。
+
+## WiX 7.0.1 补丁联合升级
+
+PR #12 与 #13 必须作为同一组合验证：CLI、由工具清单派生的 UI 扩展、Bootstrapper API 均为 7.0.1。单独更新任意一端会触发 `Build-Setup.ps1` 的版本一致性检查；保留该保护，不允许混合版本构建。
+
+`Test-WixPolicy.ps1` 新增 7.0.1 通过版本边界以及两种 CLI/API 混合版本提前失败的回归。完整兼容性仍以联合提交的 Windows CI 为准，包括中文 MSI 向导、正式版 MSI 升级、Setup 迁移/修复/卸载；不能沿用两个原始 PR 被跳过的安装测试。此次仅更新源代码和验证，不发布安装包，也不重做 PR #3 的主版本升级。
