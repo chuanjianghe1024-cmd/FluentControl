@@ -205,3 +205,10 @@ FC defaults to its bundled local Gateway. An optional Linux/Docker Gateway can c
 ### C3 插件与 Gateway 脚本 / C3 plugins and Gateway scripts
 
 开发版增加 FC 内的 USB 插件管理、C3 本地 WoL 规则，以及 Gateway 复杂脚本创建/验证/干运行。安装后默认禁用，实际唤醒须测试；Windows 脚本功能需 Python 3.10+。Development builds add USB plugin management, local C3 WoL rules, and Gateway script creation/validation/dry-run; hardware acceptance is pending. [操作与限制 / Setup and limits](docs/fcs-plugin-contract.md).
+
+
+## OPC UA 开发预览 / OPC UA preview
+
+已加入可选独立适配器：只读目录、类型化信号订阅、证书信任与一级 Gateway 挂载；C3 协议不变，不自动共享或上传云。尚未捆绑到 FC 安装包，配置、启动及验收范围见 [OPC UA 指南](docs/fcs-opcua.md)。
+
+An optional sidecar adds read-only browsing, typed subscriptions, certificate trust and one-hop Gateway mounts. C3 remains unchanged; exports are explicit and cloud upload stays independent. This preview is not bundled in FC installers; see the guide for setup and validation limits.

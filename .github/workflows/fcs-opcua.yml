@@ -1,0 +1,54 @@
+name: FCS OPC UA preview
+on:
+  pull_request:
+    paths:
+      - 'src/FluentControl.FcsOpcUa/**'
+      - 'tests/FluentControl.FcsOpcUa.Tests/**'
+      - 'deploy/opcua/**'
+      - '.github/workflows/fcs-opcua.yml'
+  push:
+    branches: [main, codex/opcua-preview]
+    paths:
+      - 'src/FluentControl.FcsOpcUa/**'
+      - 'tests/FluentControl.FcsOpcUa.Tests/**'
+      - 'deploy/opcua/**'
+      - '.github/workflows/fcs-opcua.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fcs-opcua-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  opcua:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            rid: linux-x64
+          - runner: ubuntu-24.04-arm
+            rid: linux-arm64
+          - runner: windows-latest
+            rid: win-x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Encrypted socket, trust, read-only, subscription and cascade checks
+        run: dotnet run --project tests/FluentControl.FcsOpcUa.Tests -c Release
+      - name: Publish standalone preview
+        run: dotnet publish src/FluentControl.FcsOpcUa -c Release -r ${{ matrix.rid }} --self-contained true -o opcua-out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fcs-opcua-preview-${{ matrix.rid }}
+          path: opcua-out/
+          retention-days: 14
+      - name: Build optional Linux container
+        if: runner.os == 'Linux'
+        run: docker build -f deploy/opcua/Dockerfile -t fcs-opcua:preview .

@@ -312,3 +312,10 @@ FcsRecovery/worker.py 改为 fcs.recovery/2 + FCSID001 固定扇区验证，UI �
 两端嵌入同一份 manager.html/js，通过共享 FcsManagement 的 manager.capabilities 与脚本清单报告实际能力。Linux 新增带独立 manager.token 的管理登录、主动 LAN 发现、设备登记增改/移除；配置原子保存并即时生效。既有 gateway.token 保持 FC/HA 只读；Linux 不开放 USB、设备写入或刷写。FC 管理入口跟随当前网关，远程只打开验证后的根 URL，不传递读取令牌。操作与反向代理 Origin 设置见 [宿主说明](docs/fcs-gateway-host.md)。
 
 验证包括宿主自检、真实 HTTP 权限/来源/配置持久化边界和两端共用页面回归；Windows 安装包与 Linux x64/arm64 CI 单独核对，实体 C3/NAS/Pi 仍须实测。CH552 保留旧内容，不扩展能力。
+
+
+## 2026-11-02：OPC UA 开发预览
+
+独立 `FluentControl.FcsOpcUa` 适配进程连接现有 Gateway，C3 继续 fcs-node/2。按配置只读导出有稳定 origin ID 的 Signal，支持 Browse/Read/Subscription 和一级挂载。仅 Basic256Sha256 SignAndEncrypt，应用证书须显式信任，无自动接受/USB 权限继承/递归共享。SourceTimestamp 为源 Gateway 接收时间，过期/断线保留 Bad 质量。
+
+配置、跨平台构建与验收见 docs/fcs-opcua.md，回归项目 tests/FluentControl.FcsOpcUa.Tests。首版没有地图、多级路由、服务目录、逐用户 ACL、历史 UA、复杂类型或管理页入口，尚未捆绑 FC 安装包；第三方 SDK MIT 许可保留，正式发布仍需独立打包及硬件验证。

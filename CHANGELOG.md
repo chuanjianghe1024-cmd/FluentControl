@@ -1,5 +1,10 @@
 # 更新记录
 
+## Unreleased — OPC UA Gateway preview
+
+- 新增可选 .NET 10 OPC UA 适配进程，连接既有 Windows/Linux Gateway，按清单只读导出 Signal、订阅与一级级联，证书信任、过期/断线状态独立验证。C3 不变，不开放设备写入或自动云上传；尚未加入 FC 安装包。
+- Add an optional .NET 10 OPC UA sidecar with explicit read-only signals, subscriptions and one-hop mounts, encrypted certificate trust and stale/disconnected quality. See [setup and limits](docs/fcs-opcua.md). Not yet bundled or hardware accepted.
+
 ## Unreleased — shared Windows/Linux Gateway manager
 
 - Windows/Linux 共用设备管理页面、宿主能力与脚本清单；FC 打开当前选中网关的管理页。

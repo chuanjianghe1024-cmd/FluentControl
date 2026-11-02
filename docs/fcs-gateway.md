@@ -95,3 +95,10 @@ Identity-gated recovery requires a manufacturing marker bound to the factory MAC
 两端嵌入同一份 manager.html/js，通过共享 FcsManagement 的 manager.capabilities 与脚本清单报告实际能力。Linux 新增带独立 manager.token 的管理登录、主动 LAN 发现、设备登记增改/移除；配置原子保存并即时生效。既有 gateway.token 保持 FC/HA 只读；Linux 不开放 USB、设备写入或刷写。FC 管理入口跟随当前网关，远程只打开验证后的根 URL，不传递读取令牌。操作与反向代理 Origin 设置见 [宿主说明](fcs-gateway-host.md)。
 
 验证包括宿主自检、真实 HTTP 权限/来源/配置持久化边界和两端共用页面回归；Windows 安装包与 Linux x64/arm64 CI 单独核对，实体 C3/NAS/Pi 仍须实测。CH552 保留旧内容，不扩展能力。
+
+
+## OPC UA 开发预览 / OPC UA preview
+
+已加入可选独立适配器：只读目录、类型化信号订阅、证书信任与一级 Gateway 挂载；C3 协议不变，不自动共享或上传云。尚未捆绑到 FC 安装包，配置、启动及验收范围见 [OPC UA 指南](fcs-opcua.md)。
+
+An optional sidecar adds read-only browsing, typed subscriptions, certificate trust and one-hop Gateway mounts. C3 remains unchanged; exports are explicit and cloud upload stays independent. This preview is not bundled in FC installers; see the guide for setup and validation limits.

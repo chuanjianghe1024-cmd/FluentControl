@@ -81,3 +81,10 @@ History rolls at 4096 records or 8 MiB, whichever comes first. Atomic snapshots 
 ## Local scripts / 本地脚本
 
 Linux host 与 Windows Gateway 共用受限脚本核心；容器含 Python，原生部署需 Python 3.10+ 并设置 `FCS_PYTHON`。任务放在数据目录的 `scripts/`，通过 CLI 创建/验证/干运行后才显式启用。见 [脚本操作](fcs-plugin-contract.md)。HTTP `/rpc` 不接受脚本上传或设备写入；管理令牌仅额外允许宿主设备登记与管理清单。Docker bridge 不保证局域网 WoL 广播可达；默认推荐由独立供电的 C3 执行唤醒。
+
+
+## OPC UA 开发预览 / OPC UA preview
+
+已加入可选独立适配器：只读目录、类型化信号订阅、证书信任与一级 Gateway 挂载；C3 协议不变，不自动共享或上传云。尚未捆绑到 FC 安装包，配置、启动及验收范围见 [OPC UA 指南](fcs-opcua.md)。
+
+An optional sidecar adds read-only browsing, typed subscriptions, certificate trust and one-hop Gateway mounts. C3 remains unchanged; exports are explicit and cloud upload stays independent. This preview is not bundled in FC installers; see the guide for setup and validation limits.
