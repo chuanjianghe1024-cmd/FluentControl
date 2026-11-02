@@ -1,0 +1,17 @@
+{
+  "systemId": "office",
+  "gatewayId": "collector",
+  "endpoint": "opc.tcp://localhost:4841/fcs",
+  "pkiDirectory": "aggregate-pki",
+  "signals": [],
+  "mounts": [
+    {
+      "systemId": "home",
+      "gatewayId": "nas",
+      "endpoint": "opc.tcp://localhost:4840/fcs",
+      "signals": [
+        { "deviceId": "c3-example", "sensorId": "ambient-01", "signalId": "illuminance", "valueType": "number", "unit": "lx" }
+      ]
+    }
+  ]
+}
