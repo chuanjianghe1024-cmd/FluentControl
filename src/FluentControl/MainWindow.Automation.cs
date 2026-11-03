@@ -7,8 +7,11 @@ namespace FluentControl;
 
 public sealed partial class MainWindow
 {
-    private readonly DispatcherTimer adaptiveTimer = new() { Interval = TimeSpan.FromMilliseconds(200) };
+    private readonly DispatcherTimer adaptiveTimer = new() { Interval = TimeSpan.FromMilliseconds(100) };
     private readonly LightHistory lightHistory = new(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentControl", "LightHistory"));
+    private readonly long adaptiveClockOrigin = System.Diagnostics.Stopwatch.GetTimestamp();
+    private double? adaptiveLatestTarget;
+    private string adaptiveLatestInfo = "";
     private readonly LightSmoothing adaptiveFilter = new();
     private readonly HttpClient lightClient = new(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
     private CancellationTokenSource? lightRequest;
@@ -25,6 +28,7 @@ public sealed partial class MainWindow
     private string? automaticTheme;
     private void InitializeAdaptiveAutomation()
     {
+        FcsRemoteGateway.Configure(state.Settings.RemoteGateway);
         StartSensorArrival();
         ControlOperations.ManualBrightnessRequested += HoldAdaptiveBrightness;
         adaptiveTimer.Tick += async (_, _) => await TickAdaptiveAsync();
@@ -40,7 +44,7 @@ public sealed partial class MainWindow
     private void HoldAdaptiveBrightness() => Interlocked.Exchange(ref manualBrightnessHold, DateTimeOffset.UtcNow.AddMinutes(10).UtcTicks);
     private void SaveAdaptiveSettings()
     {
-        adaptiveRevision++; lightRequest?.Cancel(); desktopLightRequest?.Cancel(); desktopLightSample = null; desktopLightDue = default; desktopLightFailed = false; adaptiveFilter.Reset(); adaptiveDue = default; adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); adaptiveTransitions.Clear(); adaptiveOutputFault = false; adaptiveFailedTargets.Clear();
+        adaptiveRevision++; lightRequest?.Cancel(); desktopLightRequest?.Cancel(); desktopLightSample = null; desktopLightDue = default; desktopLightFailed = false; adaptiveLatestTarget = null; adaptiveFilter.Reset(); adaptiveDue = default; adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); adaptiveTransitions.Clear(); adaptiveOutputFault = false; adaptiveFailedTargets.Clear();
         if (!state.Settings.Adaptive.Enabled || !state.Settings.Adaptive.ThemeEnabled || state.Settings.Adaptive.Mode == "ambient") { automaticTheme = null; ApplyAppTheme(); }
         SaveState(); UpdateDesktopStatus();
     }
@@ -55,17 +59,19 @@ public sealed partial class MainWindow
         if (adaptiveLastTick != default && (now < adaptiveLastTick || now - adaptiveLastTick > TimeSpan.FromSeconds(10)))
         {
             // Sleep/resume and wall-clock changes invalidate all pre-sleep samples.
-            adaptiveFilter.Reset(); desktopLightSample = null; desktopLightDue = default; adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); adaptiveTransitions.Clear(); adaptiveDue = default; adaptiveLastWrite = now;
+            adaptiveLatestTarget = null; adaptiveFilter.Reset(); desktopLightSample = null; desktopLightDue = default; adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); adaptiveTransitions.Clear(); adaptiveDue = default; adaptiveLastWrite = now;
         }
         adaptiveLastTick = now;
         var s = state.Settings.Adaptive;
         bool chartOpen = s.Mode == "ambient" && selectedAdaptiveSection == "presets" && adaptiveCurveLiveUpdate is not null;
         bool collectOnly = (!s.Enabled || adaptiveOutputFault) && (s.RecordLightHistory || desktopPanel is not null || chartOpen) && s.Mode == "ambient" &&
             (s.ActiveSourceId != "simulation" || chartOpen);
-        if ((!s.Enabled && !collectOnly) || (adaptiveOutputFault && !collectOnly) || refreshing || hdrChanging || colorExiting || pendingWrites > 0 || applyingProfile || monitorAdaptationDialog is not null || now < adaptiveDue) return;
+        if ((!s.Enabled && !collectOnly) || (adaptiveOutputFault && !collectOnly) || refreshing || hdrChanging || colorExiting || pendingWrites > 0 || applyingProfile || monitorAdaptationDialog is not null) return;
         var source = s.LightSources.FirstOrDefault(x => x.Id == s.ActiveSourceId);
         var period = s.Mode == "ambient" ? source?.PollMilliseconds ?? 1000 : 1000;
-        adaptiveDue = now.AddMilliseconds(period);
+        bool sampleDue = now >= adaptiveDue;
+        if (!sampleDue && adaptiveTransitions.Count > 0 && adaptiveTransitions.Values.All(t => t.Complete)) return;
+        if (sampleDue) adaptiveDue = now.AddMilliseconds(period);
         var revision = adaptiveRevision; var version = generation;
         var targetIds = AdaptivePresets.Targets(s).OrderBy(id => displayDevices.FirstOrDefault(d => d.Id == id)?.Left ?? int.MaxValue)
             .ThenBy(id => displayDevices.FirstOrDefault(d => d.Id == id)?.Top ?? int.MaxValue).ToArray(); var mode = s.Mode;
@@ -78,7 +84,12 @@ public sealed partial class MainWindow
             double hour = local.TimeOfDay.TotalHours, target;
             bool day = SolarSchedule.InDayRange(hour, s.LightThemeHour, s.DarkThemeHour);
             string info;
-            if (mode == "solar")
+            if (!sampleDue)
+            {
+                if (adaptiveLatestTarget is not double cachedTarget) return;
+                target = cachedTarget; info = adaptiveLatestInfo;
+            }
+            else if (mode == "solar")
             {
                 var sun = SolarSchedule.Calculate(local.Date, s.Latitude, s.Longitude);
                 day = sun.IsDay(now); target = day ? s.DayBrightness : s.NightBrightness;
@@ -114,6 +125,7 @@ public sealed partial class MainWindow
                 target = AdaptivePresets.Evaluate(curve, lux.Value);
                 info = $"{sample.SourceId} · {lux:0.##} lux" + (sample.Simulated ? " · " + T("模拟", "Simulated") : "");
             }
+            adaptiveLatestTarget = target; adaptiveLatestInfo = info;
             if (closed || revision != adaptiveRevision || version != generation || !s.Enabled) return;
             if (s.ThemeEnabled && mode != "ambient")
             {
@@ -122,7 +134,7 @@ public sealed partial class MainWindow
             }
             AdaptiveStatus(info + $" → {target:0.#}%");
             if (now.UtcTicks < Interlocked.Read(ref manualBrightnessHold)) { adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); adaptiveTransitions.Clear(); AdaptiveStatus(info + " · " + T("手动调整保持中", "Manual adjustment hold")); return; }
-            if (now - adaptiveLastWrite < TimeSpan.FromSeconds(2) || pendingWrites > 0) return;
+            if (now - adaptiveLastWrite < TimeSpan.FromMilliseconds(s.Transition.IntervalMs) || pendingWrites > 0) return;
             if (!await gate.WaitAsync(0)) return;
             outputStage = true;
             try
@@ -153,7 +165,7 @@ public sealed partial class MainWindow
                             channel.Value = current; channel.ReadbackUnconfirmed = false;
                             double percent = (current - channel.Minimum) / (channel.Maximum - channel.Minimum) * 100;
                             // The target band remains discrete; each monitor eases independently.
-                            double? next = transition.Next(percent, target, now);
+                            double? next = transition.Next(percent, target, DateTimeOffset.UnixEpoch + System.Diagnostics.Stopwatch.GetElapsedTime(adaptiveClockOrigin), s.Transition);
                             if (next is null) return "";
                             var errors = ControlOperations.Apply(new[] { channel }, channel.Minimum + next.Value / 100 * (channel.Maximum - channel.Minimum), automatic: true);
                             if (errors.Count != 0) throw new IOException(string.Join("; ", errors));
@@ -185,7 +197,7 @@ public sealed partial class MainWindow
             if (closed || revision != adaptiveRevision || version != generation) return;
             if (mode == "ambient") FailDesktopLight();
             if (s.RecordLightHistory && mode == "ambient" && !uiTest) await RecordLightSampleAsync(s.ActiveSourceId, null);
-            adaptiveFilter.Reset(); adaptiveDue = DateTimeOffset.UtcNow.AddSeconds(10);
+            adaptiveLatestTarget = null; adaptiveFilter.Reset(); adaptiveDue = DateTimeOffset.UtcNow.AddSeconds(10);
             AdaptiveStatus(T("光照来源超时或已取消", "Light source timed out or canceled"));
         }
         catch (Exception ex)
@@ -193,7 +205,7 @@ public sealed partial class MainWindow
             if (closed || revision != adaptiveRevision || version != generation) return;
             if (mode == "ambient" && !outputStage) FailDesktopLight();
             if (revision == adaptiveRevision && s.RecordLightHistory && mode == "ambient" && !outputStage && !uiTest) await RecordLightSampleAsync(s.ActiveSourceId, null);
-            adaptiveFilter.Reset(); adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); adaptiveTransitions.Clear(); adaptiveDue = DateTimeOffset.UtcNow.AddSeconds(10);
+            adaptiveLatestTarget = null; adaptiveFilter.Reset(); adaptiveReadbacks.Clear(); adaptiveAppliedTargets.Clear(); adaptiveTransitions.Clear(); adaptiveDue = DateTimeOffset.UtcNow.AddSeconds(10);
             if (outputStage) adaptiveOutputFault = true;
             AdaptiveStatus(outputStage ? T("屏幕写入失败，重新启用后再试", "Display write failed; re-enable to retry") : T("数据或屏幕不可用，已暂停；稍后重试", "Data or display unavailable; paused, retrying later"));
             StartupLog.Write("Adaptive automation: " + ex.GetType().Name); // no source URL, token or location in logs

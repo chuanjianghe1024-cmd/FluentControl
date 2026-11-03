@@ -25,6 +25,7 @@
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />
     <ProjectReference Include="../FluentControl.DdcHost/FluentControl.DdcHost.csproj" ReferenceOutputAssembly="false" AdditionalProperties="SelfContained=$(SelfContained)" />
     <ProjectReference Include="../FluentControl.FcsGateway/FluentControl.FcsGateway.csproj" ReferenceOutputAssembly="false" AdditionalProperties="SelfContained=$(SelfContained)" />
+    <Content Include="../../tools/esptool/**/*" Link="esptool/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <EmbeddedResource Include="Services/Locales.json" LogicalName="FluentControl.Locales.json" />
     <!-- Noncommercial license notice travels with every offline build/installer. -->
     <Content Include="../../LICENSE" Link="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
@@ -54,7 +55,7 @@
     <Copy SourceFiles="@(FcsGatewayPayload)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="CopyFcsGatewayToPublish" AfterTargets="Publish">
-    <ItemGroup><FcsGatewayPublished Include="$(OutDir)FluentControl.FcsGateway.exe;$(OutDir)FluentControl.FcsGateway.dll;$(OutDir)FluentControl.FcsGateway.deps.json;$(OutDir)FluentControl.FcsGateway.runtimeconfig.json" /></ItemGroup>
+    <ItemGroup><FcsGatewayPublished Include="$(OutDir)fcs-script-runner.py;$(OutDir)FluentControl.FcsGateway.exe;$(OutDir)FluentControl.FcsGateway.dll;$(OutDir)FluentControl.FcsGateway.deps.json;$(OutDir)FluentControl.FcsGateway.runtimeconfig.json" /></ItemGroup>
     <Copy SourceFiles="@(FcsGatewayPublished)" DestinationFolder="$(PublishDir)" />
   </Target>
   <!-- ApplicationIcon is already indexed by the SDK. Copy the native tray icon

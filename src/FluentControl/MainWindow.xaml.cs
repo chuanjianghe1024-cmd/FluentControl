@@ -84,7 +84,6 @@ public sealed partial class MainWindow : Window
         MousePanel.Visibility = tag == "mouse" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPanel.Visibility = tag is "settings" or "adaptive" or "fcs" ? Visibility.Visible : Visibility.Collapsed;
         MainScroll.Visibility = tag is "settings" or "adaptive" or "fcs" ? Visibility.Collapsed : Visibility.Visible;
-        if (tag != "fcs") fcsTimer.Stop();
         PresetLibraryPanel.Visibility = tag == "library" ? Visibility.Visible : Visibility.Collapsed;
         if (tag == "library") BuildPresetLibrary();
         if (tag is "settings" or "adaptive" or "fcs") BuildSettings();

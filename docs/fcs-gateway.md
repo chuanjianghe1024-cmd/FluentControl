@@ -2,7 +2,13 @@
 
 > **架构目标：FCS 独立发行，FC 作为客户端。** 当前 Gateway 工程暂存在 FC 仓库并由 FC CI 生成便携 Artifact；这仅是迁移阶段。FCS 源码仓库保持私有，用户最终通过 FluentControl 网站获取 FCS 独立包或默认捆绑 FCS 的 FC 安装包。网站分发的独立安装包与独立构建尚未交付。正式分拆计划见 [FCS 独立版本与发行策略](https://github.com/chuanjianghe1024-cmd/FluentControl-Sensors/blob/main/docs/release-policy.md)。
 
-## 当前实现
+## 可选 Linux / Docker 常驻宿主（开发中）
+
+FC 默认仍使用随包安装的本机 Windows Gateway。新增可选 `.NET 10` LAN-only 宿主与 FC 远程连接设置，适用于兼容的 NAS、树莓派及 Linux；不会要求普通桌面用户安装 Docker。部署、认证、历史上限及验证边界见 [独立宿主说明](fcs-gateway-host.md)。
+
+FC still defaults to its bundled Windows Gateway. An optional Linux/Docker LAN host and remote connection settings are available in development; see the linked deployment guide for scope and validation limits.
+
+## 当前 Windows 实现
 
 - 新独立项目 `src/FluentControl.FcsGateway/`，Windows x64/.NET 8，可单独运行的后台进程。
 - 同一个 Windows 用户最多运行一个 Gateway（mutex）；通过本机 Named Pipe `FluentControl.FcsGateway.v1` 通信，并启用 CurrentUserOnly。
@@ -33,7 +39,7 @@
 
 ## 配网入口状态
 
-首次配网的 C3 SoftAP 网页（FCS-xxxxxx / http://192.168.4.1）与 FC 原有 USB Wi-Fi 配网向导已提供，Gateway 是配网成功后用于 LAN 发现及实时光照验证的组件。BLE 当前仅有原有认证读取功能，**BLE 直接提交 Wi-Fi 密码的安全配网通道尚未实现**；不允许为了实现此入口而让 Wi-Fi 密码在未经加密的 BLE 特征值中传输。独立图形控制台、无线规则下发及安装管理也仍待实现。
+首次配网的 C3 SoftAP 网页（FCS-xxxxxx / http://192.168.4.1）与 FC 原有 USB Wi-Fi 配网向导已提供，Gateway 是配网成功后用于 LAN 发现及实时光照验证的组件。BLE 当前仅有原有认证读取功能，**BLE 直接提交 Wi-Fi 密码的安全配网通道尚未实现**；不允许为了实现此入口而让 Wi-Fi 密码在未经加密的 BLE 特征值中传输。独立图形控制台与无线规则下发仍待实现；FC 已增加 USB 插件管理入口。
 
 ## 生命周期与安装升级
 
@@ -47,12 +53,45 @@ IPC 操作：
 - `usb.discover`：`port=AUTO|COMx`，返回已验证 `{port, identity}` 列表；
 - `usb.manage`：提供 `deviceId`、`port`、已知管理 `command` 与对象 `arguments`；Gateway 必须重新 PING 核对身份后才通过物理 USB 发送；
 - `sample.read`：按稳定设备 ID 优先 USB READ；USB 不可用时尝试该身份在 Gateway 发现并读取验证的公开 LAN 来源；不假设仅拔掉数据线就能保持光照不中断；
-- `list` / `discover`：报告 USB/LAN 去重设备与有效性、最近成功读数、过期状态；`capabilities`：返回目前支持的传输与管理范围，以及未实现的插件状态。
+- `list` / `discover`：报告 USB/LAN 去重设备与有效性、最近成功读数、过期状态；`capabilities`：返回目前支持的传输与管理范围，以及插件/脚本运行时状态。
 
 若 Gateway 是独立启动，本机 IPC 仍仅允许同一 Windows 用户；这是单用户管理信任边界。返回 USB 绑定密钥仅允许同用户本机请求，不通过公开 LAN 接口返回。私有网络中的公开传感器接口仅用于读取，仍不提供管理写入。
 
-**当前局限**：没有独立 MSI 安装器（Gateway 二进制可独立执行），当前源码暂在 FC 解决方案中并捆绑 FC 安装包；计划在稳定协议和 CI 验证后抽出可复用 FCS 独立工程与发行包。旧签名 LAN 客户端保留兼容读取，不能由 Gateway 的新匿名读取冒充验证通过。BLE Wi-Fi 安全配网、插件安装/规则引擎仍未实现，参见 [插件清单设计](fcs-plugin-contract.md)。
+**当前局限**：没有独立 MSI 安装器（Gateway 二进制可独立执行），当前源码暂在 FC 解决方案中并捆绑 FC 安装包；计划在稳定协议和 CI 验证后抽出可复用 FCS 独立工程与发行包。旧签名 LAN 客户端保留兼容读取，不能由 Gateway 的新匿名读取冒充验证通过。BLE Wi-Fi 安全配网仍未实现；USB 插件安装与本地规则已有开发实现，参见 [插件清单设计](fcs-plugin-contract.md)。
 
 ## 独立部署（便携预览）
 
 Windows build 成功通过完整验证后额外上传 `FCS-Gateway-x64` Artifact，内含 Gateway 独立自包含 .NET 8 运行时、依赖和配置文件。解压后可执行 `FluentControl.FcsGateway.exe --serve`；关闭前使用 `--stop`，或在控制台按 Ctrl+C。无需安装 FC、网站登录或网关级管理员权限。**这是便携预览，不是独立 MSI/Setup 安装器**；目前仅提供 Named Pipe 控制面，没有独立桌面 UI。一个用户同时运行 FC 捆绑的 Gateway 与独立版时，同名互斥锁保证只能有一个实例；请避免版本不一致，切换版本先执行 `--stop`。
+
+## 插件与脚本开发版
+
+FC 传感器设置提供「C3 插件与规则」：读取存储、安装、配置/启用、手动动作、规则应用、回滚、卸载、安全模式恢复。Gateway 命令行可创建、验证和干运行复杂脚本，详见 [操作与 SDK](fcs-plugin-contract.md)。
+
+## 2026-10-27：独立设备管理与 USB 重装（开发版）
+
+运行 `FluentControl.FcsGateway.exe --manage` 打开本机浏览器管理端；服务与 FC 生命周期分离。FC 的 FCS 页面只有启动入口及远端 Gateway 连接设置，自动调节页通过勾选设备订阅信号，不再提供 USB 扫描、配网、插件安装。订阅按 deviceId/sensorId/signalId 保留，取消订阅不删除设备。当前 FC 自动亮度只订阅可读取的 illuminance/lx；设备完整传感器由 FCS 展示。
+
+管理端绑定随机 loopback 端口，通过 URL fragment 传递会话 bearer，页面取走后移除 fragment；管理请求验证 Host/Origin 和 bearer，不开放 CORS。设备卡片合并同一 ID 的 USB/LAN，详情读取 sensors.list。USB 配网、设备插件及规则、恢复出厂集中在这里。网关脚本单独列出已安装配置；创建、验证与干运行继续使用 --script-* CLI。管理端关闭不停止 Gateway；会话服务器最长运行 8 小时。
+
+USB 重装选择明确的 COM 与 FCS `fcs.recovery/1` ZIP，先校验板型、容量、大小和 SHA-256，再检查实际芯片/4 MB Flash，持有串口互斥锁执行 erase-flash/write-flash/verify-flash。清除用户配置、插件及 Wi-Fi；不自动重试、不写 eFuse，失败可再次进入 BOOT 后重装。不需要 Thonny 或另装 Python，完整 Windows 包附带 esptool v5.1.0（上游 GPL 许可证和下载包 SHA 固定）。恢复包从 FCS 的 C3 frozen recovery firmware 构建产物获取，应用源码 ZIP 不可用于重装。
+
+SHA-256 用于完整性检查，不是发布者签名；只安装可信来源的恢复包。重装验证通过不等于传感器实机功能验收。管理端当前为 Windows 本机 USB Gateway；Linux/Docker host 继续使用既有只读网络接口，此变更不开放远程写入或跨主机刷写。
+
+### Standalone manager and recovery
+
+Run `FluentControl.FcsGateway.exe --manage` for the local device dashboard. FC only subscribes; the Gateway owns discovery, USB configuration, plugins and recovery. Recovery requires an explicitly selected COM port and erase confirmation. Use the complete Windows package (bundled esptool) and a trusted FCS frozen recovery ZIP. All user data is erased. No eFuses are burned; physical BOOT recovery remains available. Linux/Docker read-only hosting is unchanged. Actual C3 flashing and sensor acceptance remain separate from automated checks.
+
+
+## 身份验证恢复（替代上文无标识的早期重装流程）
+
+恢复现在仅接受 `fcs.recovery/2`，并要求制造时通过专用 Thonny 固件及初始化脚本写入 FCSID001 标识。COM、USB VID/PID、ESP32-C3 和 4 MB 都不是 FCS 身份证明。管理页面先“验证 FCS 设备”，匹配板型和芯片 MAC 后才启用重装；后台同样验证，不依赖按钮保护。程序损坏可用 BOOT 模式读取标识，不依赖旧电脑登记。
+
+恢复工具是打包的 `esptool/fcs-recovery.exe`：同一物理连接内读标识、验证、擦除、写入及读回，无重连重试。固定 4 KB 身份区不进入擦除范围，固件分区表也必须保留它。无强制重装未知设备入口。首次制作、标识完全丢失需维护者用 Thonny 首装。说明见 FCS 仓库 `docs/c3-install-recovery.md`。旧构建不具备这些保护，应使用本次新构建。
+
+Identity-gated recovery requires a manufacturing marker bound to the factory MAC and the exact board. The bundled worker validates and flashes over one physical connection, preserves the reserved 4 KiB sector, and refuses unknown devices. First-time enrollment is a separate, explicit Thonny workflow. This prevents accidental flashing, not deliberate forgery. Real hardware acceptance is pending.
+
+## 2026-10-29：统一 Windows/Linux 管理体验（开发版）
+
+两端嵌入同一份 manager.html/js，通过共享 FcsManagement 的 manager.capabilities 与脚本清单报告实际能力。Linux 新增带独立 manager.token 的管理登录、主动 LAN 发现、设备登记增改/移除；配置原子保存并即时生效。既有 gateway.token 保持 FC/HA 只读；Linux 不开放 USB、设备写入或刷写。FC 管理入口跟随当前网关，远程只打开验证后的根 URL，不传递读取令牌。操作与反向代理 Origin 设置见 [宿主说明](fcs-gateway-host.md)。
+
+验证包括宿主自检、真实 HTTP 权限/来源/配置持久化边界和两端共用页面回归；Windows 安装包与 Linux x64/arm64 CI 单独核对，实体 C3/NAS/Pi 仍须实测。CH552 保留旧内容，不扩展能力。

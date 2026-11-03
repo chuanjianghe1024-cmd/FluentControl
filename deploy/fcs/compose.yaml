@@ -1,0 +1,26 @@
+services:
+  gateway:
+    build:
+      context: ../..
+      dockerfile: deploy/fcs/Dockerfile
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:8767:8080"
+    volumes:
+      - fcs-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+volumes:
+  fcs-data:

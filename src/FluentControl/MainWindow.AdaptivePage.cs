@@ -32,7 +32,7 @@ public sealed partial class MainWindow
             settingsNavigation.MenuItems.Add(new NavigationViewItem { Content = title, Tag = id }); build(body);
         }
         Section("presets", T("预设与调节", "Presets & adjustment"), BuildAdaptiveSettings);
-        Section("devices", T("设备与接入", "Devices & setup"), body => { BuildSensorOnboarding(body); BuildLightDeviceSettings(body); });
+        Section("devices", T("订阅 FCS 设备", "Subscribe to FCS devices"), BuildLightDeviceSettings);
         Section("history", T("历史记录", "History"), BuildSensorHistoryPage);
         settingsNavigation.SelectionChanged += (_, e) =>
         {

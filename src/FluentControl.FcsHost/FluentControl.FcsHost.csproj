@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../FluentControl.FcsGateway/FcsManagement.cs" Link="FcsManagement.cs" />
+    <EmbeddedResource Include="../../tools/fcs-manager/manager.html" LogicalName="FcsManager.manager.html" />
+    <EmbeddedResource Include="../../tools/fcs-manager/manager.js" LogicalName="FcsManager.manager.js" />
+    <Compile Include="../FluentControl.FcsGateway/FcsScripts.cs" Link="FcsScripts.cs" />
+    <Content Include="../../tools/gateway-scripts/runner.py" Link="fcs-script-runner.py" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Compile Include="../FluentControl.FcsGateway/FcsNode.cs" Link="FcsNode.cs" />
+  </ItemGroup>
+</Project>
