@@ -3,6 +3,7 @@ using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using FluentControl.FcsOpcUa;
 using Opc.Ua;
 using Opc.Ua.Client;
@@ -73,6 +74,14 @@ try
     Check(reader.Convert(Envelope(1), signal).StatusCode == StatusCodes.Good, "typed FCS sample decoded");
     Check(reader.Convert(Envelope(2, fresh: false), signal).StatusCode == StatusCodes.BadNoCommunication, "latest cache not labeled real-time");
     Check(reader.Convert(Envelope(3, valid: false), signal).StatusCode == StatusCodes.BadSensorFailure, "unavailable driver not fabricated");
+    var mixed = JsonNode.Parse(Envelope(100).GetRawText())!;
+    mixed["transport"] = "adapter";
+    mixed["sampleAgeMilliseconds"] = 60000;
+    mixed["receivedAtUtc"] = DateTime.UtcNow.AddMinutes(-1);
+    mixed["result"]!["data"]![0]!["extensions"] = JsonSerializer.SerializeToNode(new Dictionary<string, object> {
+        ["fcs.adapter"] = new { sampleAgeMilliseconds = 0, receivedAtUtc = DateTime.UtcNow } });
+    Check(reader.Convert(JsonSerializer.SerializeToElement(mixed), signal).StatusCode == StatusCodes.Good,
+        "independent adapter timing survives a stale sibling");
     Check(MountReader.ValidateSample(signal, new DataValue { Value = null, StatusCode = StatusCodes.Good, SourceTimestamp = DateTime.UtcNow }, 2000).StatusCode == StatusCodes.BadTypeMismatch, "null mount value cannot resurrect last good value");
     Check(MountReader.ValidateSample(signal, new DataValue { Value = 1d, StatusCode = StatusCodes.Good, SourceTimestamp = DateTime.UtcNow.AddMinutes(-1) }, 2000).StatusCode == StatusCodes.BadNoCommunication, "mount preserves stale source age");
     if (OperatingSystem.IsWindows())

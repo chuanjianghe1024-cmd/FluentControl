@@ -209,17 +209,23 @@ internal sealed class FcsAdapters
                             value = fresh ? (object?)sample!.Value : null, valid = fresh, fresh = fresh && !latest,
                             sequence = sample?.Sequence ?? 0, uptimeMs = sample?.Uptime ?? 0,
                             status = fresh ? (latest ? "cached" : "ready") : "adapter_unavailable",
-                            extensions = new Dictionary<string, object> { ["fcs.adapter"] = new { adapterId = owner, kind, timestampBasis = "adapter-receipt" } } };
+                            extensions = new Dictionary<string, object> { ["fcs.adapter"] = new { adapterId = owner, kind, timestampBasis = "adapter-receipt",
+                                receivedAtUtc = sample?.ReceivedAtUtc,
+                                sampleAgeMilliseconds = (int)Math.Min(int.MaxValue, sample == null ? s.StaleMilliseconds + 1 : Age(sample)) } } };
                     }).ToArray(); break;
             }
             return new { protocol = "fcs-gateway/1", result = frame, transport = "adapter", receivedAtUtc = received,
                 sampleAgeMilliseconds = (int)Math.Min(int.MaxValue, age), maxAgeMilliseconds = maximum };
         }
     }
-    public async Task RunAsync(CancellationToken cancel)
+    public Task RunAsync(CancellationToken cancel)
     {
-        if (Port == 0) return;
+        if (Port == 0) return Task.CompletedTask;
         var listener = new TcpListener(IPAddress.Loopback, Port); listener.Start(4);
+        return AcceptAsync(listener, cancel);
+    }
+    private async Task AcceptAsync(TcpListener listener, CancellationToken cancel)
+    {
         using var active = new SemaphoreSlim(4); var tasks = new List<Task>();
         try
         {

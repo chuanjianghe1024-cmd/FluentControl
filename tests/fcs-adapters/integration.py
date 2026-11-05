@@ -92,6 +92,16 @@ def main(args):
             reader = (directory / "gateway.token").read_text()
             manager = (directory / "manager.token").read_text()
             token = (directory / "adapter-tokens/test.token").read_text()
+            # A configured but unavailable producer port must fail startup,
+            # rather than leave an apparently healthy Gateway without ingestion.
+            conflict = subprocess.Popen([args.dotnet] + ([args.host] if args.host else []),
+                env=dict(environment, ASPNETCORE_URLS=f"http://127.0.0.1:{port()}"), stdout=log, stderr=log)
+            try:
+                conflict.wait(timeout=10)
+                assert conflict.returncode != 0, "Conflicting adapter port reported a successful exit"
+            finally:
+                if conflict.poll() is None:
+                    conflict.terminate(); conflict.wait(timeout=5)
             def rpc(operation, auth=reader, **kwargs):
                 request = urllib.request.Request(url, json.dumps(dict(operation=operation, **kwargs)).encode(),
                     {"Authorization": "Bearer " + auth, "Content-Type": "application/json"})

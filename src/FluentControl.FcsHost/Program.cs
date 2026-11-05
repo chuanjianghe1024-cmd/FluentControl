@@ -113,7 +113,21 @@ await app.RunAsync();
 
 internal sealed class Collector(GatewayHost host) : BackgroundService
 {
-    protected override Task ExecuteAsync(CancellationToken stoppingToken) => Task.WhenAll(host.RunAsync(stoppingToken), host.Adapters.RunAsync(stoppingToken));
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        try
+        {
+            using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+            var adapters = host.Adapters.RunAsync(lifetime.Token); // Bind before starting collection.
+            var collection = host.RunAsync(lifetime.Token);
+            if (host.Adapters.Port == 0) { await collection; return; }
+            try { await Task.WhenAny(adapters, collection); }
+            finally { lifetime.Cancel(); }
+            await Task.WhenAll(adapters, collection); // Fail visibly if either service stops.
+        }
+        catch (Exception) when (!stoppingToken.IsCancellationRequested)
+        { Environment.ExitCode = 1; throw; }
+    }
 }
 
 internal sealed class ScriptCollector(string directory, GatewayHost host) : BackgroundService

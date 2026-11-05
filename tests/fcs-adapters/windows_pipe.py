@@ -18,7 +18,18 @@ with tempfile.TemporaryDirectory() as temporary:
     executable = ROOT / "src/FluentControl.FcsGateway/bin/Release/net8.0-windows/win-x64/FluentControl.FcsGateway.exe"
     child = subprocess.Popen([str(executable), "--serve"], env=dict(os.environ, FCS_DATA=str(directory)))
     def rpc(operation, **kwargs):
-        with open(r"\\.\pipe\FluentControl.FcsGateway.v1", "r+b", buffering=0) as pipe:
+        # Like NamedPipeClientStream.ConnectAsync, wait for the next server
+        # instance. Retry only connection establishment, never a sent request.
+        deadline = time.monotonic() + 3
+        while True:
+            try:
+                pipe = open(r"\\.\pipe\FluentControl.FcsGateway.v1", "r+b", buffering=0)
+                break
+            except OSError:
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(.02)
+        with pipe:
             pipe.write(json.dumps(dict(operation=operation, **kwargs)).encode() + b"\n")
             response = bytearray()
             while len(response) < 65536:

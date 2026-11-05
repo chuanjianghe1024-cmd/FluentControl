@@ -76,7 +76,9 @@ def run(config):
         bus.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_RECV_OWN_MSGS, 0)
         if config.get("fd", False):
             bus.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_FD_FRAMES, 1)
-        filters = {(i["canId"] | (EFF if i["extended"] else 0), 0x1fffffff | EFF | RTR | ERR) for i in config["inputs"]}
+        # ERR is deliberately NOT in this mask: Linux uses it to select the
+        # error-filter list, not as an ordinary data-frame discriminator.
+        filters = {(i["canId"] | (EFF if i["extended"] else 0), 0x1fffffff | EFF | RTR) for i in config["inputs"]}
         bus.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_FILTER, b"".join(struct.pack("=II", *f) for f in filters))
         bus.bind((interface,))
         recheck = time.monotonic() + 1
