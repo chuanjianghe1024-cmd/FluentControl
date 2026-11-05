@@ -216,6 +216,10 @@ An optional sidecar adds read-only browsing, typed subscriptions, certificate tr
 
 ### Gateway 有线与 ROS 2 预览 / Wired and ROS 2 preview
 
+本轮开发版将 FC、Gateway 脚本、ROS 遥测导出与 OPC UA 接到同一订阅核心，共享采集、时间和失效状态；ROS/DDS 与 OPC UA 保留独立协议适配。有线 ROS 2 部署及后续实测见 [统一订阅指南](docs/fcs-subscriptions.md)。
+
+This preview shares acquisition, timestamps and quality across FC, scripts, ROS exports and OPC UA, with separate protocol adapters. See the shared subscription guide for Ethernet ROS 2 setup and pending physical acceptance.
+
 Gateway 开发分支新增只读 SocketCAN、ROS 2 指定话题接入和选定 FCS 信号的 ROS 遥测输出；外部设备共用设备/传感器/信号目录。FC 继续仅订阅，C3 协议不变。配置默认禁用，当前不是已发布安装包；CAN 硬件、报文资料、授权与配置见 [接入指南](docs/fcs-adapters.md)。不提供车辆/机器人控制或通用总线解锁。
 
 The Gateway development preview adds read-only SocketCAN and explicit ROS 2 topic imports, plus selected FCS telemetry exports. External resources share the device/sensor/signal catalog. FC remains a subscriber; C3 stays unchanged. Disabled by default, not yet a released installer. See the guide for hardware, message definitions, authorization and setup; no vehicle/robot control or universal bus unlocking is provided.

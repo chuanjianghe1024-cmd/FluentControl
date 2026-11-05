@@ -326,3 +326,9 @@ FcsRecovery/worker.py 改为 fcs.recovery/2 + FCSID001 固定扇区验证，UI �
 共享 FcsAdapters 管理显式虚拟资源（ext- 前缀，physical=false），Windows pipe/Linux HTTP 只读清单与 node.request 一致。loopback 生产者入口使用独立 token、固定授权目录、RAM 缓存、年龄/序号/进程重放检查；不向 LAN 开放写接口。Python worker 是可信进程，不属于受限脚本沙箱。SocketCAN 只监听，ROS 2 显式输入与遥测输出，C3 物理声明/协议不变。
 
 配置、准备资料、权限分层和限制见 docs/fcs-adapters.md。CI 覆盖 Windows pipe、Linux vcan、ROS Jazzy 与 OPC UA 回归；实体 CAN、机器人、NAS/Pi 与 FC 联调仍待验收，不把开发预览宣传成稳定发行或硬实时控制。
+
+## 2026-11-05：统一订阅与以太网 ROS 2
+
+FcsSubscriptions 是 Windows/Linux 共用实时值入口；FC、脚本、ROS 导出、OPC UA 本地导出使用 subscriptions.read。每请求最多 16 信号/2 秒等待，10 秒租期；每进程 128 信号/32 设备/32 并发订阅；按设备复用读取、冻结序号不续鲜、质量变化唤醒、慢 USB 不阻塞缓存适配器。Linux 既有后台采集/历史独立，不能宣称无人订阅即停止全部采集。
+
+协议边界和有线部署见 docs/fcs-subscriptions.md；ROS/DDS 与 OPC UA 保留独立适配，不引入 C3/FC 运行时依赖。需要配套升级客户端与 Gateway，无旧独立采集回退。CI 增加统一核心、HTTP/pipe 并发及跨容器以太网 DDS；实体网卡、交换机、SROS2/QoS、FC 联动与长期运行仍待用户验收。

@@ -65,42 +65,81 @@ _ = Task.Run(() => service.RunDiscoveryLoopAsync(lifetime.Token));
 var adapterTask = service.Adapters.RunAsync(lifetime.Token);
 _ = adapterTask.ContinueWith(_ => lifetime.Cancel(), CancellationToken.None,
     TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
-_ = new FcsScriptLoop(FcsScripts.DirectoryPath, async (input, cancel) =>
+service.Subscriptions = new(async (id, cancel) =>
 {
-    var request = JsonSerializer.Serialize(new { operation = "node.request", deviceId = input.GetProperty("deviceId").GetString(),
-        command = "data.read", arguments = new { sensorId = input.GetProperty("sensorId").GetString(), signalId = input.GetProperty("signalId").GetString(), mode = "fresh" } });
-    var response = await FcsGatewayCommands.RunAsync(request, service, usb, cancel);
-    var envelope = JsonSerializer.SerializeToElement(response.Payload);
-    if (envelope.TryGetProperty("error", out _) || !envelope.GetProperty("result").GetProperty("ok").GetBoolean()) throw new IOException("Input unavailable.");
-    return envelope.GetProperty("result").Clone();
-}).RunAsync(lifetime.Token);
+    var request = JsonSerializer.Serialize(new { operation = "node.request", deviceId = id,
+        command = "data.read", arguments = new { mode = "fresh" } });
+    return JsonSerializer.SerializeToElement((await FcsGatewayCommands.RunAsync(request, service, usb, cancel)).Payload);
+});
+service.Adapters.Changed += service.Subscriptions.Notify;
+var subscriptionTask = service.Subscriptions.RunAsync(lifetime.Token);
+_ = subscriptionTask.ContinueWith(_ => lifetime.Cancel(), CancellationToken.None,
+    TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+_ = new FcsScriptLoop(FcsScripts.DirectoryPath, service.Subscriptions.ScriptFrameAsync).RunAsync(lifetime.Token);
 // The gateway owns USB discovery even when the FC UI is closed. Re-probe on
 // port changes or every 30 seconds (for devices busy during the first attempt).
 _ = Task.Run(() => GatewayUsbDiscovery.RunAsync(usb, service, lifetime.Token));
-while (!lifetime.IsCancellationRequested)
+using var pipeSlots = new SemaphoreSlim(48);
+using var subscriptionSlots = new SemaphoreSlim(32);
+using var commandSlot = new SemaphoreSlim(1); // Preserve serialization of existing management requests.
+var clients = new List<Task>();
+async Task Serve(NamedPipeServerStream pipe)
 {
-    try
+    using (pipe)
     {
-        using var pipe = new NamedPipeServerStream(PipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
-            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
-        await pipe.WaitForConnectionAsync(lifetime.Token);
-        using var reader = new StreamReader(pipe, Encoding.UTF8, false, 4096, leaveOpen: true);
-        using var writer = new StreamWriter(pipe, new UTF8Encoding(false), 4096, leaveOpen: true) { AutoFlush = true };
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
-        timeout.CancelAfter(TimeSpan.FromSeconds(35));
-        var line = await reader.ReadLineAsync(timeout.Token);
-        if (line is null || line.Length > 4096) continue;
-        var response = await FcsGatewayCommands.RunAsync(line, service, usb, timeout.Token);
-        await writer.WriteLineAsync(JsonSerializer.Serialize(response.Payload,
-            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
-        if (response.Shutdown) lifetime.Cancel();
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+            timeout.CancelAfter(TimeSpan.FromSeconds(35));
+            using var reader = new StreamReader(pipe, Encoding.UTF8, false, 4096, leaveOpen: true);
+            using var writer = new StreamWriter(pipe, new UTF8Encoding(false), 4096, leaveOpen: true) { AutoFlush = true };
+            // Bound input while reading, including clients that never send a newline.
+            var input = new StringBuilder(); var character = new char[1];
+            while (await reader.ReadAsync(character.AsMemory(), timeout.Token) != 0 && character[0] != '\n')
+            { if (input.Length >= 16384) return; input.Append(character[0]); }
+            var line = input.ToString();
+            if (line.Length == 0) return;
+            using var document = JsonDocument.Parse(line);
+            var subscription = document.RootElement.TryGetProperty("operation", out var operation) &&
+                operation.ValueKind == JsonValueKind.String && operation.GetString() == "subscriptions.read";
+            var limiter = subscription ? subscriptionSlots : commandSlot;
+            if (subscription && !limiter.Wait(0))
+            { await writer.WriteLineAsync("{\"protocol\":\"fcs-gateway/1\",\"error\":\"busy\"}"); return; }
+            if (!subscription) await limiter.WaitAsync(timeout.Token);
+            try
+            {
+                var response = await FcsGatewayCommands.RunAsync(line, service, usb, timeout.Token);
+                await writer.WriteLineAsync(JsonSerializer.Serialize(response.Payload,
+                    new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+                if (response.Shutdown) lifetime.Cancel();
+            }
+            finally { limiter.Release(); }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OperationCanceledException or SocketException or JsonException or InvalidOperationException)
+        { /* A disconnected/malformed reader must not stop other subscribers. */ }
+        finally { pipeSlots.Release(); }
     }
-    catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { break; }
-    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OperationCanceledException or SocketException)
-    { /* Cancelled clients and temporary network failure do not stop the gateway. */ }
 }
-
-await adapterTask; // Report bind/runtime failures; never silently leave adapters offline.
+try
+{
+    while (!lifetime.IsCancellationRequested)
+    {
+        await pipeSlots.WaitAsync(lifetime.Token);
+        NamedPipeServerStream? pipe = null;
+        try
+        {
+            pipe = new NamedPipeServerStream(PipeName, PipeDirection.InOut, 49, PipeTransmissionMode.Byte,
+                PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+            await pipe.WaitForConnectionAsync(lifetime.Token);
+            clients.RemoveAll(t => t.IsCompleted);
+            clients.Add(Serve(pipe)); pipe = null;
+        }
+        catch { pipe?.Dispose(); pipeSlots.Release(); throw; }
+    }
+}
+catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+finally { lifetime.Cancel(); await Task.WhenAll(clients); }
+await Task.WhenAll(adapterTask, subscriptionTask);
 
 internal sealed record GatewayDevice(string DeviceId, string Ip, string Status,
     double? Lux, DateTimeOffset? LastSampleUtc, DateTimeOffset LastSeenUtc,
@@ -109,6 +148,7 @@ internal sealed record GatewayDevice(string DeviceId, string Ip, string Status,
 internal sealed class GatewayRegistry : IDisposable
 {
     public FcsAdapters Adapters { get; } = new(FcsAdapters.WindowsDirectory);
+    public FcsSubscriptions? Subscriptions { get; set; }
     private sealed class Entry
     {
         public string Id = "", Ip = "", UsbPort = "", Transport = "";

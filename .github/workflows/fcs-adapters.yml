@@ -5,6 +5,9 @@ on:
       - 'src/FluentControl.FcsGateway/**'
       - 'src/FluentControl.FcsHost/**'
       - 'src/FluentControl/MainWindow.Fcs.cs'
+      - 'src/FluentControl/Services/FcsGatewayClient.cs'
+      - 'src/FluentControl/Services/FcsRemoteGateway.cs'
+      - 'tests/FluentControl.FcsSubscriptions.Tests/**'
       - 'tools/gateway-adapters/**'
       - 'tools/fcs-manager/**'
       - 'tests/fcs-adapters/**'
@@ -13,7 +16,7 @@ on:
       - 'deploy/adapters/**'
       - '.github/workflows/fcs-adapters.yml'
   push:
-    branches: [main, codex/gateway-adapters]
+    branches: [main, codex/gateway-adapters, codex/gateway-subscriptions]
   workflow_dispatch:
 permissions:
   contents: read
@@ -49,6 +52,7 @@ jobs:
       - name: Build host and test live HTTP/TCP boundaries
         run: |
           dotnet build src/FluentControl.FcsHost -c Release
+          dotnet run --project tests/FluentControl.FcsSubscriptions.Tests -c Release
           dotnet run --project tests/FluentControl.FcsAdapters.Tests -c Release
           dotnet run --project src/FluentControl.FcsHost -c Release --no-build -- --self-test
           python -m unittest discover -s tests/fcs-adapters -v
@@ -60,6 +64,7 @@ jobs:
           dotnet run --project src/FluentControl.FcsGateway -c Release --no-build -- --self-test
           python tests/fcs-adapters/windows_pipe.py
           dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
+          dotnet run --project tests/FluentControl.Tests -c Release
       - name: Verify SocketCAN kernel path
         if: runner.os == 'Linux'
         run: |
@@ -88,7 +93,9 @@ jobs:
             host-out/
             tools/gateway-adapters/*.py
             deploy/adapters/*.json
+            deploy/adapters/*.xml
             docs/fcs-adapters.md
+            docs/fcs-subscriptions.md
             LICENSE
           retention-days: 14
   ros2:
@@ -102,6 +109,17 @@ jobs:
         run: docker build -f deploy/adapters/Dockerfile.test -t fcs-ros-test .
       - name: ROS publish/subscribe and Gateway contract
         run: docker run --rm fcs-ros-test
+      - name: ROS subscription across two Ethernet peers
+        run: |
+          docker network create fcs-wired-test
+          docker run -d --name fcs-ros-peer --network fcs-wired-test -e ROS_LOCALHOST_ONLY=0 -e ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp -e CYCLONEDDS_URI=file:///test/cyclonedds-ethernet.xml fcs-ros-test python3 /test/tests/fcs-adapters/ros_peer.py
+          docker run --rm --network fcs-wired-test -e ROS_LOCALHOST_ONLY=0 -e ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp -e CYCLONEDDS_URI=file:///test/cyclonedds-ethernet.xml fcs-ros-test python3 /test/tests/fcs-adapters/integration.py --dotnet /host/FluentControl.FcsHost --host= --ros-peer
+      - name: Stop Ethernet test peer
+        if: always()
+        run: |
+          docker logs fcs-ros-peer || true
+          docker rm -f fcs-ros-peer || true
+          docker network rm fcs-wired-test || true
   opcua-regression:
     runs-on: ubuntu-latest
     timeout-minutes: 15

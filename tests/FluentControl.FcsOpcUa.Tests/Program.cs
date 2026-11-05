@@ -30,10 +30,12 @@ await File.WriteAllTextAsync(origin.GatewayTokenFile!, new string('a', 64));
 using var cts = new CancellationTokenSource();
 using var http = new HttpListener(); http.Prefixes.Add(origin.GatewayUrl!); http.Start();
 long sequence = 0; int requests = 0; bool frozen = false;
+var sampleTimes = new System.Collections.Concurrent.ConcurrentDictionary<long, DateTime>();
 JsonElement Envelope(long seq, bool fresh = true, bool valid = true, double value = 42) => JsonSerializer.SerializeToElement(new {
-    protocol = "fcs-gateway/1", result = new { protocol = "fcs-node/2", deviceId = signal.DeviceId, ok = true,
-        data = new[] { new { sensorId = signal.SensorId, signalId = signal.SignalId, valueType = "number", unit = "lx", value, valid, fresh,
-            status = valid ? (fresh ? "ready" : "cached") : "driver_unavailable", sequence = seq, uptimeMs = seq * 500 } } }
+    protocol = "fcs-gateway/1", subscriptionProtocol = "fcs-subscription/1", cursor = "fixture." + seq, changed = true, waitedMilliseconds = 0,
+    samples = new[] { new { deviceId = signal.DeviceId, sensorId = signal.SensorId, signalId = signal.SignalId, valueType = "number", unit = "lx", value,
+        valid, fresh, status = !valid ? "unavailable" : fresh ? "ready" : "stale", sequence = seq, uptimeMs = seq * 500,
+        sampleAgeMilliseconds = 0, maxAgeMilliseconds = 2000, receivedAtUtc = sampleTimes.GetOrAdd(seq, _ => DateTime.UtcNow) } }
 });
 var fixture = Task.Run(async () => {
     try {
@@ -43,8 +45,8 @@ var fixture = Task.Run(async () => {
             using var request = JsonDocument.Parse(await body.ReadToEndAsync(cts.Token));
             var json = request.RootElement;
             if (context.Request.Headers["Authorization"] != "Bearer " + new string('a', 64) ||
-                json.GetProperty("operation").GetString() != "node.request" || json.GetProperty("command").GetString() != "data.read" ||
-                json.GetProperty("arguments").GetProperty("mode").GetString() != "fresh")
+                json.GetProperty("operation").GetString() != "subscriptions.read" ||
+                json.GetProperty("arguments").GetProperty("signals")[0].GetProperty("deviceId").GetString() != signal.DeviceId)
                 throw new Exception("Unexpected Gateway request or credentials.");
             Interlocked.Increment(ref requests);
             var payload = Encoding.UTF8.GetBytes(Envelope(frozen ? sequence : Interlocked.Increment(ref sequence)).GetRawText());
@@ -75,13 +77,11 @@ try
     Check(reader.Convert(Envelope(2, fresh: false), signal).StatusCode == StatusCodes.BadNoCommunication, "latest cache not labeled real-time");
     Check(reader.Convert(Envelope(3, valid: false), signal).StatusCode == StatusCodes.BadSensorFailure, "unavailable driver not fabricated");
     var mixed = JsonNode.Parse(Envelope(100).GetRawText())!;
-    mixed["transport"] = "adapter";
-    mixed["sampleAgeMilliseconds"] = 60000;
-    mixed["receivedAtUtc"] = DateTime.UtcNow.AddMinutes(-1);
-    mixed["result"]!["data"]![0]!["extensions"] = JsonSerializer.SerializeToNode(new Dictionary<string, object> {
-        ["fcs.adapter"] = new { sampleAgeMilliseconds = 0, receivedAtUtc = DateTime.UtcNow } });
+    var sibling = mixed["samples"]![0]!.DeepClone();
+    sibling["signalId"] = "stale-sibling"; sibling["receivedAtUtc"] = DateTime.UtcNow.AddMinutes(-1);
+    mixed["samples"]!.AsArray().Add(sibling);
     Check(reader.Convert(JsonSerializer.SerializeToElement(mixed), signal).StatusCode == StatusCodes.Good,
-        "independent adapter timing survives a stale sibling");
+        "independent subscription timing survives a stale sibling");
     Check(MountReader.ValidateSample(signal, new DataValue { Value = null, StatusCode = StatusCodes.Good, SourceTimestamp = DateTime.UtcNow }, 2000).StatusCode == StatusCodes.BadTypeMismatch, "null mount value cannot resurrect last good value");
     Check(MountReader.ValidateSample(signal, new DataValue { Value = 1d, StatusCode = StatusCodes.Good, SourceTimestamp = DateTime.UtcNow.AddMinutes(-1) }, 2000).StatusCode == StatusCodes.BadNoCommunication, "mount preserves stale source age");
     if (OperatingSystem.IsWindows())
@@ -93,7 +93,7 @@ try
                 await pipe.WaitForConnectionAsync(cts.Token);
                 using var input = new StreamReader(pipe, Encoding.UTF8, leaveOpen: true);
                 using var message = JsonDocument.Parse((await input.ReadLineAsync(cts.Token))!);
-                if (message.RootElement.GetProperty("command").GetString() != "data.read") throw new Exception("Unexpected pipe command");
+                if (message.RootElement.GetProperty("operation").GetString() != "subscriptions.read") throw new Exception("Unexpected pipe command");
                 await pipe.WriteAsync(Encoding.UTF8.GetBytes(Envelope(99).GetRawText() + "\n"), cts.Token);
                 await pipe.FlushAsync(cts.Token);
             });
