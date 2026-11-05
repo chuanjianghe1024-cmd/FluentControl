@@ -129,6 +129,7 @@ class Reader:
 def run(config):
     validate(config)
     import rclpy
+    from rclpy.executors import ExternalShutdownException
     from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
     from std_msgs.msg import Float64, Int64, Bool, String
     from sensor_msgs.msg import Illuminance, Temperature, BatteryState
@@ -180,12 +181,14 @@ def run(config):
         node.create_timer(.1, export)
     try:
         rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
     finally:
         stopping.set()
         if worker:
             worker.join(timeout=4)
         node.destroy_node()
-        rclpy.shutdown()
+        rclpy.try_shutdown()
 
 
 if __name__ == "__main__":

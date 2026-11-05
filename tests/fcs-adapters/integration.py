@@ -284,7 +284,9 @@ def main(args):
                     stop = Bool(); stop.data = True; stop_peer.publish(stop)
                 until(lambda: not unified_value()["valid"])
                 node.destroy_node(); rclpy.shutdown()
-                print("PASS real ROS pub/sub import, telemetry failure quality, expiration", flush=True)
+                child.terminate(); child.wait(timeout=5)
+                assert child.returncode == 0, "ROS worker did not shut down cleanly"
+                print("PASS real ROS pub/sub import, telemetry failure quality, expiration and clean shutdown", flush=True)
             assert host.poll() is None
         except BaseException:
             log.flush(); log.seek(0); print(log.read())

@@ -1,5 +1,6 @@
 """CI peer in a separate Ethernet network namespace; no device controls."""
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from std_msgs.msg import Float64, String, Bool
 
 rclpy.init()
@@ -26,5 +27,7 @@ node.create_subscription(Bool, "/test/stop_light", stop, 1)
 node.create_timer(.1, publish)
 try:
     rclpy.spin(node)
+except (KeyboardInterrupt, ExternalShutdownException):
+    pass
 finally:
-    node.destroy_node(); rclpy.shutdown()
+    node.destroy_node(); rclpy.try_shutdown()
