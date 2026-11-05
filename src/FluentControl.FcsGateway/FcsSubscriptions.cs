@@ -201,7 +201,7 @@ internal sealed class FcsSubscriptions(Func<string, CancellationToken, Task<Json
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancel); deadline.CancelAfter(3000);
             envelope = await read(device, deadline.Token);
         }
-        catch (Exception e) when (e is IOException or HttpRequestException or OperationCanceledException or InvalidOperationException or JsonException or KeyNotFoundException or TimeoutException or UnauthorizedAccessException or System.Net.Sockets.SocketException) { }
+        catch (Exception e) when (e is InvalidDataException or IOException or HttpRequestException or OperationCanceledException or InvalidOperationException or JsonException or KeyNotFoundException or TimeoutException or UnauthorizedAccessException or System.Net.Sockets.SocketException) { }
         lock (gate)
         {
             foreach (var entry in entries.Values.Where(e => e.Key.DeviceId == device))

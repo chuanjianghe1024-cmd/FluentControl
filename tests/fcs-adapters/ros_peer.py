@@ -6,8 +6,9 @@ from std_msgs.msg import Float64, String, Bool
 rclpy.init()
 node = rclpy.create_node("fcs_ethernet_fixture")
 light = node.create_publisher(Float64, "/test/light", 1)
-acknowledgment = node.create_publisher(String, "/test/export_seen", 1)
-node.create_subscription(String, "/fcs/telemetry/light", acknowledgment.publish, 1)
+for name in ("light", "copy", "other"):
+    acknowledgment = node.create_publisher(String, "/test/export_seen/" + name, 1)
+    node.create_subscription(String, "/fcs/telemetry/" + name, acknowledgment.publish, 1)
 enabled = True
 
 

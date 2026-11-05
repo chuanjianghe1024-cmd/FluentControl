@@ -84,6 +84,38 @@ class Workers(unittest.TestCase):
                 self.assertIsNone(producer.flush())
                 connect.assert_not_called()
 
+    def test_ros_source_fans_out_without_duplicate_subscription(self):
+        source = dict(deviceId="c3-test", sensorId="light", signalId="illuminance", valueType="number", unit="lx")
+        other = dict(source, deviceId="c3-other")
+        exports = [dict(source, topic="/fcs/telemetry/first"), dict(other, topic="/fcs/telemetry/other"),
+                   dict(source, topic="/fcs/telemetry/copy")]
+        with tempfile.TemporaryDirectory() as directory:
+            token = Path(directory) / "token"; token.write_text("a" * 64)
+            gateway = dict(url="http://127.0.0.1:19500/rpc", tokenFile=str(token))
+            validate_ros(dict(adapterId="test", inputs=[], gateway=gateway, exports=exports))
+            reader = Reader(gateway)
+            def sample(item, value):
+                return dict(item, value=value, valid=True, fresh=True, status="ready", sequence=7,
+                    receivedAtUtc="2026-11-05T12:00:00Z", sampleAgeMilliseconds=0, maxAgeMilliseconds=5000)
+            values = [sample(other, 20), sample(source, 10)]  # Response order is unrelated to topic order.
+            requests = []
+            def response(request, timeout):
+                args = json.loads(request.data)["arguments"]; requests.append(args)
+                self.assertEqual(len(args["signals"]), 2, "Gateway rejects repeated selectors")
+                self.assertEqual({tuple(v[k] for k in ("deviceId", "sensorId", "signalId")) for v in args["signals"]},
+                                 {(source["deviceId"], "light", "illuminance"), (other["deviceId"], "light", "illuminance")})
+                return io.BytesIO(json.dumps(dict(protocol="fcs-gateway/1", subscriptionProtocol="fcs-subscription/1",
+                    cursor="shared-cursor", waitedMilliseconds=0, samples=values)).encode())
+            with patch.object(reader.opener, "open", side_effect=response):
+                result = reader.read(exports)
+                self.assertEqual([v["value"] for v in result], [10, 20, 10])
+                self.assertTrue(all(v["valid"] for v in result))
+                self.assertIsNot(result[0], result[2])
+                values[1].update(valid=False, fresh=False, value=None, status="stale")
+                stale = reader.read(exports)
+                self.assertEqual([v["valid"] for v in stale], [False, True, False])
+                self.assertEqual(requests[1]["cursor"], "shared-cursor")
+
     def test_ros_subscription_and_buffered_expiry(self):
         item = dict(deviceId="c3-test", sensorId="light", signalId="illuminance", valueType="number", unit="lx")
         with tempfile.TemporaryDirectory() as directory:

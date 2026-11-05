@@ -76,8 +76,12 @@ class Reader:
         result = [self.unavailable(item) for item in items]
         started = time.monotonic()
         try:
+            # Many output topics may share one source. Subscribe once per identity,
+            # then retain the existing per-output schema/quality projection below.
+            identity = ("deviceId", "sensorId", "signalId")
+            selections = {tuple(item[key] for key in identity): {key: item[key] for key in identity} for item in items}
             request = urllib.request.Request(self.url, json.dumps(dict(operation="subscriptions.read", arguments=dict(
-                signals=[{key: item[key] for key in ("deviceId", "sensorId", "signalId")} for item in items],
+                signals=list(selections.values()),
                 cursor=self.cursor, waitMilliseconds=1000))).encode(),
                 {"Content-Type": "application/json", "Authorization": "Bearer " + self.token})
             with self.opener.open(request, timeout=3) as response:

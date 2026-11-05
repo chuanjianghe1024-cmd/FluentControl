@@ -36,12 +36,18 @@ class TelemetryFixture:
                 assert self.headers.get("Authorization") == "Bearer " + token
                 request = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
                 assert request["operation"] == "subscriptions.read"
-                assert request["arguments"]["signals"][0]["deviceId"] == "c3-fixture"
-                value = dict(deviceId="c3-fixture", sensorId="light", signalId="illuminance", valueType="number", unit="lx", value=77.25,
-                             valid=fixture.valid, fresh=fixture.valid, status="ready" if fixture.valid else "stale", sequence=5, uptimeMs=5000,
-                             sampleAgeMilliseconds=0 if fixture.valid else 20000, maxAgeMilliseconds=5000, receivedAtUtc=utc())
+                selectors = [tuple(v[k] for k in ("deviceId", "sensorId", "signalId")) for v in request["arguments"]["signals"]]
+                if len(selectors) != len(set(selectors)) or set(selectors) != {("c3-fixture", "light", "illuminance"), ("c3-other", "light", "illuminance")}:
+                    self.send_error(400, "Invalid or duplicate subscription identity"); return
+                values = []
+                for device, sensor, signal in selectors:
+                    valid = fixture.valid if device == "c3-fixture" else True
+                    values.append(dict(deviceId=device, sensorId=sensor, signalId=signal, valueType="number", unit="lx",
+                        value=(77.25 if device == "c3-fixture" else 12.5) if valid else None, valid=valid, fresh=valid,
+                        status="ready" if valid else "stale", sequence=5, uptimeMs=5000,
+                        sampleAgeMilliseconds=0 if valid else 20000, maxAgeMilliseconds=5000, receivedAtUtc=utc()))
                 frame = dict(protocol="fcs-gateway/1", subscriptionProtocol="fcs-subscription/1", cursor="fixture", changed=True,
-                             waitedMilliseconds=0, samples=[value])
+                             waitedMilliseconds=0, samples=values)
                 raw = json.dumps(frame).encode()
                 self.send_response(200); self.send_header("Content-Length", str(len(raw))); self.end_headers(); self.wfile.write(raw)
             def log_message(self, *args):
@@ -203,6 +209,17 @@ def main(args):
                 assert until(producer.flush)
                 changed = waiting.result(timeout=3)
                 assert changed["changed"] and changed["samples"][0]["value"] == 201
+            selected = {k: signal[k] for k in ("deviceId", "sensorId", "signalId")}
+            mixed = rpc("subscriptions.read", arguments=dict(signals=[selected, dict(selected, deviceId="ext-missing")], waitMilliseconds=1000))
+            missing = next(v for v in mixed["samples"] if v["deviceId"] == "ext-missing")
+            assert missing["status"] == "unavailable" and missing["value"] is None
+            producer.put(mapping, 202)
+            assert until(producer.flush)
+            until(lambda: unified_value()["valid"] and unified_value()["value"] == 202)
+            assert host.poll() is None
+            assert urllib.request.urlopen(url.replace("/rpc", "/healthz"), timeout=1).status == 200
+            assert len(rpc("adapters.status", auth=manager)["adapters"]) == 2
+            print("PASS unknown subscription isolation: HTTP host, producer and healthy subscriptions remain active", flush=True)
             denied("subscriptions.read", 401, auth=token, arguments=dict(signals=[{k: signal[k] for k in ("deviceId", "sensorId", "signalId")}]))
             denied("subscriptions.read", 400, arguments=dict(signals=[], command="recovery.start"))
             until(lambda: not value()["valid"])
@@ -256,15 +273,18 @@ def main(args):
                 ros_input.update(topic="/test/light", type="std_msgs/msg/Float64", field="data", reliability="best_effort")
                 ros = dict(adapterId="test", endpoint=worker["endpoint"], inputs=[ros_input],
                     gateway=dict(url=telemetry.url, tokenFile=str(directory / "gateway.token")),
-                    exports=[dict(deviceId="c3-fixture", sensorId="light", signalId="illuminance", valueType="number", unit="lx", topic="/fcs/telemetry/light")])
+                    exports=[dict(deviceId=device, sensorId="light", signalId="illuminance", valueType="number", unit="lx", topic="/fcs/telemetry/" + name)
+                             for name, device in (("light", "c3-fixture"), ("other", "c3-other"), ("copy", "c3-fixture"))])
                 validate_ros(ros)
                 path = directory / "ros.json"; path.write_text(json.dumps(ros))
                 child = subprocess.Popen([sys.executable, str(ROOT / "tools/gateway-adapters/ros2_adapter.py"), str(path)])
                 children.append(child)
                 rclpy.init(); node = rclpy.create_node("fcs_adapter_test")
                 publisher = node.create_publisher(Float64, "/test/light", QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT))
-                received = []
-                subscription = node.create_subscription(String, "/test/export_seen" if args.ros_peer else "/fcs/telemetry/light", lambda m: received.append(json.loads(m.data)), 1)
+                received = {}
+                for name in ("light", "copy", "other"):
+                    topic = ("/test/export_seen/" if args.ros_peer else "/fcs/telemetry/") + name
+                    node.create_subscription(String, topic, lambda m, name=name: received.__setitem__(name, json.loads(m.data)), 1)
                 stop_peer = node.create_publisher(Bool, "/test/stop_light", 1)
                 def publish():
                     assert child.poll() is None, "ROS worker exited"
@@ -272,21 +292,24 @@ def main(args):
                     if not args.ros_peer:
                         publisher.publish(message)
                     rclpy.spin_once(node, timeout_sec=.05)
-                    return unified_value()["valid"] and unified_value()["value"] == 321.5 and received
+                    return unified_value()["valid"] and unified_value()["value"] == 321.5 and len(received) == 3
                 until(publish, 20)
-                assert received[-1]["valid"] is True and received[-1]["value"] == 77.25
+                assert all(v["valid"] for v in received.values())
+                assert received["light"]["value"] == received["copy"]["value"] == 77.25
+                assert received["other"]["value"] == 12.5
                 telemetry.valid = False
                 def invalid_export():
                     rclpy.spin_once(node, timeout_sec=.05)
-                    return received[-1]["valid"] is False and received[-1]["value"] is None
+                    return all(received[name]["valid"] is False and received[name]["value"] is None for name in ("light", "copy"))
                 until(invalid_export)
+                assert received["other"]["valid"] is True and received["other"]["value"] == 12.5
                 if args.ros_peer:
                     stop = Bool(); stop.data = True; stop_peer.publish(stop)
                 until(lambda: not unified_value()["valid"])
                 node.destroy_node(); rclpy.shutdown()
                 child.terminate(); child.wait(timeout=5)
                 assert child.returncode == 0, "ROS worker did not shut down cleanly"
-                print("PASS real ROS pub/sub import, telemetry failure quality, expiration and clean shutdown", flush=True)
+                print("PASS real ROS pub/sub import, shared-source topic fan-out, independent quality, expiration and clean shutdown", flush=True)
             assert host.poll() is None
         except BaseException:
             log.flush(); log.seek(0); print(log.read())

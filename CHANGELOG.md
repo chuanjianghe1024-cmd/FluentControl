@@ -2,11 +2,15 @@
 
 ## Unreleased — shared Gateway subscriptions
 
+- 隔离未知/失效外部资源的读取异常，避免一个订阅停止整个 Host；同一信号导出多个 ROS 话题时按源去重订阅。Isolate invalid source failures and deduplicate ROS export selectors while preserving all output topics.
+
 - Windows/Linux 共用 `subscriptions.read`、按设备复用采集、变化游标、租期及过期状态；FC、脚本、ROS 输出和 OPC UA 本地导出统一消费，保留各自协议与权限。
 - 增加长轮询并发与慢源隔离，ROS 导出读线程避免阻塞输入；加入显式以太网卡配置及跨网络命名空间 DDS 测试。C3 不变，实机效果待验证。
 - Share bounded live subscriptions across FC/scripts/ROS/UA, including source timestamps, freshness, cursor waits and lease-based acquisition. Add Ethernet DDS configuration/tests; preview only, physical acceptance pending. See [guide](docs/fcs-subscriptions.md).
 
 ## Unreleased — Gateway adapters preview
+
+- 修复重叠适配器前缀造成的设备归属覆盖；启动拒绝冲突授权，接收时逐信号验证。Reject conflicting device owners before startup and verify each producer's exact signal grant.
 
 - Add explicitly granted virtual signals to the shared Windows/Linux Gateway catalog.
 - Add read-only SocketCAN and ROS 2 topic workers, and quality-bearing FCS telemetry exports to ROS.

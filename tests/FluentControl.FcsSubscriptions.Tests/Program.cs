@@ -88,4 +88,22 @@ var timer = Stopwatch.StartNew();
 var fast = await Read(slow, Args(signals: new[] { new { deviceId = "ext-ros-light", sensorId = "ambient", signalId = "illuminance" } }));
 Check(timer.ElapsedMilliseconds < 1000 && Sample(fast).GetProperty("valid").GetBoolean(), "slow physical device does not stall ROS/CAN cache delivery");
 slowLife.Cancel(); await slowRun;
+
+long isolatedSequence = 1;
+var isolated = new FcsSubscriptions((id, ct) => id == "ext-missing"
+    ? Task.FromException<JsonElement>(new InvalidDataException("Adapter resource unavailable."))
+    : Task.FromResult(Envelope(id, isolatedSequence))) { PollMilliseconds = 50 };
+using var isolatedLife = new CancellationTokenSource(); var isolatedRun = isolated.RunAsync(isolatedLife.Token);
+try
+{
+    var missing = await Read(isolated, Args(signals: new[] { new { deviceId = "ext-missing", sensorId = "ambient", signalId = "illuminance" } }));
+    Check(Sample(missing).GetProperty("status").GetString() == "unavailable" && !isolatedRun.IsCompleted,
+        "invalid source selection becomes unavailable without stopping subscriptions");
+    var healthy = await Read(isolated, Args());
+    isolatedSequence++; isolated.Notify(key.deviceId);
+    var next = await Read(isolated, Args(healthy.GetProperty("cursor").GetString()));
+    Check(Sample(next).GetProperty("valid").GetBoolean() && Sample(next).GetProperty("sequence").GetInt64() == isolatedSequence && !isolatedRun.IsCompleted,
+        "healthy subscribers still receive updates after another source fails");
+}
+finally { isolatedLife.Cancel(); await isolatedRun; }
 Console.WriteLine($"{passed} shared subscription checks passed.");

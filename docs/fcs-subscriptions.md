@@ -56,6 +56,7 @@ Windows 使用同用户 pipe `FluentControl.FcsGateway.v1`，每次请求一行 
 - 下一次用同一组信号和上次 `cursor` 请求；新观察或质量变化立即返回。超时返回当前快照、`changed=false`。这是有界长轮询，不是 WebSocket，也不是每次采样的事件日志。
 - 首次 `cursor=null` 且 wait>0 会等待初始采集，最多到期限；wait=0 立即读快照，可能得到 `pending`。按三元身份匹配，不依赖 samples 排序。
 - `status` 为 `pending/ready/stale/unavailable`。仅 ready 同时 `valid=true,fresh=true`；其他状态的 value 为 null。旧身份/计数/时间可保留用于诊断，不能继续当实时值使用。
+- 合法格式但不存在的资源返回 unavailable，不会停止其他订阅或 Host。ROS 可将同一来源映射到多个输出话题：内部只订阅一次，每个话题保留自己的类型/单位检查，单一来源失效不牵连其他来源。/ Unknown resources become unavailable without stopping the Host. ROS deduplicates shared sources and projects them to every configured topic independently.
 - 游标包含进程实例。Gateway 重启后返回 `reset=true`，缓存从空开始；租期过后重新订阅也会重新采集。游标不是授权令牌，也不提供断线历史补发。
 - `waitedMilliseconds` 是服务器处理与等待耗时；客户端只将往返时间超过它的部分计入额外网络延迟，避免把长轮询等待重复计入数据年龄。消费者还应在本地计时并失效缓冲数据。
 - 同一 sequence+uptime 的重复值不会刷新原始接收时间或延长寿命；数据变化而计数不变会失效。C3 uptime 不代表 UTC；此处时间是源接收时间，不伪装成设备采样时间。
