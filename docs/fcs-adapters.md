@@ -16,6 +16,8 @@ Development preview, not a production FC/FCSD release. Gateway owns adapters and
 
 外部设备 ID 保留 `ext-适配器ID-设备名`，`physical=false`，扩展放 `extensions["fcs.adapter"]`。可查询 `node.info / sensors.list / operations.list / data.read`。此处 `mode=fresh` 指有效期内的新近接收值，不触发总线主动询问；`latest` 返回缓存标记。信号过期值为 null，不回放历史充当实时值。
 
+一个虚拟设备只能属于一个启用的适配器；不同适配器即使声明不同信号，也不能共同占用相同 deviceId。授权目录冲突会在启动时拒绝，不按配置顺序覆盖归属；接收数据还逐信号校验生产者授权。/ Each virtual device has exactly one enabled adapter owner. Conflicting grants fail at startup regardless of ordering; publishing also checks exact signal membership.
+
 本版没有 CAN 发送、UDS/ISO-TP 诊断请求、CANopen/J1939 栈、DBC 自动导入、非整字节/多路复用解码、Modbus/LIN/SOME-IP 适配器、ROS service/action、关节/电机控制或硬实时控制保证。通过被动监听只能收到设备主动发送的报文；需要请求才响应的设备暂不可用。已有复杂控制仍留在机器人/车辆主控。
 
 Reserved external IDs prevent USB/LAN fallback. Fresh reads return recently received cache entries, not on-demand bus acquisitions. No CAN transmission, diagnostics, automatic DBC import, multiplexed/bitfield decoder, Modbus/LIN/SOME-IP driver, ROS service/action or hard real-time control is implemented. Request/response-only devices need a future explicitly authorized adapter.

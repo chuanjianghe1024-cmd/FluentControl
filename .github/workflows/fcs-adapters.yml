@@ -8,6 +8,7 @@ on:
       - 'tools/gateway-adapters/**'
       - 'tools/fcs-manager/**'
       - 'tests/fcs-adapters/**'
+      - 'tests/FluentControl.FcsAdapters.Tests/**'
       - 'tests/fcs-manager/**'
       - 'deploy/adapters/**'
       - '.github/workflows/fcs-adapters.yml'
@@ -48,6 +49,7 @@ jobs:
       - name: Build host and test live HTTP/TCP boundaries
         run: |
           dotnet build src/FluentControl.FcsHost -c Release
+          dotnet run --project tests/FluentControl.FcsAdapters.Tests -c Release
           dotnet run --project src/FluentControl.FcsHost -c Release --no-build -- --self-test
           python -m unittest discover -s tests/fcs-adapters -v
           python tests/fcs-adapters/integration.py

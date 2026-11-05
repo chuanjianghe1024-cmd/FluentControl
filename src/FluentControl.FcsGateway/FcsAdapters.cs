@@ -36,6 +36,7 @@ internal sealed class FcsAdapters
     private sealed class Producer(Grant grant, string token)
     {
         public readonly Grant Grant = grant;
+        public readonly HashSet<string> SignalKeys = grant.Signals.Select(s => s.Key).ToHashSet(StringComparer.Ordinal);
         public readonly string Token = token;
         public string Boot = "";
         public long Sequence = -1, LastBatchTicks;
@@ -75,6 +76,8 @@ internal sealed class FcsAdapters
                     signal.ValueType is not ("number" or "integer" or "boolean" or "string") || signal.Unit is null || signal.Unit.Length > 64 ||
                     signal.StaleMilliseconds is < 500 or > 60000 || !keys.Add(signal.Key)) throw new InvalidDataException("Invalid adapter signal.");
                 if (!grant.Enabled) continue;
+                if (owners.TryGetValue(signal.DeviceId, out var owner) && owner != grant.Id)
+                    throw new InvalidDataException("A virtual device must belong to exactly one enabled adapter.");
                 signals.Add(signal.Key, signal); owners[signal.DeviceId] = grant.Id;
             }
             if (grant.Enabled) producers.Add(grant.Id, new Producer(grant, ""));
@@ -135,7 +138,8 @@ internal sealed class FcsAdapters
             {
                 Fields(item, "deviceId", "sensorId", "signalId", "sequence", "receivedAtUtc", "valid", "value");
                 var key = Text(item, "deviceId") + "/" + Text(item, "sensorId") + "/" + Text(item, "signalId");
-                if (!signals.TryGetValue(key, out var signal) || owners[signal.DeviceId] != producer.Grant.Id || pending.ContainsKey(key)) throw new InvalidDataException("Signal outside adapter grant.");
+                if (!producer.SignalKeys.Contains(key) || !signals.TryGetValue(key, out var signal) ||
+                    owners[signal.DeviceId] != producer.Grant.Id || pending.ContainsKey(key)) throw new InvalidDataException("Signal outside adapter grant.");
                 var valid = item.GetProperty("valid").GetBoolean(); var value = item.GetProperty("value");
                 if (valid ? !ValidValue(value, signal.ValueType) : value.ValueKind != JsonValueKind.Null) throw new InvalidDataException("Invalid adapter value.");
                 var received = item.GetProperty("receivedAtUtc").GetDateTimeOffset();

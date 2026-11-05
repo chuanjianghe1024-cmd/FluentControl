@@ -2,6 +2,8 @@
 
 ## Unreleased — Gateway adapters preview
 
+- 修复重叠适配器前缀造成的设备归属覆盖；启动拒绝冲突授权，接收时逐信号验证。Reject conflicting device owners before startup and verify each producer's exact signal grant.
+
 - Add explicitly granted virtual signals to the shared Windows/Linux Gateway catalog.
 - Add read-only SocketCAN and ROS 2 topic workers, and quality-bearing FCS telemetry exports to ROS.
 - Keep FC subscriptions and C3 protocol unchanged; document hardware, authorization and physical acceptance limits in `docs/fcs-adapters.md`.
