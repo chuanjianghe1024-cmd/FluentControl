@@ -19,7 +19,7 @@ def validate(config):
         raise ValueError("Invalid CAN interface/options")
     for item in config["inputs"]:
         fields(item, ("deviceId", "sensorId", "signalId", "staleMilliseconds", "canId", "extended",
-                      "offset", "length", "byteOrder", "signed", "factor", "bias"))
+                      "offset", "length", "byteOrder", "signed", "factor", "bias"), ("invalidRaw",))
         if type(item["extended"]) is not bool or type(item["signed"]) is not bool:
             raise ValueError("CAN flags must be boolean")
         if type(item["canId"]) is not int or not 0 <= item["canId"] <= (0x1fffffff if item["extended"] else 0x7ff):
@@ -30,6 +30,11 @@ def validate(config):
                 item["byteOrder"] not in ("little", "big") or
                 any(type(item[k]) not in (int, float) or not math.isfinite(item[k]) for k in ("factor", "bias"))):
             raise ValueError("Invalid byte-aligned CAN mapping")
+        invalid = item.get("invalidRaw", [])
+        bits = item["length"] * 8
+        minimum, maximum = (-(1 << (bits - 1)), (1 << (bits - 1)) - 1) if item["signed"] else (0, (1 << bits) - 1)
+        if not isinstance(invalid, list) or len(invalid) > 32 or any(type(v) is not int or not minimum <= v <= maximum for v in invalid):
+            raise ValueError("Invalid raw-value sentinels")
 
 
 def check_interface(name, fd=False):
@@ -61,6 +66,8 @@ def decode(packet, item):
     if start + size > length:
         return None
     raw = int.from_bytes(packet[8 + start:8 + start + size], item["byteOrder"], signed=item["signed"])
+    if raw in item.get("invalidRaw", []):
+        return math.nan  # Publisher emits valid=false/null immediately.
     return raw * item["factor"] + item["bias"]
 
 

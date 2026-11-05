@@ -203,6 +203,27 @@ def main(args):
                 until(lambda: not value()["valid"])
                 child.terminate(); child.wait(timeout=5)
                 print("PASS real vcan kernel frames -> worker -> Gateway -> expiration", flush=True)
+                worker["fd"] = True
+                worker["inputs"] = [dict(mapping, canId=0x12345, extended=True, offset=62, factor=1, invalidRaw=[65535])]
+                path.write_text(json.dumps(worker))
+                child = subprocess.Popen([sys.executable, str(ROOT / "tools/gateway-adapters/socketcan_adapter.py"), str(path)])
+                children.append(child)
+                with socket.socket(socket.AF_CAN, socket.SOCK_RAW, socket.CAN_RAW) as transmitter:
+                    transmitter.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_FD_FRAMES, 1)
+                    transmitter.bind((args.vcan,))
+                    fd_packet = struct.pack("=IBB2x64s", 0x80012345, 64, 1, b"\0" * 62 + b"\x34\x12")
+                    def transmit_fd():
+                        assert child.poll() is None, "CAN FD worker exited"
+                        transmitter.send(fd_packet)
+                        return value()["valid"] and value()["value"] == 0x1234
+                    until(transmit_fd)
+                    invalid_packet = struct.pack("=IBB2x64s", 0x80012345, 64, 1, b"\0" * 62 + b"\xff\xff")
+                    def transmit_invalid():
+                        transmitter.send(invalid_packet)
+                        return not value()["valid"]
+                    until(transmit_invalid)
+                child.terminate(); child.wait(timeout=5)
+                print("PASS real vcan CAN FD extended ID, final payload bytes and invalid sentinel", flush=True)
 
             if args.ros:
                 import rclpy

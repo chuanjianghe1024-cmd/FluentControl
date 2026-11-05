@@ -37,7 +37,7 @@ python3 tools/gateway-adapters/socketcan_adapter.py /etc/fcs/socketcan.json
 python3 tools/gateway-adapters/ros2_adapter.py /etc/fcs/ros2.json
 ```
 
-CAN 配置见 [socketcan.example.json](../deploy/adapters/socketcan.example.json)：`canId` 是 JSON 十进制（示例 291 = 0x123），`offset` 为从 0 开始的字节偏移，`length` 为 1..8 字节，结果为 `整数 × factor + bias`。示例报文/倍率只是测试数据，不能直接用于未知硬件。
+CAN 配置见 [socketcan.example.json](../deploy/adapters/socketcan.example.json)：`canId` 是 JSON 十进制（示例 291 = 0x123），`offset` 为从 0 开始的字节偏移，`length` 为 1..8 字节，结果为 `整数 × factor + bias`。可选 `invalidRaw` 数组列出厂商定义的无效原始整数（按 signed 解码后比较），命中时立即发布 null/invalid。示例报文/倍率只是测试数据，不能直接用于未知硬件。
 
 ROS 输入见 [ros2.example.json](../deploy/adapters/ros2.example.json)；仅导出见 [ros2-export.example.json](../deploy/adapters/ros2-export.example.json)。导出使用独立的 **gateway.token 读取凭据**，不使用 manager.token 或生产者 token；当前导出 worker 连接同机 Linux/HTTP host 的 `127.0.0.1:<port>/rpc`，未实现 Windows 命名管道读取。可同时配置 `inputs` 与 `exports`。输出只允许 `/fcs/telemetry/*`，输入禁止该前缀，输出也不转发外部适配器资源，减少自动反馈环路。ROS remap 或其他中继仍应由部署者检查。
 

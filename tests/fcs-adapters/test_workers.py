@@ -1,5 +1,6 @@
 import copy
 import json
+import math
 from pathlib import Path
 import struct
 import sys
@@ -31,6 +32,10 @@ class Workers(unittest.TestCase):
     def test_no_error_or_remote_frames(self):
         for flag in (0x20000000, 0x40000000):
             self.assertIsNone(decode(struct.pack("=IB3x8s", flag | 0x123, 2, b"\0" * 8), self.signal))
+
+    def test_vendor_invalid_sentinel(self):
+        packet = struct.pack("=IB3x8s", 0x123, 2, b"\xff\xff" + b"\0" * 6)
+        self.assertTrue(math.isnan(decode(packet, dict(self.signal, invalidRaw=[-1]))))
 
     def test_reject_bad_maps(self):
         for key, value in (("length", 0), ("length", 9), ("canId", 0x800), ("canId", True), ("offset", -1), ("byteOrder", "motorola"), ("factor", float("nan"))):

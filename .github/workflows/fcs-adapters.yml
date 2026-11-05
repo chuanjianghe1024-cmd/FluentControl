@@ -57,6 +57,7 @@ jobs:
           dotnet build src/FluentControl.FcsGateway -c Release
           dotnet run --project src/FluentControl.FcsGateway -c Release --no-build -- --self-test
           python tests/fcs-adapters/windows_pipe.py
+          dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
       - name: Verify SocketCAN kernel path
         if: runner.os == 'Linux'
         run: |
