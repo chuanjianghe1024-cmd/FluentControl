@@ -212,3 +212,10 @@ FC defaults to its bundled local Gateway. An optional Linux/Docker Gateway can c
 已加入可选独立适配器：只读目录、类型化信号订阅、证书信任与一级 Gateway 挂载；C3 协议不变，不自动共享或上传云。尚未捆绑到 FC 安装包，配置、启动及验收范围见 [OPC UA 指南](docs/fcs-opcua.md)。
 
 An optional sidecar adds read-only browsing, typed subscriptions, certificate trust and one-hop Gateway mounts. C3 remains unchanged; exports are explicit and cloud upload stays independent. This preview is not bundled in FC installers; see the guide for setup and validation limits.
+
+
+### Gateway 有线与 ROS 2 预览 / Wired and ROS 2 preview
+
+Gateway 开发分支新增只读 SocketCAN、ROS 2 指定话题接入和选定 FCS 信号的 ROS 遥测输出；外部设备共用设备/传感器/信号目录。FC 继续仅订阅，C3 协议不变。配置默认禁用，当前不是已发布安装包；CAN 硬件、报文资料、授权与配置见 [接入指南](docs/fcs-adapters.md)。不提供车辆/机器人控制或通用总线解锁。
+
+The Gateway development preview adds read-only SocketCAN and explicit ROS 2 topic imports, plus selected FCS telemetry exports. External resources share the device/sensor/signal catalog. FC remains a subscriber; C3 stays unchanged. Disabled by default, not yet a released installer. See the guide for hardware, message definitions, authorization and setup; no vehicle/robot control or universal bus unlocking is provided.

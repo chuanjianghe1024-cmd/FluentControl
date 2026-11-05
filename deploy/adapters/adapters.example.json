@@ -1,0 +1,35 @@
+{
+  "listenPort": 18767,
+  "adapters": [
+    {
+      "id": "can",
+      "kind": "socketcan",
+      "enabled": false,
+      "signals": [
+        {
+          "deviceId": "ext-can-battery",
+          "sensorId": "pack",
+          "signalId": "voltage",
+          "valueType": "number",
+          "unit": "V",
+          "staleMilliseconds": 3000
+        }
+      ]
+    },
+    {
+      "id": "robot",
+      "kind": "ros2",
+      "enabled": false,
+      "signals": [
+        {
+          "deviceId": "ext-robot-light",
+          "sensorId": "ambient",
+          "signalId": "illuminance",
+          "valueType": "number",
+          "unit": "lx",
+          "staleMilliseconds": 3000
+        }
+      ]
+    }
+  ]
+}

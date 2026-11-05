@@ -319,3 +319,10 @@ FcsRecovery/worker.py 改为 fcs.recovery/2 + FCSID001 固定扇区验证，UI �
 独立 `FluentControl.FcsOpcUa` 适配进程连接现有 Gateway，C3 继续 fcs-node/2。按配置只读导出有稳定 origin ID 的 Signal，支持 Browse/Read/Subscription 和一级挂载。仅 Basic256Sha256 SignAndEncrypt，应用证书须显式信任，无自动接受/USB 权限继承/递归共享。SourceTimestamp 为源 Gateway 接收时间，过期/断线保留 Bad 质量。
 
 配置、跨平台构建与验收见 docs/fcs-opcua.md，回归项目 tests/FluentControl.FcsOpcUa.Tests。首版没有地图、多级路由、服务目录、逐用户 ACL、历史 UA、复杂类型或管理页入口，尚未捆绑 FC 安装包；第三方 SDK MIT 许可保留，正式发布仍需独立打包及硬件验证。
+
+
+## 2026-11-05：Gateway 外部协议适配器预览
+
+共享 FcsAdapters 管理显式虚拟资源（ext- 前缀，physical=false），Windows pipe/Linux HTTP 只读清单与 node.request 一致。loopback 生产者入口使用独立 token、固定授权目录、RAM 缓存、年龄/序号/进程重放检查；不向 LAN 开放写接口。Python worker 是可信进程，不属于受限脚本沙箱。SocketCAN 只监听，ROS 2 显式输入与遥测输出，C3 物理声明/协议不变。
+
+配置、准备资料、权限分层和限制见 docs/fcs-adapters.md。CI 覆盖 Windows pipe、Linux vcan、ROS Jazzy 与 OPC UA 回归；实体 CAN、机器人、NAS/Pi 与 FC 联调仍待验收，不把开发预览宣传成稳定发行或硬实时控制。

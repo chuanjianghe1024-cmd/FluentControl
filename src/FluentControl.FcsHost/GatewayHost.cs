@@ -15,7 +15,7 @@ internal sealed record HostConfig
     {
         if (PollMilliseconds is < 1000 or > 60000 || Nodes.Length > 32 ||
             Nodes.Select(n => n.DeviceId).Distinct(StringComparer.Ordinal).Count() != Nodes.Length ||
-            Nodes.Any(n => !FcsNode.ValidId(n.DeviceId) || !LocalIp(n.Ip)))
+            Nodes.Any(n => !FcsNode.ValidId(n.DeviceId) || FcsAdapters.IsExternal(n.DeviceId) || !LocalIp(n.Ip)))
             throw new InvalidDataException("Invalid nodes.json configuration.");
     }
     public static bool LocalIp(string value)
@@ -99,6 +99,7 @@ internal sealed class GatewayHost : IDisposable
     private readonly object configurationGate = new();
     private readonly SemaphoreSlim discoveryGate = new(1, 1);
     public readonly HostHistory History;
+    public readonly FcsAdapters Adapters;
     public TimeSpan Freshness => TimeSpan.FromMilliseconds(config.PollMilliseconds * 3 + 4000);
     public GatewayHost(HostConfig config, string directory, HttpMessageHandler? handler = null)
     {
@@ -107,6 +108,7 @@ internal sealed class GatewayHost : IDisposable
             { Timeout = TimeSpan.FromSeconds(3) };
         foreach (var node in config.Nodes) nodes[node.DeviceId] = new State(node);
         History = new(directory);
+        Adapters = new(directory);
     }
     public static async Task<JsonElement> ReadJsonAsync(Stream stream, int maximum, CancellationToken cancel)
     {
@@ -156,9 +158,10 @@ internal sealed class GatewayHost : IDisposable
     public object[] Snapshot() => nodes.Values.OrderBy(s => s.Node.DeviceId).Select(s => (object)new {
         deviceId = s.Node.DeviceId, ip = s.Node.Ip, status = Online(s) ? "online" : "offline",
         lux = (double?)null, lastSampleUtc = Volatile.Read(ref s.Latest)?.ReceivedAtUtc, transport = "lan"
-    }).ToArray();
+    }).Concat(Adapters.Snapshot()).ToArray();
     public object Node(string id, string op, JsonElement arguments)
     {
+        if (FcsAdapters.IsExternal(id)) return Adapters.Node(id, op, arguments);
         arguments = FcsNode.Arguments(op, arguments);
         if (!FcsNode.Routes.ContainsKey(op)) throw new InvalidDataException("USB required.");
         if (!nodes.TryGetValue(id, out var state) || !Online(state)) throw new IOException("Device unavailable.");
@@ -204,7 +207,7 @@ internal sealed class GatewayHost : IDisposable
     }
     public object SaveNode(string id, string ip)
     {
-        if (!FcsNode.ValidId(id) || !HostConfig.LocalIp(ip)) throw new InvalidDataException("Invalid node.");
+        if (!FcsNode.ValidId(id) || FcsAdapters.IsExternal(id) || !HostConfig.LocalIp(ip)) throw new InvalidDataException("Invalid node.");
         lock (configurationGate)
         {
             if (!nodes.ContainsKey(id) && nodes.Count >= 32) throw new InvalidDataException("Node limit reached.");
@@ -217,7 +220,7 @@ internal sealed class GatewayHost : IDisposable
     }
     public object RemoveNode(string id)
     {
-        if (!FcsNode.ValidId(id)) throw new InvalidDataException("Invalid node.");
+        if (!FcsNode.ValidId(id) || FcsAdapters.IsExternal(id)) throw new InvalidDataException("Invalid node.");
         lock (configurationGate)
         {
             Persist(config with { Nodes = config.Nodes.Where(n => n.DeviceId != id).ToArray() });
@@ -242,7 +245,7 @@ internal sealed class GatewayHost : IDisposable
                 {
                     using var doc = JsonDocument.Parse(reply.Buffer);
                     var root = doc.RootElement; var id = root.GetProperty("sourceId").GetString();
-                    if (root.GetProperty("protocol").GetString() == "fc-device/1" && FcsNode.ValidId(id))
+                    if (root.GetProperty("protocol").GetString() == "fc-device/1" && FcsNode.ValidId(id) && !FcsAdapters.IsExternal(id!))
                     {
                         var candidate = new HostNode(id!, reply.RemoteEndPoint.Address.ToString());
                         // The subsequent v2 poll validates identity before exposing anything online.

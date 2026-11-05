@@ -89,12 +89,13 @@ app.MapPost("/rpc", async (HttpContext context, GatewayHost host) =>
             throw new InvalidDataException("Invalid request.");
         string Field(string name) => root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString()! : "";
         var op = Field("operation"); var id = Field("deviceId");
-        if ((op is "manager.capabilities" or "nodes.save" or "nodes.remove" or "scripts.list") && !manager)
+        if ((op is "manager.capabilities" or "nodes.save" or "nodes.remove" or "scripts.list" or "adapters.status") && !manager)
             return Results.StatusCode(403);
         if (op == "discover" && manager) await host.ScanAsync(deadline.Token);
         object result = op switch {
             "manager.capabilities" => FcsManagement.Capabilities(usb: false, configureNodes: true),
             "scripts.list" => FcsManagement.Scripts(Path.Combine(directory, "scripts")),
+            "adapters.status" => host.Adapters.Status(),
             "nodes.save" => host.SaveNode(id, Field("ip")),
             "nodes.remove" => host.RemoveNode(id),
             "status" => new { protocol = "fcs-gateway/1", running = true, mode = "lan-host" },
@@ -112,7 +113,7 @@ await app.RunAsync();
 
 internal sealed class Collector(GatewayHost host) : BackgroundService
 {
-    protected override Task ExecuteAsync(CancellationToken stoppingToken) => host.RunAsync(stoppingToken);
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) => Task.WhenAll(host.RunAsync(stoppingToken), host.Adapters.RunAsync(stoppingToken));
 }
 
 internal sealed class ScriptCollector(string directory, GatewayHost host) : BackgroundService
