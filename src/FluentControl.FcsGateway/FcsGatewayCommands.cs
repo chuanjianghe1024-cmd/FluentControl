@@ -77,6 +77,7 @@ internal static class FcsGatewayCommands
             var port = Field(root, "port", "AUTO");
             var identity = Field(root, "deviceId");
             var arguments = root.TryGetProperty("arguments", out var args) ? args : default;
+            if (FcsAdapters.IsExternal(identity) && op != "node.request") throw new InvalidDataException("External resources are read-only.");
             if (FcsRecovery.Busy && op is not ("recovery.status" or "list" or "status" or "scripts.list" or "manager.capabilities"))
                 return new(new { protocol = Protocol, error = "maintenance" });
             switch (op)
@@ -93,10 +94,13 @@ internal static class FcsGatewayCommands
                     return new(FcsManagement.Capabilities(usb: true, configureNodes: false));
                 case "scripts.list":
                     return new(FcsManagement.Scripts(FcsScripts.DirectoryPath));
+                case "adapters.status":
+                    return new(registry.Adapters.Status());
                 case "node.request":
                 {
                     var command = Field(root, "command");
                     arguments = FcsNode.Arguments(command, arguments);
+                    if (FcsAdapters.IsExternal(identity)) return new(registry.Adapters.Node(identity, command, arguments));
                     if (!GatewayRegistry.ValidId(identity)) throw new InvalidDataException("Invalid device identity.");
                     JsonElement frame;
                     string via;
@@ -117,10 +121,10 @@ internal static class FcsGatewayCommands
                     return new(new { protocol = Protocol, result = frame, transport = via });
                 }
                 case "list":
-                    return new(new { protocol = Protocol, devices = registry.Snapshot() });
+                    return new(new { protocol = Protocol, devices = registry.Snapshot().Where(d => !FcsAdapters.IsExternal(d.DeviceId)).Cast<object>().Concat(registry.Adapters.Snapshot()).ToArray() });
                 case "discover":
                     await registry.DiscoverAsync(cancel);
-                    return new(new { protocol = Protocol, devices = registry.Snapshot() });
+                    return new(new { protocol = Protocol, devices = registry.Snapshot().Where(d => !FcsAdapters.IsExternal(d.DeviceId)).Cast<object>().Concat(registry.Adapters.Snapshot()).ToArray() });
                 case "status":
                     return new(new { protocol = Protocol, running = true, devices = registry.Snapshot().Length });
                 case "capabilities":

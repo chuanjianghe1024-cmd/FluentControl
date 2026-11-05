@@ -1,0 +1,115 @@
+name: FCS wired and ROS adapters
+on:
+  pull_request:
+    paths:
+      - 'src/FluentControl.FcsGateway/**'
+      - 'src/FluentControl.FcsHost/**'
+      - 'src/FluentControl/MainWindow.Fcs.cs'
+      - 'tools/gateway-adapters/**'
+      - 'tools/fcs-manager/**'
+      - 'tests/fcs-adapters/**'
+      - 'tests/FluentControl.FcsAdapters.Tests/**'
+      - 'tests/fcs-manager/**'
+      - 'deploy/adapters/**'
+      - '.github/workflows/fcs-adapters.yml'
+  push:
+    branches: [main, codex/gateway-adapters]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fcs-adapters-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  gateway:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            rid: linux-x64
+          - runner: ubuntu-24.04-arm
+            rid: linux-arm64
+          - runner: windows-latest
+            rid: win-x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Build host and test live HTTP/TCP boundaries
+        run: |
+          dotnet build src/FluentControl.FcsHost -c Release
+          dotnet run --project tests/FluentControl.FcsAdapters.Tests -c Release
+          dotnet run --project src/FluentControl.FcsHost -c Release --no-build -- --self-test
+          python -m unittest discover -s tests/fcs-adapters -v
+          python tests/fcs-adapters/integration.py
+      - name: Verify Windows pipe Gateway
+        if: runner.os == 'Windows'
+        run: |
+          dotnet build src/FluentControl.FcsGateway -c Release
+          dotnet run --project src/FluentControl.FcsGateway -c Release --no-build -- --self-test
+          python tests/fcs-adapters/windows_pipe.py
+          dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
+      - name: Verify SocketCAN kernel path
+        if: runner.os == 'Linux'
+        run: |
+          sudo modprobe vcan
+          sudo ip link add vcan0 type vcan
+          sudo ip link set vcan0 up
+          python tests/fcs-adapters/integration.py --vcan vcan0
+      - uses: actions/setup-node@v6
+        if: runner.os == 'Linux'
+        with:
+          node-version: '24'
+      - name: Shared manager regression
+        if: runner.os == 'Linux'
+        env:
+          NODE_PATH: ${{ runner.temp }}/fcs-ui/node_modules
+        run: |
+          npm install --prefix "$RUNNER_TEMP/fcs-ui" --no-audit --no-fund playwright@1.62.1
+          node "$NODE_PATH/playwright/cli.js" install --with-deps chromium
+          node tests/fcs-manager/ui.cjs
+      - name: Publish optional host preview
+        run: dotnet publish src/FluentControl.FcsHost -c Release -r ${{ matrix.rid }} --self-contained true -o host-out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fcs-adapters-preview-${{ matrix.rid }}
+          path: |
+            host-out/
+            tools/gateway-adapters/*.py
+            deploy/adapters/*.json
+            docs/fcs-adapters.md
+            LICENSE
+          retention-days: 14
+  ros2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build real ROS Jazzy test environment
+        run: docker build -f deploy/adapters/Dockerfile.test -t fcs-ros-test .
+      - name: ROS publish/subscribe and Gateway contract
+        run: docker run --rm fcs-ros-test
+  opcua-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet run --project tests/FluentControl.FcsOpcUa.Tests -c Release

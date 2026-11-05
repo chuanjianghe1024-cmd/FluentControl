@@ -1,0 +1,25 @@
+{
+  "adapterId": "can",
+  "endpoint": {
+    "port": 18767,
+    "tokenFile": "/var/lib/fcs/adapter-tokens/can.token"
+  },
+  "interface": "can0",
+  "fd": false,
+  "inputs": [
+    {
+      "deviceId": "ext-can-battery",
+      "sensorId": "pack",
+      "signalId": "voltage",
+      "staleMilliseconds": 3000,
+      "canId": 291,
+      "extended": false,
+      "offset": 0,
+      "length": 2,
+      "byteOrder": "little",
+      "signed": false,
+      "factor": 0.01,
+      "bias": 0
+    }
+  ]
+}

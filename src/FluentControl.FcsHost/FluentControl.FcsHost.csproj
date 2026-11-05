@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../FluentControl.FcsGateway/FcsAdapters.cs" Link="FcsAdapters.cs" />
     <Compile Include="../FluentControl.FcsGateway/FcsManagement.cs" Link="FcsManagement.cs" />
     <EmbeddedResource Include="../../tools/fcs-manager/manager.html" LogicalName="FcsManager.manager.html" />
     <EmbeddedResource Include="../../tools/fcs-manager/manager.js" LogicalName="FcsManager.manager.js" />

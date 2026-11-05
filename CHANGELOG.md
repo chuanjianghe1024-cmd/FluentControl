@@ -1,5 +1,14 @@
 # 更新记录
 
+## Unreleased — Gateway adapters preview
+
+- 修复重叠适配器前缀造成的设备归属覆盖；启动拒绝冲突授权，接收时逐信号验证。Reject conflicting device owners before startup and verify each producer's exact signal grant.
+
+- Add explicitly granted virtual signals to the shared Windows/Linux Gateway catalog.
+- Add read-only SocketCAN and ROS 2 topic workers, and quality-bearing FCS telemetry exports to ROS.
+- Keep FC subscriptions and C3 protocol unchanged; document hardware, authorization and physical acceptance limits in `docs/fcs-adapters.md`.
+
+
 ## Unreleased — OPC UA Gateway preview
 
 - 新增可选 .NET 10 OPC UA 适配进程，连接既有 Windows/Linux Gateway，按清单只读导出 Signal、订阅与一级级联，证书信任、过期/断线状态独立验证。C3 不变，不开放设备写入或自动云上传；尚未加入 FC 安装包。

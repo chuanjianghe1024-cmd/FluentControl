@@ -62,6 +62,9 @@ Console.CancelKeyPress += (_, e) => { e.Cancel = true; lifetime.Cancel(); };
 using var service = new GatewayRegistry();
 using var usb = new FcsUsb();
 _ = Task.Run(() => service.RunDiscoveryLoopAsync(lifetime.Token));
+var adapterTask = service.Adapters.RunAsync(lifetime.Token);
+_ = adapterTask.ContinueWith(_ => lifetime.Cancel(), CancellationToken.None,
+    TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
 _ = new FcsScriptLoop(FcsScripts.DirectoryPath, async (input, cancel) =>
 {
     var request = JsonSerializer.Serialize(new { operation = "node.request", deviceId = input.GetProperty("deviceId").GetString(),
@@ -97,12 +100,15 @@ while (!lifetime.IsCancellationRequested)
     { /* Cancelled clients and temporary network failure do not stop the gateway. */ }
 }
 
+await adapterTask; // Report bind/runtime failures; never silently leave adapters offline.
+
 internal sealed record GatewayDevice(string DeviceId, string Ip, string Status,
     double? Lux, DateTimeOffset? LastSampleUtc, DateTimeOffset LastSeenUtc,
     string? UsbPort = null, string? Transport = null);
 
 internal sealed class GatewayRegistry : IDisposable
 {
+    public FcsAdapters Adapters { get; } = new(FcsAdapters.WindowsDirectory);
     private sealed class Entry
     {
         public string Id = "", Ip = "", UsbPort = "", Transport = "";
@@ -120,7 +126,7 @@ internal sealed class GatewayRegistry : IDisposable
         return a[0] == 10 || a[0] == 172 && a[1] >= 16 && a[1] <= 31 ||
                a[0] == 192 && a[1] == 168;
     }
-    public static bool ValidId(string? id) => id is { Length: > 0 and <= 100 } &&
+    public static bool ValidId(string? id) => id is { Length: > 0 and <= 100 } && !FcsAdapters.IsExternal(id) &&
         id.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
     public static bool TryLight(JsonElement frame, string identity, out double lux)
     {

@@ -79,11 +79,17 @@ internal sealed class GatewayReader(Options options, ResourceManager resources, 
         };
         long sequence = item.GetProperty("sequence").GetInt64(), uptime = item.GetProperty("uptimeMs").GetInt64();
         if (sequence < 0 || uptime < 0) throw new InvalidDataException("Invalid sample counters.");
-        double age = envelope.TryGetProperty("sampleAgeMilliseconds", out var a) ? a.GetDouble() : 0;
+        // Adapter signals can arrive independently. A stale sibling must not
+        // replace this signal's actual receipt time with the device-wide oldest time.
+        var timing = envelope;
+        if (envelope.TryGetProperty("transport", out var transport) && transport.GetString() == "adapter" &&
+            item.TryGetProperty("extensions", out var extensions) && extensions.ValueKind == JsonValueKind.Object &&
+            extensions.TryGetProperty("fcs.adapter", out var adapter)) timing = adapter;
+        double age = timing.TryGetProperty("sampleAgeMilliseconds", out var a) ? a.GetDouble() : 0;
         if (!double.IsFinite(age) || age < 0) throw new InvalidDataException("Invalid sample age.");
         var now = DateTime.UtcNow;
         // Never turn C3 uptime into a fabricated UTC sensor timestamp.
-        var timestamp = envelope.TryGetProperty("receivedAtUtc", out var time) ? time.GetDateTime().ToUniversalTime() : now;
+        var timestamp = timing.TryGetProperty("receivedAtUtc", out var time) ? time.GetDateTime().ToUniversalTime() : now;
         if (timestamp > now.AddSeconds(5)) throw new InvalidDataException("Future Gateway receipt timestamp.");
         var key = signal.Key(options.SystemId, options.GatewayId);
         lock (previous)
