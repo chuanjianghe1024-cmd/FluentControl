@@ -48,6 +48,7 @@ internal sealed class FcsAdapters
     private readonly Dictionary<string, string> owners = new(StringComparer.Ordinal);
     private readonly long started = Stopwatch.GetTimestamp();
     public int Port { get; }
+    public event Action<string>? Changed;
     public static bool IsExternal(string id) => id.StartsWith("ext-", StringComparison.Ordinal);
     public static string WindowsDirectory => Environment.GetEnvironmentVariable("FCS_DATA") ??
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentControl", "FcsGateway");
@@ -156,6 +157,7 @@ internal sealed class FcsAdapters
             }
             foreach (var pair in pending) samples[pair.Key] = pair.Value;
             producer.Boot = boot; producer.Sequence = sequence; producer.LastBatchTicks = ticks;
+            foreach (var id in pending.Keys.Select(k => k.Split('/')[0]).Distinct()) Changed?.Invoke(id);
         }
     }
     private static double Age(Sample s) => s.InitialAge + Stopwatch.GetElapsedTime(s.ReceivedTicks).TotalMilliseconds;
@@ -210,7 +212,7 @@ internal sealed class FcsAdapters
                             sequence = sample?.Sequence ?? 0, uptimeMs = sample?.Uptime ?? 0,
                             status = fresh ? (latest ? "cached" : "ready") : "adapter_unavailable",
                             extensions = new Dictionary<string, object> { ["fcs.adapter"] = new { adapterId = owner, kind, timestampBasis = "adapter-receipt",
-                                receivedAtUtc = sample?.ReceivedAtUtc,
+                                receivedAtUtc = sample?.ReceivedAtUtc, maxAgeMilliseconds = s.StaleMilliseconds,
                                 sampleAgeMilliseconds = (int)Math.Min(int.MaxValue, sample == null ? s.StaleMilliseconds + 1 : Age(sample)) } } };
                     }).ToArray(); break;
             }

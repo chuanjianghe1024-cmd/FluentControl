@@ -4,10 +4,11 @@ COPY . .
 RUN dotnet publish src/FluentControl.FcsHost -c Release -r linux-x64 --self-contained true -o /host
 
 FROM ros:jazzy-ros-base
-RUN apt-get update && apt-get install -y --no-install-recommends ros-jazzy-sensor-msgs && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ros-jazzy-sensor-msgs ros-jazzy-rmw-cyclonedds-cpp && rm -rf /var/lib/apt/lists/*
 COPY --from=build /host /host
 COPY tools/gateway-adapters /test/tools/gateway-adapters
 COPY tests/fcs-adapters /test/tests/fcs-adapters
+COPY deploy/adapters/cyclonedds-ethernet.xml /test/cyclonedds-ethernet.xml
 ENV ROS_DOMAIN_ID=84 ROS_LOCALHOST_ONLY=1
 # integration.py's launcher accepts a native host in place of dotnet + DLL.
 CMD ["python3", "/test/tests/fcs-adapters/integration.py", "--dotnet", "/host/FluentControl.FcsHost", "--host=", "--ros"]

@@ -1,4 +1,5 @@
 import copy
+import io
 import json
 import math
 from pathlib import Path
@@ -11,7 +12,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools/gateway-adapters"))
 from common import load, Publisher
 from socketcan_adapter import decode, validate, check_interface
-from ros2_adapter import validate as validate_ros
+from ros2_adapter import validate as validate_ros, Reader
 
 
 class Workers(unittest.TestCase):
@@ -82,6 +83,30 @@ class Workers(unittest.TestCase):
             with patch("common.time.monotonic", return_value=1), patch("common.socket.create_connection") as connect:
                 self.assertIsNone(producer.flush())
                 connect.assert_not_called()
+
+    def test_ros_subscription_and_buffered_expiry(self):
+        item = dict(deviceId="c3-test", sensorId="light", signalId="illuminance", valueType="number", unit="lx")
+        with tempfile.TemporaryDirectory() as directory:
+            token = Path(directory) / "token"; token.write_text("a" * 64)
+            reader = Reader(dict(url="http://127.0.0.1:19500/rpc", tokenFile=str(token)))
+            value = dict(item, value=12.5, valid=True, fresh=True, status="ready", sequence=1,
+                         receivedAtUtc="2026-11-05T12:00:00Z", sampleAgeMilliseconds=100, maxAgeMilliseconds=500)
+            envelope = dict(protocol="fcs-gateway/1", subscriptionProtocol="fcs-subscription/1", cursor="cursor-one",
+                            waitedMilliseconds=1000, samples=[value])
+            with patch.object(reader.opener, "open", return_value=io.BytesIO(json.dumps(envelope).encode())) as opened, \
+                    patch("ros2_adapter.time.monotonic", side_effect=[0, 1.05]):
+                sample = reader.read([item])[0]
+            request = json.loads(opened.call_args.args[0].data)
+            self.assertEqual(request["operation"], "subscriptions.read")
+            self.assertEqual(request["arguments"]["signals"][0], {k: item[k] for k in ("deviceId", "sensorId", "signalId")})
+            self.assertTrue(sample["valid"], "Server long-poll duration must not age the sample twice")
+            self.assertAlmostEqual(sample["sampleAgeMilliseconds"], 150)
+            self.assertFalse(Reader.age(sample, .4)["valid"])
+            self.assertIsNone(Reader.age(sample, .4)["value"])
+            self.assertTrue(sample["valid"], "Queue expiry must not mutate the shared snapshot")
+            envelope["samples"][0]["value"] = True
+            with patch.object(reader.opener, "open", return_value=io.BytesIO(json.dumps(envelope).encode())):
+                self.assertFalse(reader.read([item])[0]["valid"], "Boolean must not satisfy a numeric signal")
 
 
 if __name__ == "__main__":

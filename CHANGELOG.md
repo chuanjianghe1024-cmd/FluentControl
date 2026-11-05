@@ -1,5 +1,11 @@
 # 更新记录
 
+## Unreleased — shared Gateway subscriptions
+
+- Windows/Linux 共用 `subscriptions.read`、按设备复用采集、变化游标、租期及过期状态；FC、脚本、ROS 输出和 OPC UA 本地导出统一消费，保留各自协议与权限。
+- 增加长轮询并发与慢源隔离，ROS 导出读线程避免阻塞输入；加入显式以太网卡配置及跨网络命名空间 DDS 测试。C3 不变，实机效果待验证。
+- Share bounded live subscriptions across FC/scripts/ROS/UA, including source timestamps, freshness, cursor waits and lease-based acquisition. Add Ethernet DDS configuration/tests; preview only, physical acceptance pending. See [guide](docs/fcs-subscriptions.md).
+
 ## Unreleased — Gateway adapters preview
 
 - Add explicitly granted virtual signals to the shared Windows/Linux Gateway catalog.

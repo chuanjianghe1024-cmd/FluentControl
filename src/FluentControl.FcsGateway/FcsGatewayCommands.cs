@@ -96,6 +96,8 @@ internal static class FcsGatewayCommands
                     return new(FcsManagement.Scripts(FcsScripts.DirectoryPath));
                 case "adapters.status":
                     return new(registry.Adapters.Status());
+                case "subscriptions.read":
+                    return new(await (registry.Subscriptions ?? throw new IOException("Subscriptions unavailable.")).ReadAsync(arguments, cancel));
                 case "node.request":
                 {
                     var command = Field(root, "command");

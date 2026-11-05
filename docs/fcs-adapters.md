@@ -22,6 +22,8 @@ Reserved external IDs prevent USB/LAN fallback. Fresh reads return recently rece
 
 ## 安装并启用 / Setup
 
+本版统一订阅、ROS 以太网卡选择、部署环境与实测步骤见 [统一订阅与有线 ROS 2](fcs-subscriptions.md)。ROS 输入进入共享核心；ROS 输出、OPC UA、FC 和脚本统一消费该核心，不各自轮询设备。/ See the shared subscription guide for Ethernet setup and acceptance. ROS imports feed the core; ROS exports, UA, FC and scripts share it.
+
 1. 构建对应分支 Gateway：Linux `dotnet publish src/FluentControl.FcsHost -c Release -r linux-arm64 --self-contained true -o host-out`（x64 改 RID）；Windows `dotnet publish src/FluentControl.FcsGateway -c Release -o gateway-out`。CI 的预览 host 附件包含独立 HTTP host，不是 FC 安装包；Windows 的集成 Gateway 使用命名管道。
 2. 安装 Python 3.10+；CAN worker 只用标准库与系统 `iproute2`，需 Linux CAN 驱动。ROS worker 使用已有 ROS 2 环境，本版 CI 使用 Jazzy、`rclpy/std_msgs/sensor_msgs`。将 `tools/gateway-adapters/*.py` 一起部署；它们是受信任的协议程序，不是 Gateway 的受限用户脚本。
 3. 设置 Gateway 的 `FCS_DATA`。Linux 沿用宿主数据目录；Windows 默认 `%LOCALAPPDATA%\FluentControl\FcsGateway`。把 [adapters.example.json](../deploy/adapters/adapters.example.json) 复制为该目录的 `adapters.json`。按实际设备修改信号、单位与有效期，只将需要的条目改成 `enabled: true`，重启 Gateway。
