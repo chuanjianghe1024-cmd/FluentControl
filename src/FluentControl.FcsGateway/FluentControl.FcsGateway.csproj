@@ -9,7 +9,7 @@
     <Product>FluentControl Sensors Gateway</Product>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+    <PackageReference Include="System.IO.Ports" Version="11.0.0" />
   </ItemGroup>
   <Target Name="GetFcsGatewayPayload" Returns="@(FcsGatewayPayload)">
     <ItemGroup>
