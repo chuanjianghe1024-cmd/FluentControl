@@ -1,5 +1,7 @@
 # 更新记录
 
+- 开发预览 / Unreleased preview: C3 ESP-NOW/BTHome 接入桥的 Gateway USB 配置与签名只读 worker，复用原有授权和订阅；见 [指南](docs/fcs-wireless-bridge.md)。需配套固件，未实机验收。
+
 ## Unreleased — shared Gateway subscriptions
 
 - 隔离未知/失效外部资源的读取异常，避免一个订阅停止整个 Host；同一信号导出多个 ROS 话题时按源去重订阅。Isolate invalid source failures and deduplicate ROS export selectors while preserving all output topics.

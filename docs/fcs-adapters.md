@@ -85,3 +85,6 @@ The producer channel is bounded, local-only and explicitly scoped. Values expire
 Tests exercise real Gateway transports, the Windows pipe, virtual CAN and ROS process communication. Physical adapter/robot/NAS/Pi and end-user FC behavior remain separate acceptance work. Check the linked PR/Actions for the exact commit's results.
 
 参考 / Primary references: [Linux SocketCAN](https://www.kernel.org/doc/html/latest/networking/can.html), [iproute2 CAN flags](https://github.com/iproute2/iproute2/blob/main/ip/iplink_can.c), [ROS QoS](https://docs.ros.org/en/jazzy/Concepts/Intermediate/About-Quality-of-Service-Settings.html), [ROS security](https://docs.ros.org/en/jazzy/Tutorials/Advanced/Security/Introducing-ros2-security.html). No third-party driver code was copied into the workers; ROS runtime packages retain their original licenses.
+
+
+C3 ESP-NOW / BTHome 的可选 custom 适配器见 [无线接入桥指南](fcs-wireless-bridge.md)，复用本文授权与订阅入口。 / For the optional C3 ESP-NOW and BTHome custom worker, see the [wireless bridge guide](fcs-wireless-bridge.md).
