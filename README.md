@@ -205,3 +205,28 @@ FC defaults to its bundled local Gateway. An optional Linux/Docker Gateway can c
 ### C3 插件与 Gateway 脚本 / C3 plugins and Gateway scripts
 
 开发版增加 FC 内的 USB 插件管理、C3 本地 WoL 规则，以及 Gateway 复杂脚本创建/验证/干运行。安装后默认禁用，实际唤醒须测试；Windows 脚本功能需 Python 3.10+。Development builds add USB plugin management, local C3 WoL rules, and Gateway script creation/validation/dry-run; hardware acceptance is pending. [操作与限制 / Setup and limits](docs/fcs-plugin-contract.md).
+
+
+## OPC UA 开发预览 / OPC UA preview
+
+已加入可选独立适配器：只读目录、类型化信号订阅、证书信任与一级 Gateway 挂载；C3 协议不变，不自动共享或上传云。尚未捆绑到 FC 安装包，配置、启动及验收范围见 [OPC UA 指南](docs/fcs-opcua.md)。
+
+An optional sidecar adds read-only browsing, typed subscriptions, certificate trust and one-hop Gateway mounts. C3 remains unchanged; exports are explicit and cloud upload stays independent. This preview is not bundled in FC installers; see the guide for setup and validation limits.
+
+
+### Gateway 有线与 ROS 2 预览 / Wired and ROS 2 preview
+
+本轮开发版将 FC、Gateway 脚本、ROS 遥测导出与 OPC UA 接到同一订阅核心，共享采集、时间和失效状态；ROS/DDS 与 OPC UA 保留独立协议适配。有线 ROS 2 部署及后续实测见 [统一订阅指南](docs/fcs-subscriptions.md)。
+
+This preview shares acquisition, timestamps and quality across FC, scripts, ROS exports and OPC UA, with separate protocol adapters. See the shared subscription guide for Ethernet ROS 2 setup and pending physical acceptance.
+
+Gateway 开发分支新增只读 SocketCAN、ROS 2 指定话题接入和选定 FCS 信号的 ROS 遥测输出；外部设备共用设备/传感器/信号目录。FC 继续仅订阅，C3 协议不变。配置默认禁用，当前不是已发布安装包；CAN 硬件、报文资料、授权与配置见 [接入指南](docs/fcs-adapters.md)。不提供车辆/机器人控制或通用总线解锁。
+
+The Gateway development preview adds read-only SocketCAN and explicit ROS 2 topic imports, plus selected FCS telemetry exports. External resources share the device/sensor/signal catalog. FC remains a subscriber; C3 stays unchanged. Disabled by default, not yet a released installer. See the guide for hardware, message definitions, authorization and setup; no vehicle/robot control or universal bus unlocking is provided.
+
+
+### C3 无线接入桥开发预览 / C3 wireless bridge preview
+
+可选 ESP-NOW 小节点与 BTHome v2 广播经 C3 桥接 Wi-Fi，复用 Gateway 授权目录和统一订阅；FC 继续勾选信号。配套固件、USB 配对、可信 worker、协议子集、运行步骤与实机验收边界见 [无线接入桥指南](docs/fcs-wireless-bridge.md)。这是未发行预览，无自动云上传/共享，尚未捆绑 worker 或完成射频验收。
+
+An optional C3 bridge imports paired ESP-NOW nodes and selected BTHome v2 broadcasts into existing Gateway grants/subscriptions. See the [setup guide](docs/fcs-wireless-bridge.md) for matching firmware, USB provisioning, trusted worker setup and limitations. This unreleased preview does not imply RF acceptance, automatic worker packaging or cloud/sharing activation.

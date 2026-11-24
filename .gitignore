@@ -22,3 +22,7 @@ __pycache__/
 .venv-ci/
 
 /tools/esptool/
+
+# Local OPC UA identities (private keys must never enter Git).
+/opcua-pki/
+/aggregate-pki/

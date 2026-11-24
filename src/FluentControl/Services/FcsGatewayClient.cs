@@ -47,9 +47,9 @@ public static class FcsGatewayClient
         string? deviceId = null, string port = "AUTO", string? command = null, object? arguments = null, bool localOnly = false)
     {
         if (operation is not ("status" or "list" or "discover" or "capabilities" or
-            "usb.discover" or "usb.manage" or "usb.read" or "sample.read" or "node.request"))
+            "usb.discover" or "usb.manage" or "usb.read" or "sample.read" or "node.request" or "subscriptions.read"))
             throw new ArgumentOutOfRangeException(nameof(operation));
-        if (!localOnly && FcsRemoteGateway.Enabled && operation is "status" or "list" or "discover" or "node.request")
+        if (!localOnly && FcsRemoteGateway.Enabled && operation is "status" or "list" or "discover" or "node.request" or "subscriptions.read")
             return await FcsRemoteGateway.QueryAsync(operation, deviceId, command, arguments, cancellation);
         if (!EnsureStarted()) throw new IOException("FCS Gateway is not installed.");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
@@ -144,28 +144,26 @@ public static class FcsGatewayClient
     private static async Task<LightSample> ReadDeviceAsync(string id, string port, string sensorId, string signalId, CancellationToken cancellation)
     {
         if (signalId != "illuminance") throw new InvalidDataException("Only illuminance drives brightness.");
-        var requestedAt = DateTimeOffset.UtcNow;
-        var remote = FcsRemoteGateway.Enabled;
-        using var reply = await QueryAsync("node.request", cancellation, id, port, "data.read", new { sensorId, signalId, mode = "fresh" });
-        var frame = reply.RootElement.GetProperty("result");
-        if (frame.GetProperty("protocol").GetString() != "fcs-node/2" || frame.GetProperty("deviceId").GetString() != id ||
-            !frame.GetProperty("ok").GetBoolean()) throw new InvalidDataException("Invalid node reply.");
-        var timestamp = DateTimeOffset.UtcNow;
-        if (remote || reply.RootElement.TryGetProperty("sampleAgeMilliseconds", out _))
-        {
-            var age = reply.RootElement.GetProperty("sampleAgeMilliseconds").GetInt32();
-            var maxAge = reply.RootElement.GetProperty("maxAgeMilliseconds").GetInt32();
-            if (age < 0 || maxAge <= 0 || age > Math.Min(maxAge, 10000)) throw new InvalidDataException("Stale Gateway sample.");
-            timestamp = requestedAt.AddMilliseconds(-age);
-            if (DateTimeOffset.UtcNow - timestamp > TimeSpan.FromSeconds(10)) throw new InvalidDataException("Delayed Gateway sample.");
-        }
-        var matches = frame.GetProperty("data").EnumerateArray().Where(item =>
-            item.GetProperty("sensorId").GetString() == sensorId && item.GetProperty("signalId").GetString() == signalId).ToArray();
+        var requestedAt = Stopwatch.GetTimestamp();
+        using var reply = await QueryAsync("subscriptions.read", cancellation, arguments: new {
+            signals = new[] { new { deviceId = id, sensorId, signalId } }, waitMilliseconds = 1500 });
+        var frame = reply.RootElement;
+        if (frame.GetProperty("subscriptionProtocol").GetString() != "fcs-subscription/1") throw new InvalidDataException("Invalid subscription reply.");
+        var matches = frame.GetProperty("samples").EnumerateArray().Where(item =>
+            item.GetProperty("deviceId").GetString() == id && item.GetProperty("sensorId").GetString() == sensorId && item.GetProperty("signalId").GetString() == signalId).ToArray();
         if (matches.Length != 1) throw new InvalidDataException("Ambiguous signal.");
         var value = matches[0];
         if (!value.GetProperty("valid").GetBoolean() || !value.GetProperty("fresh").GetBoolean() ||
             value.GetProperty("unit").GetString() != "lx" || value.GetProperty("valueType").GetString() != "number")
             throw new InvalidDataException("Signal is not a fresh light sample.");
+        var age = value.GetProperty("sampleAgeMilliseconds").GetInt32();
+        var maxAge = value.GetProperty("maxAgeMilliseconds").GetInt32();
+        if (age < 0 || maxAge <= 0 || age > Math.Min(maxAge, 10000)) throw new InvalidDataException("Stale Gateway sample.");
+        var waited = frame.GetProperty("waitedMilliseconds").GetInt32();
+        if (waited is < 0 or > 5000) throw new InvalidDataException("Invalid subscription timing.");
+        var transit = Math.Max(0, Stopwatch.GetElapsedTime(requestedAt).TotalMilliseconds - waited);
+        var timestamp = DateTimeOffset.UtcNow.AddMilliseconds(-age - transit);
+        if (age + transit > Math.Min(maxAge, 10000)) throw new InvalidDataException("Delayed Gateway sample.");
         var lux = value.GetProperty("value").GetDouble();
         if (!double.IsFinite(lux) || lux < 0 || lux > 200000) throw new InvalidDataException("Invalid lux.");
         return new LightSample { Format = "fluentcontrol.light-sample", Version = 1, SourceId = id,

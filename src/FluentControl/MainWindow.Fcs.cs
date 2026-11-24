@@ -60,7 +60,7 @@ public sealed partial class MainWindow
                 foreach (var d in devices)
                 {
                     var check = new CheckBox { Content = d.DeviceId + " · " + d.Status + " · " +
-                        string.Join(" / ", new[] { d.UsbPort is null ? null : "USB", string.IsNullOrEmpty(d.Ip) ? null : "Wi-Fi" }.Where(x => x is not null)),
+                        string.Join(" / ", new[] { d.Transport == "adapter" ? T("Gateway 适配器", "Gateway adapter") : null, d.UsbPort is null ? null : "USB", string.IsNullOrEmpty(d.Ip) ? null : "Wi-Fi" }.Where(x => x is not null)),
                         IsChecked = state.Settings.Adaptive.LightSources.Any(s => s.DeviceId == d.DeviceId) };
                     check.Click += async (_, _) =>
                     {

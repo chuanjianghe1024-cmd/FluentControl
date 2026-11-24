@@ -7,19 +7,19 @@ internal static class FcsNode
         id.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
     public static readonly string[] Operations = { "node.info", "sensors.list", "operations.list",
         "data.read", "sampling.get", "sampling.set", "cache.read", "plugin.list", "storage.get", "plugin.begin", "plugin.chunk", "plugin.commit", "plugin.abort",
-        "plugin.configure", "plugin.remove", "plugin.rollback", "plugin.recover", "plugin.run", "rules.list", "rules.set" };
+        "plugin.configure", "plugin.remove", "plugin.rollback", "plugin.recover", "plugin.run", "rules.list", "rules.set", "bridge.status", "bridge.configure" };
     public static bool IsWrite(string op) => op is "sampling.set" or "plugin.begin" or "plugin.chunk" or "plugin.commit" or "plugin.abort"
-        or "plugin.configure" or "plugin.remove" or "plugin.rollback" or "plugin.recover" or "plugin.run" or "rules.set";
+        or "plugin.configure" or "plugin.remove" or "plugin.rollback" or "plugin.recover" or "plugin.run" or "rules.set" or "bridge.configure";
     public static readonly Dictionary<string, string> Routes = new()
     { ["node.info"] = "/v2/node", ["sensors.list"] = "/v2/sensors", ["operations.list"] = "/v2/operations",
-      ["data.read"] = "/v2/data", ["sampling.get"] = "/v2/sampling" };
+      ["data.read"] = "/v2/data", ["sampling.get"] = "/v2/sampling", ["bridge.status"] = "/v2/bridge/status" };
     public static JsonElement Arguments(string op, JsonElement args)
     {
         if (!Operations.Contains(op)) throw new InvalidDataException("Unsupported node operation.");
         if (args.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
             args = JsonSerializer.SerializeToElement(new { });
         if (args.ValueKind != JsonValueKind.Object) throw new InvalidDataException("Invalid node arguments.");
-        if (op.StartsWith("plugin.") || op.StartsWith("rules.") || op == "storage.get")
+        if (op.StartsWith("plugin.") || op.StartsWith("rules.") || op == "storage.get" || op == "bridge.configure")
             return PluginArguments(op, args);
         string[] allowed = op switch {
             "data.read" => new[] { "sensorId", "signalId", "mode" },
@@ -54,6 +54,7 @@ internal static class FcsNode
             "plugin.configure" => new[] { "id", "enabled", "settings" },
             "plugin.remove" or "plugin.rollback" => new[] { "id" },
             "plugin.run" => new[] { "id", "arguments" },
+            "bridge.configure" => new[] { "configuration" },
             "rules.set" => new[] { "rules" }, _ => Array.Empty<string>() };
         var seen = new HashSet<string>();
         foreach (var p in args.EnumerateObject())
@@ -65,6 +66,7 @@ internal static class FcsNode
                 "size" => p.Value.ValueKind == JsonValueKind.Number && p.Value.TryGetInt32(out var size) && size is > 0 and <= 12288,
                 "offset" => p.Value.ValueKind == JsonValueKind.Number && p.Value.TryGetInt32(out var offset) && offset is >= 0 and <= 12288,
                 "enabled" => p.Value.ValueKind is JsonValueKind.True or JsonValueKind.False,
+                "configuration" => p.Value.ValueKind == JsonValueKind.Object && p.Value.GetRawText().Length <= 1700,
                 "settings" or "arguments" => p.Value.ValueKind == JsonValueKind.Object && p.Value.GetRawText().Length <= 1024,
                 "rules" => p.Value.ValueKind == JsonValueKind.Array && p.Value.GetArrayLength() <= 8,
                 _ => false };
