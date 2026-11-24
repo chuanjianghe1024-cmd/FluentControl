@@ -1,0 +1,25 @@
+[Unit]
+Description=FluentControl Sensors LAN Gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fcs
+Group=fcs
+WorkingDirectory=/opt/fcs-gateway
+ExecStart=/opt/fcs-gateway/FluentControl.FcsHost
+Environment=FCS_DATA=/var/lib/fcs-gateway
+Environment=ASPNETCORE_URLS=http://127.0.0.1:8767
+StateDirectory=fcs-gateway
+StateDirectoryMode=0700
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

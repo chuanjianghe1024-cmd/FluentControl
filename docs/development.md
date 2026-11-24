@@ -105,8 +105,8 @@ python3 scripts/publish-release.py --manifest .github/preview-release.json --val
 
 ### SDK 更新与 MSI 文件版本 / SDK upgrades and MSI file versions
 
-WinUI 2.6.5 的 Microsoft.InteractiveExperiences.Projection.dll 文件版本为 10.0.0.0，可能低于已装正式版的同名文件；仅更新 NuGet 包会被 MSI 的较高文件版本规则跳过，造成混合 payload。Build-Msi 为主 EXE 之外的私有安装文件设置 CompanionFile=ApplicationExe，使其随经过验证的应用版本更新。组件 GUID、HKCU keypath、升级顺序和用户配置位置不变；不影响其他应用或系统运行时。
+WinUI 2.6.5 的 Microsoft.InteractiveExperiences.Projection.dll 和 Microsoft.WinUI.dll 文件版本低于已装正式版的同名文件；仅更新 NuGet 包会被 MSI 的较高文件版本规则跳过，造成混合 payload。Build-Msi 仅为这两个已确认发生版本回退的 DLL 设置 CompanionFile=ApplicationExe，使其随经过验证的应用版本更新。其余文件保留普通 MSI 版本规则，避免强制替换正被映射且内容未变的运行时。组件 GUID、HKCU keypath、升级顺序和用户配置位置不变。
 
 验证保留 Test-Msi.ps1 的不可变正式版升级、全文件 SHA-256 对比、无关应用存活和卸载检查，不能放宽哈希断言。依据：[Windows Installer companion files](https://learn.microsoft.com/en-us/windows/win32/msi/companion-files) 与 [WiX File schema](https://docs.firegiant.com/wix/schema/wxs/file/)。
 
-The private application payload follows the versioned application EXE through MSI companion-file semantics. This avoids retaining older SDK-family DLLs whose numeric file versions happen to be higher. Stable component identities and HKCU keypaths remain unchanged. The immutable-release upgrade test still checks every installed payload hash, unrelated applications, personal configuration and uninstall behavior.
+Only the two WinUI DLLs with confirmed version resets follow the versioned application EXE through MSI companion-file semantics. Other files retain normal MSI versioning, including mapped, unchanged runtimes. This avoids retaining older SDK-family DLLs whose numeric file versions happen to be higher. Stable component identities and HKCU keypaths remain unchanged. The immutable-release upgrade test still checks every installed payload hash, unrelated applications, personal configuration and uninstall behavior.

@@ -141,3 +141,27 @@ Firmware and official setup resources are in the private [FluentControl-Sensors]
 新增设备管理和配套固件的实现范围见 [设备信号规范](device-signals.md)。这些改动不在 v0.3.135 安装包中，已随 v0.3.140 发布。
 
 See [device signals](device-signals.md) for new management and firmware scope; these changes ship in v0.3.140, not the v0.3.135 installers.
+
+
+## 归一化亮度过渡 / Normalized brightness transitions
+
+自动调节设置增加独立的过渡编辑器：总时长 1000–3000 ms，最小下发间隔
+100–500 ms，或指定调整次数（0 表示按间隔）。次数受间隔和时长共同限制。
+支持线性、S 曲线以及拖动两个控制点的单调三次贝塞尔曲线。
+横轴为经过时间比例，纵轴为本次变化完成比例；蓝线显示理想进度，橙色阶梯
+显示 30→40 的整数示例及采样点。取整相同的值不会重复写入。
+
+执行按单调时钟计算当前位置，慢调用跳过过期采样点，不积压指令。
+新目标从当前读回值重新开始；每屏独立，沿用 gate/generation、HDR、手动保持
+与失败停止保护。采样周期与过渡 tick 独立。实际速度受 DDC 调用耗时限制，
+当前仍保留逐步读回验证；不承诺硬件准确在指定毫秒内结束。
+
+The editor separates duration, monotone easing and write opportunities. Sensor
+polling no longer determines transition frequency. Late calls skip missed points;
+identical integers are omitted. The final target is requested when duration elapses.
+Hardware latency and existing readback verification may extend the actual transition.
+Custom controls and settings persist locally; this is not a new ambient-lux curve format.
+
+FCS 设备来源可读取 `sensors.list`，展示物理清单和驱动状态，选择可读的
+`illuminance/lx` 信号；设置保存 sensorId/signalId，读取 `data[]` 按 ID 匹配。
+尚未支持将温湿度等其他信号用于亮度自动化。

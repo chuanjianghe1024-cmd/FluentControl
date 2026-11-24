@@ -1,0 +1,18 @@
+{
+  "adapterId": "telemetry",
+  "inputs": [],
+  "gateway": {
+    "url": "http://127.0.0.1:18766/rpc",
+    "tokenFile": "/var/lib/fcs/gateway.token"
+  },
+  "exports": [
+    {
+      "deviceId": "c3-example",
+      "sensorId": "ambient-01",
+      "signalId": "illuminance",
+      "valueType": "number",
+      "unit": "lx",
+      "topic": "/fcs/telemetry/illuminance"
+    }
+  ]
+}

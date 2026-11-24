@@ -1,0 +1,13 @@
+{
+  "systemId": "desktop",
+  "gatewayId": "pc",
+  "endpoint": "opc.tcp://localhost:4840/fcs",
+  "pkiDirectory": "opcua-pki",
+  "windowsPipe": true,
+  "pollMilliseconds": 2000,
+  "staleMilliseconds": 15000,
+  "signals": [
+    { "deviceId": "c3-example", "sensorId": "ambient-01", "signalId": "illuminance", "valueType": "number", "unit": "lx" }
+  ],
+  "mounts": []
+}

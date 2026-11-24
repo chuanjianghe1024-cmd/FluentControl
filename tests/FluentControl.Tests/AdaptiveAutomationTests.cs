@@ -29,12 +29,21 @@ internal static class AdaptiveAutomationTests
         Check(smoothing.Add(Sample(500, 8), smooth: false) == 500, "Band filter must not interpolate through intermediate light levels.");
         Check(SolarSchedule.NextBrightness(50, 51) is null && SolarSchedule.NextBrightness(50, 80) == 55 && SolarSchedule.NextBrightness(50, 10) == 45, "Brightness deadband and slew rate");
         var transition = new AdaptiveBrightnessTransition();
-        Check(transition.Next(20,80,now) is null, "Easing must not jump at start");
-        var early = transition.Next(20,80,now.AddSeconds(4));
-        Check(early is > 20 and < 40, "Easing begins slowly");
-        var midpoint = transition.Next(early!.Value,80,now.AddSeconds(8));
-        Check(midpoint > early && midpoint - early <= 12, "Per-write step bound");
-        Check(transition.Next(midpoint!.Value,20,now.AddSeconds(8)) is null, "Changing targets must restart from readback");
+        var settings = new BrightnessTransitionSettings { Steps = 5 };
+        Check(transition.Next(30,40,now,settings) is null, "No jump at start");
+        double last = 30;
+        foreach (var step in new[] { (400,31d), (800,34d), (1200,36d), (1600,39d), (2000,40d) })
+        {
+            var next = transition.Next(last,40,now.AddMilliseconds(step.Item1),settings);
+            Check(next == step.Item2, "Normalized S curve samples"); last = next!.Value;
+        }
+        Check(transition.Next(40,40,now.AddSeconds(3),settings) is null, "No duplicate final write");
+        Check(transition.Next(40,30,now.AddSeconds(3),settings) is null, "Retarget from successful value");
+        Check(transition.Next(40,30,now.AddSeconds(4),settings) == 35, "Descending curve");
+        Check(transition.Next(35,30,now.AddSeconds(6),settings) == 30, "Late tick skips backlog and reaches endpoint");
+        var custom = new BrightnessTransitionSettings { Curve = "custom", X1=.2, Y1=.1, X2=.8, Y2=.9 };
+        double previousProgress = 0;
+        for (int i=0;i<=100;i++) { var progress=custom.Evaluate(i/100d); Check(progress >= previousProgress, "Monotone custom curve"); previousProgress=progress; }
         Check(SolarSchedule.InDayRange(23,22,6) && SolarSchedule.InDayRange(3,22,6) && !SolarSchedule.InDayRange(12,22,6), "Wrapping theme schedule");
         var wuhan = SolarSchedule.Calculate(new DateTime(2026,10,14),30.5928,114.3055);
         Check(wuhan.Sunrise is not null && wuhan.Sunset is not null && wuhan.IsDay(now), "Wuhan midday should be daytime");

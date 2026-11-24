@@ -105,11 +105,14 @@ try {
         $component = Element $directories[$parentPath] 'Component' @{ Id = $componentId; Guid = (StableGuid $relative) }
         $fileId = if ($relative -eq 'FluentControl.exe') { 'ApplicationExe' } else { StableId 'F' $relative }
         $fileAttributes = @{ Id = $fileId; Source = $file.FullName; Name = $file.Name; KeyPath = 'no' }
-        # The private payload is one tested application set. Vendor DLL versions
-        # can decrease across SDK families (WinUI 2.6.5 projection: 10.0.0.0),
-        # so let the versioned app executable govern replacement of companions.
-        # HKCU remains the component keypath; no file keypath becomes a companion.
-        if ($fileId -ne 'ApplicationExe') { $fileAttributes.CompanionFile = 'ApplicationExe' }
+        # These two WinUI files reset their numeric versions in SDK 2.6.5.
+        # Make only those known exceptions follow our versioned executable;
+        # unchanged .NET/native runtimes must retain normal MSI versioning so
+        # an upgrade does not replace mapped, byte-identical runtime files.
+        # HKCU remains the keypath; neither companion is a file keypath.
+        if ($relative -in @('Microsoft.InteractiveExperiences.Projection.dll', 'Microsoft.WinUI.dll')) {
+            $fileAttributes.CompanionFile = 'ApplicationExe'
+        }
         [void](Element $component 'File' $fileAttributes)
         [void](Element $component 'RegistryValue' @{ Root = 'HKCU'; Key = 'Software\FluentControl\Installer\Files'; Name = $componentId; Type = 'integer'; Value = '1'; KeyPath = 'yes' })
         [void](Element $group 'ComponentRef' @{ Id = $componentId })
