@@ -42,9 +42,9 @@ dotnet publish src/FluentControl.FcsOpcUa -c Release -r linux-x64 --self-contain
 
 ## 实时、延迟与失联
 
-客户端订阅使用真实 OPC UA Subscription；适配器到既有 Gateway 的采集仍是有界轮询，默认 2 秒，所以这是实时变化通知，不是硬实时系统或每一次原始采样的无损流。队列保留最新值；客户端需要历史时仍用既有历史接口，首版没有 UA Historical Access。
+客户端订阅使用真实 OPC UA Subscription；适配器通过 [统一订阅 API](fcs-subscriptions.md) 读取 Gateway，每批最多 16 个信号并按游标长轮询（最长 1 秒），与 FC、ROS 导出、脚本共享采集和新鲜度。底层采样/网络周期仍限制延迟，这不是硬实时系统或每一次原始采样的无损流。队列保留最新值；客户端需要历史时仍用既有历史接口，首版没有 UA Historical Access。需配套本预览版 Gateway，不回退到独立旧轮询路径。
 
-C3 的 uptime 不是 UTC。UA `SourceTimestamp` 表示**源 Gateway 接收时间**（Windows 没有该字段时为适配器首次接收时间），由 `TimestampBasis=origin-gateway-receipt` 明确说明。级联保持这个时间，不能以中转时间刷新旧数据的年龄。客户端可查看质量和 SourceTimestamp；跨主机应同步系统时钟。
+C3 的 uptime 不是 UTC。UA `SourceTimestamp` 表示**源 Gateway 接收时间**，由 `TimestampBasis=origin-gateway-receipt` 明确说明。级联保持这个时间，不能以中转时间刷新旧数据的年龄。客户端可查看质量和 SourceTimestamp；跨主机应同步系统时钟。
 
 - 初始未收到数据：`BadWaitingForInitialData`。
 - 无驱动/无效读数：`BadSensorFailure`。
@@ -78,6 +78,6 @@ This optional .NET 10 sidecar exports an explicit signal allowlist from the exis
 
 Only Basic256Sha256 SignAndEncrypt is enabled. Trusted applications receive read-only access to all configured exports; no per-user ACL, device writes, executable methods, recovery, implicit cloud upload or automatic trust. Protect PKI private keys and limit network access. Endpoint hostnames are not a firewall. Restart after configuration/trust changes to terminate old sessions.
 
-The namespace URI is `urn:fluentcontrol:fcs:opcua:1`; stable resource IDs include origin system/Gateway/device/sensor/signal. Browse, typed reads and real UA subscriptions are implemented; source acquisition polls the Gateway (2 seconds by default). `SourceTimestamp` is origin Gateway receipt time, never fabricated C3 UTC; mounts preserve it. Bad quality must not drive automation. Watchdogs invalidate stale samples, and connections retry without issuing device actions.
+The namespace URI is `urn:fluentcontrol:fcs:opcua:1`; stable resource IDs include origin system/Gateway/device/sensor/signal. Browse, typed reads and real UA subscriptions are implemented. The adapter uses the shared Gateway subscription API in batches of up to 16 signals with one-second cursor long polls; FC, scripts and ROS exports share source acquisition and freshness. Use matching preview Gateway/client versions. `SourceTimestamp` is origin Gateway receipt time, never fabricated C3 UTC; mounts preserve it. Bad quality must not drive automation. Watchdogs invalidate stale samples, and connections retry without issuing device actions.
 
 One-hop, explicitly selected mounts appear below Mounted systems. Imported resources cannot be recursively re-exported. Arbitrary-depth federation, geographic maps, service catalogs, historical UA access, complex value types and manager UI integration remain outside this preview. FC packaging and stable releases are unchanged. Linux x64 automated tests are separate from Windows USB, C3 hardware, NAS/ARM64 and third-party client acceptance. The OPC Foundation SDK retains its MIT license.

@@ -100,6 +100,7 @@ internal sealed class GatewayHost : IDisposable
     private readonly SemaphoreSlim discoveryGate = new(1, 1);
     public readonly HostHistory History;
     public readonly FcsAdapters Adapters;
+    public readonly FcsSubscriptions Subscriptions;
     public TimeSpan Freshness => TimeSpan.FromMilliseconds(config.PollMilliseconds * 3 + 4000);
     public GatewayHost(HostConfig config, string directory, HttpMessageHandler? handler = null)
     {
@@ -109,6 +110,8 @@ internal sealed class GatewayHost : IDisposable
         foreach (var node in config.Nodes) nodes[node.DeviceId] = new State(node);
         History = new(directory);
         Adapters = new(directory);
+        Subscriptions = new((id, cancel) => Task.FromResult(JsonSerializer.SerializeToElement(Node(id, "data.read", default))));
+        Adapters.Changed += Subscriptions.Notify;
     }
     public static async Task<JsonElement> ReadJsonAsync(Stream stream, int maximum, CancellationToken cancel)
     {
@@ -148,10 +151,11 @@ internal sealed class GatewayHost : IDisposable
             Volatile.Write(ref state.Latest, new(frame, received, Stopwatch.GetTimestamp()));
             History.Add(state.Node.DeviceId, received, frame);
             Volatile.Write(ref state.Failed, false);
+            Subscriptions.Notify(state.Node.DeviceId);
         }
         catch (Exception e) when (e is HttpRequestException or InvalidDataException or IOException or OperationCanceledException or
             JsonException or InvalidOperationException or KeyNotFoundException or FormatException)
-        { Volatile.Write(ref state.Failed, true); }
+        { Volatile.Write(ref state.Failed, true); Subscriptions.Notify(state.Node.DeviceId); }
     }
     private bool Online(State state) => !Volatile.Read(ref state.Failed) && Volatile.Read(ref state.Latest) is { } s &&
         Stopwatch.GetElapsedTime(s.ReceivedTicks) <= Freshness;

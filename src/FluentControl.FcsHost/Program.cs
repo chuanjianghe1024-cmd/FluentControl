@@ -49,13 +49,14 @@ var config = JsonSerializer.Deserialize<HostConfig>(File.ReadAllText(configPath)
 config.Validate();
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders(); builder.Logging.AddSimpleConsole();
-builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 4096; options.Limits.MaxConcurrentConnections = 64; });
+builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 16384; options.Limits.MaxConcurrentConnections = 64; });
 builder.Services.AddSingleton(new GatewayHost(config, directory));
 builder.Services.AddHostedService<Collector>();
 builder.Services.AddSingleton(sp => new ScriptCollector(directory, sp.GetRequiredService<GatewayHost>()));
 builder.Services.AddHostedService<ScriptCollector>(sp => sp.GetRequiredService<ScriptCollector>());
 builder.Services.AddRateLimiter(options => options.AddConcurrencyLimiter("rpc", limiter =>
-    { limiter.PermitLimit = 8; limiter.QueueLimit = 0; limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst; }));
+    { limiter.PermitLimit = 48; limiter.QueueLimit = 0; limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst; }));
+using var subscriptionReaders = new SemaphoreSlim(32);
 var app = builder.Build();
 app.UseRateLimiter();
 app.Use(async (context, next) =>
@@ -84,7 +85,7 @@ app.MapPost("/rpc", async (HttpContext context, GatewayHost host) =>
     using var deadline = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted); deadline.CancelAfter(TimeSpan.FromSeconds(5));
     try
     {
-        var root = await GatewayHost.ReadJsonAsync(context.Request.Body, 4096, deadline.Token);
+        var root = await GatewayHost.ReadJsonAsync(context.Request.Body, 16384, deadline.Token);
         if (root.ValueKind != JsonValueKind.Object || root.EnumerateObject().GroupBy(p => p.Name).Any(g => g.Count() > 1))
             throw new InvalidDataException("Invalid request.");
         string Field(string name) => root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString()! : "";
@@ -92,6 +93,12 @@ app.MapPost("/rpc", async (HttpContext context, GatewayHost host) =>
         if ((op is "manager.capabilities" or "nodes.save" or "nodes.remove" or "scripts.list" or "adapters.status") && !manager)
             return Results.StatusCode(403);
         if (op == "discover" && manager) await host.ScanAsync(deadline.Token);
+        if (op == "subscriptions.read")
+        {
+            if (!subscriptionReaders.Wait(0)) return Results.StatusCode(429);
+            try { context.Response.Headers.CacheControl = "no-store"; return Results.Json(await host.Subscriptions.ReadAsync(root.GetProperty("arguments"), deadline.Token)); }
+            finally { subscriptionReaders.Release(); }
+        }
         object result = op switch {
             "manager.capabilities" => FcsManagement.Capabilities(usb: false, configureNodes: true),
             "scripts.list" => FcsManagement.Scripts(Path.Combine(directory, "scripts")),
@@ -120,10 +127,11 @@ internal sealed class Collector(GatewayHost host) : BackgroundService
             using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
             var adapters = host.Adapters.RunAsync(lifetime.Token); // Bind before starting collection.
             var collection = host.RunAsync(lifetime.Token);
-            if (host.Adapters.Port == 0) { await collection; return; }
-            try { await Task.WhenAny(adapters, collection); }
+            var subscriptions = host.Subscriptions.RunAsync(lifetime.Token);
+            var services = host.Adapters.Port == 0 ? new[] { collection, subscriptions } : new[] { adapters, collection, subscriptions };
+            try { await Task.WhenAny(services); }
             finally { lifetime.Cancel(); }
-            await Task.WhenAll(adapters, collection); // Fail visibly if either service stops.
+            await Task.WhenAll(services); // Fail visibly if any service stops.
         }
         catch (Exception) when (!stoppingToken.IsCancellationRequested)
         { Environment.ExitCode = 1; throw; }
@@ -132,11 +140,6 @@ internal sealed class Collector(GatewayHost host) : BackgroundService
 
 internal sealed class ScriptCollector(string directory, GatewayHost host) : BackgroundService
 {
-    protected override Task ExecuteAsync(CancellationToken stoppingToken) => new FcsScriptLoop(Path.Combine(directory, "scripts"), (input, cancel) =>
-    {
-        var envelope = JsonSerializer.SerializeToElement(host.Node(input.GetProperty("deviceId").GetString()!, "data.read",
-            JsonSerializer.SerializeToElement(new { sensorId = input.GetProperty("sensorId").GetString(), signalId = input.GetProperty("signalId").GetString(), mode = "fresh" })));
-        if (envelope.GetProperty("sampleAgeMilliseconds").GetInt32() > 5000) throw new IOException("Input stale.");
-        return Task.FromResult(envelope.GetProperty("result").Clone());
-    }).RunAsync(stoppingToken);
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
+        new FcsScriptLoop(Path.Combine(directory, "scripts"), host.Subscriptions.ScriptFrameAsync).RunAsync(stoppingToken);
 }

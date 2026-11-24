@@ -4,6 +4,8 @@ import json
 import math
 import re
 import time
+import queue
+import threading
 from pathlib import Path
 import urllib.error
 import urllib.request
@@ -54,6 +56,7 @@ def validate(config):
 class Reader:
     def __init__(self, config):
         self.url = config["url"]
+        self.cursor = None
         self.token = Path(config["tokenFile"]).read_text().strip()
         if not re.fullmatch(r"[0-9a-fA-F]{64}", self.token):
             raise ValueError("Invalid reader token")
@@ -63,47 +66,74 @@ class Reader:
                 return None
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
 
-    def read(self, item):
-        payload = dict(protocol="fcs-telemetry/1", deviceId=item["deviceId"], sensorId=item["sensorId"],
-                       signalId=item["signalId"], valueType=item["valueType"], unit=item["unit"],
-                       value=None, valid=False, status="unavailable", receivedAtUtc=None)
+    @staticmethod
+    def unavailable(item):
+        return dict(protocol="fcs-telemetry/1", deviceId=item["deviceId"], sensorId=item["sensorId"],
+                    signalId=item["signalId"], valueType=item["valueType"], unit=item["unit"],
+                    value=None, valid=False, status="unavailable", receivedAtUtc=None)
+
+    def read(self, items):
+        result = [self.unavailable(item) for item in items]
         started = time.monotonic()
         try:
-            request = urllib.request.Request(self.url, json.dumps(dict(operation="node.request", deviceId=item["deviceId"],
-                command="data.read", arguments=dict(sensorId=item["sensorId"], signalId=item["signalId"], mode="fresh"))).encode(),
+            # Many output topics may share one source. Subscribe once per identity,
+            # then retain the existing per-output schema/quality projection below.
+            identity = ("deviceId", "sensorId", "signalId")
+            selections = {tuple(item[key] for key in identity): {key: item[key] for key in identity} for item in items}
+            request = urllib.request.Request(self.url, json.dumps(dict(operation="subscriptions.read", arguments=dict(
+                signals=list(selections.values()),
+                cursor=self.cursor, waitMilliseconds=1000))).encode(),
                 {"Content-Type": "application/json", "Authorization": "Bearer " + self.token})
-            with self.opener.open(request, timeout=.5) as response:
-                raw = response.read(65537)
-            if len(raw) > 65536:
+            with self.opener.open(request, timeout=3) as response:
+                raw = response.read(262145)
+            if len(raw) > 262144:
                 raise ValueError("Reply too large")
             envelope = json.loads(raw)
-            frame = envelope["result"]
-            age, maximum = envelope["sampleAgeMilliseconds"], envelope["maxAgeMilliseconds"]
-            if (envelope["protocol"] != "fcs-gateway/1" or frame["protocol"] != "fcs-node/2" or
-                    frame["deviceId"] != item["deviceId"] or frame["ok"] is not True or
-                    type(age) not in (int, float) or type(maximum) not in (int, float) or
-                    not 0 <= age + (time.monotonic() - started) * 1000 <= min(maximum, 10000)):
-                raise ValueError("Invalid or stale Gateway reply")
-            values = [v for v in frame["data"] if v["sensorId"] == item["sensorId"] and v["signalId"] == item["signalId"]]
-            if len(values) != 1:
-                raise ValueError("Ambiguous signal")
-            v = values[0]
-            value = v["value"]
-            type_ok = {"number": type(value) in (int, float) and math.isfinite(value) if type(value) in (int, float) else False,
-                       "integer": type(value) is int, "boolean": type(value) is bool, "string": type(value) is str}[item["valueType"]]
-            if (v["valid"] is not True or v["fresh"] is not True or v["unit"] != item["unit"] or
-                    v["valueType"] != item["valueType"] or not type_ok):
-                raise ValueError("Invalid value/type/unit")
-            payload.update(value=value, valid=True, status="ready", receivedAtUtc=envelope["receivedAtUtc"],
-                           sequence=v["sequence"], sampleAgeMilliseconds=age)
+            if envelope["protocol"] != "fcs-gateway/1" or envelope["subscriptionProtocol"] != "fcs-subscription/1":
+                raise ValueError("Gateway subscription protocol required")
+            self.cursor = envelope["cursor"]
+            waited = envelope["waitedMilliseconds"]
+            if type(waited) is not int or not 0 <= waited <= 5000:
+                raise ValueError("Invalid subscription timing")
+            transit = max(0, (time.monotonic() - started) * 1000 - waited)
+            for index, item in enumerate(items):
+                values = [v for v in envelope["samples"] if all(v[k] == item[k] for k in ("deviceId", "sensorId", "signalId"))]
+                if len(values) != 1:
+                    continue
+                v = values[0]
+                if v["valid"] is not True or v["fresh"] is not True:
+                    result[index]["status"] = v["status"]
+                    continue
+                value = v["value"]
+                type_ok = {"number": type(value) in (int, float) and math.isfinite(value) if type(value) in (int, float) else False,
+                           "integer": type(value) is int, "boolean": type(value) is bool, "string": type(value) is str}[item["valueType"]]
+                if v["unit"] != item["unit"] or v["valueType"] != item["valueType"] or not type_ok:
+                    continue
+                age, maximum = v["sampleAgeMilliseconds"], v["maxAgeMilliseconds"]
+                if (type(age) not in (int, float) or type(maximum) is not int or not 500 <= maximum <= 60000 or
+                        not 0 <= age + transit <= maximum):
+                    continue
+                result[index].update(value=value, valid=True, status="ready", receivedAtUtc=v["receivedAtUtc"],
+                    sequence=v["sequence"], sampleAgeMilliseconds=age + transit,
+                    maxAgeMilliseconds=maximum)
         except (OSError, ValueError, KeyError, TypeError):
-            pass
-        return payload
+            self.cursor = None  # Reconnect obtains a fresh snapshot; never replays an old queue.
+        return result
+
+    @staticmethod
+    def age(sample, elapsed):
+        sample = dict(sample)
+        if sample["valid"]:
+            sample["sampleAgeMilliseconds"] += elapsed * 1000
+            if sample["sampleAgeMilliseconds"] > sample["maxAgeMilliseconds"]:
+                sample.update(value=None, valid=False, status="stale")
+        return sample
 
 
 def run(config):
     validate(config)
     import rclpy
+    from rclpy.executors import ExternalShutdownException
     from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
     from std_msgs.msg import Float64, Int64, Bool, String
     from sensor_msgs.msg import Illuminance, Temperature, BatteryState
@@ -120,24 +150,49 @@ def run(config):
             lambda message, item=item: producer.put(item, getattr(message, item["field"])), qos(item["reliability"] == "reliable"))
     exports = [(item, node.create_publisher(String, item["topic"], qos(True))) for item in config.get("exports", [])]
     reader = Reader(config["gateway"]) if exports else None
-    # Read one export per tick: slow/disconnected sources cannot block imports for N timeouts.
-    index = 0
+    # A blocking network subscription must never stall ROS input callbacks.
+    pending = queue.Queue(maxsize=1)
+    stopping = threading.Event()
+    def receive_exports():
+        items = [item for item, _ in exports]
+        while not stopping.is_set():
+            samples = reader.read(items)
+            batch = (time.monotonic(), samples)
+            try:
+                pending.put_nowait(batch)
+            except queue.Full:
+                try:
+                    pending.get_nowait()
+                except queue.Empty:
+                    pass
+                pending.put_nowait(batch)
+            stopping.wait(.1)
+    worker = threading.Thread(target=receive_exports, daemon=True) if exports else None
+    if worker:
+        worker.start()
     def export():
-        nonlocal index
-        item, publisher = exports[index]
-        index = (index + 1) % len(exports)
-        message = String()
-        message.data = json.dumps(reader.read(item), separators=(",", ":"), allow_nan=False)
-        publisher.publish(message)
+        try:
+            received, samples = pending.get_nowait()
+        except queue.Empty:
+            return
+        for (_, publisher), sample in zip(exports, samples):
+            message = String()
+            message.data = json.dumps(reader.age(sample, time.monotonic() - received), separators=(",", ":"), allow_nan=False)
+            publisher.publish(message)
     if producer:
         node.create_timer(.1, producer.flush)
     if exports:
         node.create_timer(.1, export)
     try:
         rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
     finally:
+        stopping.set()
+        if worker:
+            worker.join(timeout=4)
         node.destroy_node()
-        rclpy.shutdown()
+        rclpy.try_shutdown()
 
 
 if __name__ == "__main__":

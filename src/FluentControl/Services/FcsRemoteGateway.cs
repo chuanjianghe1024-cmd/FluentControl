@@ -51,7 +51,7 @@ public static class FcsRemoteGateway
     { using var result = await SendAsync(new(address, token), new { operation = "status" }, cancel); }
     public static Task<JsonDocument> QueryAsync(string operation, string? id, string? command, object? arguments, CancellationToken cancel)
     {
-        if (operation is not ("list" or "discover" or "status" or "node.request") ||
+        if (operation is not ("list" or "discover" or "status" or "node.request" or "subscriptions.read") ||
             operation == "node.request" && command is not ("node.info" or "sensors.list" or "operations.list" or "data.read" or "sampling.get"))
             throw new InvalidDataException("Remote Gateway is read-only.");
         return SendAsync(Volatile.Read(ref connection) ?? throw new IOException("Remote Gateway is unavailable."),

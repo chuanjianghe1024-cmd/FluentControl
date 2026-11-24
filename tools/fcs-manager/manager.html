@@ -11,6 +11,7 @@
 <div id="sensor-list"></div><pre id="details"></pre>
 <fieldset id="usb-controls"><legend>USB 管理</legend><label>Wi-Fi SSID <input id="ssid" maxlength="32" list="networks"><datalist id="networks"></datalist></label><label>Wi-Fi 密码 <input id="password" type="password" maxlength="64" autocomplete="off"></label><button id="wifi-save">连接 Wi-Fi</button>
 <div class="bar"><button id="reboot">重启设备</button><button id="factory">恢复出厂设置</button></div>
+<h3>小节点 / 蓝牙接入桥（开发预览）</h3><p class="muted">USB 配置 ESP-NOW 节点、桥接角色及 BTHome v2 白名单。先查看状态获取 Wi-Fi MAC。广播来源尚无身份认证；配置后仍需在 Gateway 授权信号。</p><button id="bridge-status">读取桥接状态</button><label>桥接配置 JSON（含配对密钥）<textarea id="bridge-config" autocomplete="off" spellcheck="false">{"role":"off","channel":1,"pmk":"","peers":[],"bthome":[]}</textarea></label><button id="bridge-save">保存桥接配置</button>
 <h3>设备插件</h3><p class="muted">插件运行在 C3 上。仅安装可信插件，安装后默认禁用。</p><input id="plugin-file" type="file" accept=".json"><button id="install">安装插件</button>
 <label>已安装插件 <select id="plugin-id"></select></label><label>参数 JSON <textarea id="plugin-settings">{}</textarea></label>
 <div class="bar"><button id="enable">保存并启用</button><button id="disable">停用</button><button id="run">执行一次</button><button id="rollback">回滚并停用</button><button id="remove">卸载</button><button id="safe">退出安全模式</button></div>
