@@ -27,10 +27,28 @@ public sealed partial class MainWindow
         finally { device.CapabilitiesPending = false; }
         Task show = ShowOsdPairingAsync(device, fixture, directory);
         ScrollViewer Content() => monitorAdaptationDialog?.Content as ScrollViewer ?? throw new InvalidOperationException("Pairing dialog missing");
-        T Find<T>(string id) where T : FrameworkElement => Descendants<T>(Content()).Single(x => AutomationProperties.GetAutomationId(x) == id);
+        async Task<T> Find<T>(string id) where T : FrameworkElement
+        {
+            // Dialog pages and expanded content are realized on a later layout
+            // pass. Wait for the real control, without bypassing visibility,
+            // changing the selected page, or invoking an unloaded element.
+            var deadline = Environment.TickCount64 + 3000;
+            do
+            {
+                if (monitorAdaptationDialog?.Content is ScrollViewer content)
+                {
+                    content.UpdateLayout();
+                    var matches = Descendants<T>(content).Where(x => AutomationProperties.GetAutomationId(x) == id).ToArray();
+                    if (matches.Length > 1) throw new InvalidOperationException("Duplicate pairing control: " + id);
+                    if (matches.Length == 1 && matches[0].IsLoaded) return matches[0];
+                }
+                await Task.Delay(30);
+            } while (Environment.TickCount64 < deadline);
+            throw new InvalidOperationException("Pairing control was not realized: " + id);
+        }
         async Task Invoke(string id)
         {
-            var button = Find<Button>(id); button.StartBringIntoView();
+            var button = (await Find<Button>(id)); button.StartBringIntoView();
             var peer = new ButtonAutomationPeer(button);
             for (var i = 0; i < 30 && (!button.IsLoaded || !peer.IsEnabled()); i++) await Task.Delay(100);
             if (!button.IsLoaded || !peer.IsEnabled()) throw new InvalidOperationException("Pairing button unavailable: " + id);
@@ -43,12 +61,12 @@ public sealed partial class MainWindow
             if (writes.Count != 1 || writes[0] != ((byte)0xCA, 0x0202u)) throw new InvalidOperationException("Pairing enable did not preserve button fields");
             foreach (var expander in Descendants<Expander>(Content())) expander.IsExpanded = true;
             await Task.Delay(80);
-            Find<CheckBox>("pairing-bind-open").IsChecked = true;
+            (await Find<CheckBox>("pairing-bind-open")).IsChecked = true;
             await Invoke("pairing-result-success");
             var store = new OsdPairingStore(directory, device.Id);
             var saved = store.Load(OsdIdentity.Capture(device), true)!;
             if (saved.Bindings.Single().Action != "open" || saved.Trials[0].After?.Current is not null) throw new InvalidOperationException("Pairing UI did not persist actual observation with failed readback");
-            Find<CheckBox>("pairing-reuse-fields").IsChecked = true;
+            (await Find<CheckBox>("pairing-reuse-fields")).IsChecked = true;
             await Invoke("pairing-osd-disable");
             await Invoke("pairing-osd-disable");
             if (writes.Count != 3 || writes[^1].Item2 != 0x0201) throw new InvalidOperationException("Pairing disable cannot be repeated after read failure");
@@ -57,15 +75,15 @@ public sealed partial class MainWindow
             if (writes.Count != 3) throw new InvalidOperationException("Disable events bypassed second confirmation");
             await Invoke("pairing-confirm-send");
             if (writes.Count != 4 || writes[^1].Item2 != 0x0203) throw new InvalidOperationException("Confirmed disable events missing");
-            Find<ComboBox>("pairing-navigation").SelectedIndex = 2; await Task.Delay(80);
-            if (Find<Button>("pairing-remote-up").IsEnabled || Find<Button>("pairing-remote-enter").IsEnabled) throw new InvalidOperationException("Unbound navigation became available");
+            (await Find<ComboBox>("pairing-navigation")).SelectedIndex = 2; await Task.Delay(80);
+            if ((await Find<Button>("pairing-remote-up")).IsEnabled || (await Find<Button>("pairing-remote-enter")).IsEnabled) throw new InvalidOperationException("Unbound navigation became available");
             await Invoke("pairing-remote-open");
             if (writes.Count != 5) throw new InvalidOperationException("Bound remote button failed");
             // Closing a queued request must not send it after the lifecycle gate is released.
             await gate.WaitAsync();
             try
             {
-                var button = Find<Button>("pairing-remote-open");
+                var button = (await Find<Button>("pairing-remote-open"));
                 ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)).Invoke();
                 CloseMonitorAdaptation(); await Task.Delay(50);
             }
@@ -74,24 +92,24 @@ public sealed partial class MainWindow
             if (writes.Count != 5 || monitorAdaptationDialog is not null) throw new InvalidOperationException("Closed pairing retained queued hardware work");
             show = ShowOsdPairingAsync(device, new OsdPairingSession(_ => new(1, 0x0201, 2), (c, v) => writes.Add((c, v))), directory);
             await Task.Delay(200); await osdPairingOperation;
-            Find<ComboBox>("pairing-navigation").SelectedIndex = 2; await Task.Delay(80);
+            (await Find<ComboBox>("pairing-navigation")).SelectedIndex = 2; await Task.Delay(80);
             await Invoke("pairing-remote-open");
             if (writes.Count != 6) throw new InvalidOperationException("Local pairing did not survive reopening");
-            Find<ComboBox>("pairing-navigation").SelectedIndex = 0; await Task.Delay(50);
+            (await Find<ComboBox>("pairing-navigation")).SelectedIndex = 0; await Task.Delay(50);
             await Invoke("pairing-discover");
-            var advertised = Find<ComboBox>("pairing-advertised");
+            var advertised = (await Find<ComboBox>("pairing-advertised"));
             if (!advertised.Items.Cast<OsdAdvertisedFeature>().Select(f => f.Code).SequenceEqual(new byte[] { 0x4D, 0xFD, 0xFF })) throw new InvalidOperationException("Advertised unknown codes were not discovered");
-            Find<CheckBox>("pairing-accessible").IsChecked = true;
+            (await Find<CheckBox>("pairing-accessible")).IsChecked = true;
             if (writes.Count != 6) throw new InvalidOperationException("Opening candidate page wrote to the monitor");
             await Invoke("pairing-test-4D-0002");
             if (writes.Count != 7 || writes[^1] != ((byte)0x4D, 2u)) throw new InvalidOperationException("Advertised candidate did not send its exact value once");
             foreach (var expander in Descendants<Expander>(Content())) expander.IsExpanded = true;
-            await Task.Delay(50); Find<CheckBox>("pairing-bind-up").IsChecked = true;
+            await Task.Delay(50); (await Find<CheckBox>("pairing-bind-up")).IsChecked = true;
             await Invoke("pairing-result-success");
-            Find<ComboBox>("pairing-navigation").SelectedIndex = 2; await Task.Delay(50);
+            (await Find<ComboBox>("pairing-navigation")).SelectedIndex = 2; await Task.Delay(50);
             await Invoke("pairing-remote-up");
             if (writes.Count != 8 || writes[^1] != ((byte)0x4D, 2u)) throw new InvalidOperationException("Observed unknown command did not bind to the remote");
-            Find<ComboBox>("pairing-navigation").SelectedIndex = 1; advertised.SelectedIndex = 1; await Task.Delay(50);
+            (await Find<ComboBox>("pairing-navigation")).SelectedIndex = 1; advertised.SelectedIndex = 1; await Task.Delay(50);
             if (writes.Count != 8) throw new InvalidOperationException("Selecting another unknown code wrote to the monitor");
             await Invoke("pairing-test-FD-0001");
             saved = store.Load(OsdIdentity.Capture(device), true)!;
@@ -99,16 +117,16 @@ public sealed partial class MainWindow
                 throw new InvalidOperationException("Experimental values or local unknown-code bindings were not persisted");
             await Invoke("pairing-result-other");
             foreach (var expander in Descendants<Expander>(Content())) expander.IsExpanded = true;
-            Find<TextBox>("pairing-custom-name").Text = "Fixture mode";
-            Find<ComboBox>("pairing-custom-kind").SelectedIndex = 1;
-            Find<TextBox>("pairing-custom-label").Text = "Mode A";
+            (await Find<TextBox>("pairing-custom-name")).Text = "Fixture mode";
+            (await Find<ComboBox>("pairing-custom-kind")).SelectedIndex = 1;
+            (await Find<TextBox>("pairing-custom-label")).Text = "Mode A";
             await Invoke("pairing-bind-custom");
-            Find<NumberBox>("pairing-settle").Value = 0;
-            Find<CheckBox>("pairing-readback").IsChecked = false;
-            Find<ComboBox>("pairing-navigation").SelectedIndex = 2; await Task.Delay(50);
+            (await Find<NumberBox>("pairing-settle")).Value = 0;
+            (await Find<CheckBox>("pairing-readback")).IsChecked = false;
+            (await Find<ComboBox>("pairing-navigation")).SelectedIndex = 2; await Task.Delay(50);
             for (var repeat = 0; repeat < 2; repeat++)
             {
-                var choice = Find<ComboBox>("pairing-custom-choice-Fixture mode");
+                var choice = (await Find<ComboBox>("pairing-custom-choice-Fixture mode"));
                 if (choice.SelectedIndex != -1) throw new InvalidOperationException("Named choice falsely shows hardware state");
                 choice.SelectedIndex = 0; await Task.Delay(50); await osdPairingOperation;
             }
