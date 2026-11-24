@@ -30,7 +30,7 @@
     <Content Include="../../LICENSE" Link="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
 
     <!-- The application uses WinUI/windowing, not the AI/ML/widgets metapackage.
-         Keep the same WinUI component version as WindowsAppSDK 1.8.260921001. -->
+         Keep the WinUI component and its private installer payload together. -->
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="2.6.5" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.MSIX" Version="1.7.260930100" PrivateAssets="all" />
     <!-- CoreAudio endpoint control only; NAudio's umbrella also brings WinForms
