@@ -1,0 +1,28 @@
+{
+  "listenPort": 18767,
+  "adapters": [
+    {
+      "id": "radio",
+      "kind": "custom",
+      "enabled": false,
+      "signals": [
+        {
+          "deviceId": "ext-radio-desk",
+          "sensorId": "ambient-01",
+          "signalId": "illuminance",
+          "staleMilliseconds": 5000,
+          "valueType": "number",
+          "unit": "lx"
+        },
+        {
+          "deviceId": "ext-radio-room",
+          "sensorId": "climate",
+          "signalId": "temperature",
+          "staleMilliseconds": 30000,
+          "valueType": "number",
+          "unit": "Cel"
+        }
+      ]
+    }
+  ]
+}
