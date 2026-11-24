@@ -9,6 +9,8 @@ public sealed class LightSourceSubscription
     public string Name { get; set; } = "";
     public string Url { get; set; } = "";
     public string DeviceId { get; set; } = "";
+    public string SensorId { get; set; } = "ambient-01";
+    public string SignalId { get; set; } = "illuminance";
     public bool SignedDevice { get; set; }
     public int PollMilliseconds { get; set; } = 1000;
     public override string ToString() => Name;

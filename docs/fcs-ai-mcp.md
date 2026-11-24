@@ -48,3 +48,19 @@
 - 云接口仅有能力与数据契约预留，**没有**账户、上传、存储、云规则执行或云同步。
 
 相关说明：FCS 仓库 `docs/cloud-contract.md` 与 `docs/release-policy.md`。
+
+
+## Node v2 tools (development)
+
+The adapter now exposes `fcs_node_info`, `fcs_sensors_list`, `fcs_operations_list`,
+`fcs_data_read`, `fcs_sampling_get`, `fcs_cache_read`, and `fcs_plugin_list`.
+`fcs_sampling_set` appears only with `FCS_MCP_ENABLE_WRITES=1` and requires
+`confirmed=true`, `sensorId`, `enabled`, and `intervalMs`. It always uses physical
+USB; a failed/timed-out write is never replayed on another port or LAN.
+Each request checks the live `operations.list` state, access and transport before
+execution. The gateway returns the unchanged node envelope under `result`, including
+`data[]` and structured errors. Cache/plugin queries are USB-only. Unknown arguments
+and operations are rejected. No arbitrary commands, plugin runtime or cloud upload.
+The older capabilities/read-signal tool names now use the same v2 path.
+
+本次提供的是开发实现；stdio 自测不等于真实 MCP host 或 C3 硬件验收。

@@ -55,10 +55,21 @@ jobs:
         run: dotnet run --project tests/FluentControl.Tests -c Release -- --native
       - name: Compile Fluent setup frontend
         run: dotnet build installer/FluentControl.Setup/FluentControl.Setup.csproj -c Release
+      - name: Prepare pinned standalone USB recovery tool
+        shell: pwsh
+        run: ./scripts/Get-Esptool.ps1
       - name: Build and test independent FCS Gateway
         run: |
           dotnet build src/FluentControl.FcsGateway/FluentControl.FcsGateway.csproj -c Release
           dotnet run --project src/FluentControl.FcsGateway/FluentControl.FcsGateway.csproj -c Release -- --self-test
+      - name: Test FCS manager UI without physical hardware
+        shell: pwsh
+        run: |
+          npm install --prefix "$env:RUNNER_TEMP/fcs-ui" --no-audit --no-fund playwright@1.62.1
+          if ($LASTEXITCODE -ne 0) { throw 'Playwright setup failed.' }
+          $env:NODE_PATH = "$env:RUNNER_TEMP/fcs-ui/node_modules"
+          node tests/fcs-manager/ui.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'FCS manager UI checks failed.' }
       - name: Build WinUI application
         run: dotnet build src/FluentControl/FluentControl.csproj -c Release -p:Platform=x64
       - name: Publish portable standalone FCS Gateway
@@ -77,6 +88,12 @@ jobs:
           ./scripts/Test-DdcHost.ps1
           ./scripts/Test-Startup.ps1
           if (-not (Test-Path 'publish/FluentControl.FcsGateway.exe')) { throw 'Bundled FCS Gateway is missing.' }
+          if (-not (Test-Path 'publish/esptool/fcs-recovery.exe')) { throw 'Bundled recovery tool is missing.' }
+          if (-not (Test-Path 'publish/fcs-script-runner.py')) { throw 'Bundled FCS script worker is missing.' }
+          python scripts/test-fcs-manager.py ./publish/FluentControl.FcsGateway.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Gateway manager checks failed.' }
+          python scripts/test-fcs-scripts.py ./publish/FluentControl.FcsGateway.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Gateway script checks failed.' }
       - name: Build single compressed offline MSI
         shell: pwsh
         run: ./scripts/Build-Msi.ps1 -Version $env:PACKAGE_VERSION

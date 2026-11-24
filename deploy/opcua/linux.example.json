@@ -1,0 +1,14 @@
+{
+  "systemId": "home",
+  "gatewayId": "nas",
+  "endpoint": "opc.tcp://localhost:4840/fcs",
+  "pkiDirectory": "opcua-pki",
+  "gatewayUrl": "http://127.0.0.1:8767/",
+  "gatewayTokenFile": "data/gateway.token",
+  "pollMilliseconds": 2000,
+  "staleMilliseconds": 15000,
+  "signals": [
+    { "deviceId": "c3-example", "sensorId": "ambient-01", "signalId": "illuminance", "valueType": "number", "unit": "lx" }
+  ],
+  "mounts": []
+}

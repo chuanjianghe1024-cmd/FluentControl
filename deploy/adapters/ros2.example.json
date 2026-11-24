@@ -1,0 +1,20 @@
+{
+  "adapterId": "robot",
+  "endpoint": {
+    "port": 18767,
+    "tokenFile": "/var/lib/fcs/adapter-tokens/robot.token"
+  },
+  "inputs": [
+    {
+      "deviceId": "ext-robot-light",
+      "sensorId": "ambient",
+      "signalId": "illuminance",
+      "staleMilliseconds": 3000,
+      "topic": "/robot/illuminance",
+      "type": "sensor_msgs/msg/Illuminance",
+      "field": "illuminance",
+      "reliability": "best_effort"
+    }
+  ],
+  "exports": []
+}

@@ -6,10 +6,26 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 
+if (args.Length == 0 || args.Length == 1 && args[0] is "--manage" or "--manage-headless")
+{
+    await FcsManager.RunAsync(args.Length == 0 || args[0] == "--manage"); return;
+}
+if (args.Length > 0 && args[0].StartsWith("--script-", StringComparison.Ordinal))
+{
+    try { await FcsScripts.CliAsync(args); } catch (Exception ex) { Console.Error.WriteLine(ex.Message); Environment.ExitCode = 1; }
+    return;
+}
+if (args.Length > 0 && args[0] is "--plugin-install" or "--node")
+{
+    try { if (!await FcsPluginCli.RunAsync(args)) throw new InvalidDataException("Usage: --plugin-install DEVICE PACKAGE | --node DEVICE OPERATION [ARGUMENTS.json]"); }
+    catch (Exception ex) { Console.Error.WriteLine(ex.Message); Environment.ExitCode = 1; }
+    return;
+}
 const string PipeName = "FluentControl.FcsGateway.v1";
 const string Version = "fcs-gateway/1";
 if (args.Length == 1 && args[0] == "--self-test")
 {
+    FcsRecoveryChecks.Run();
     GatewayChecks.Run();
     return;
 }
@@ -46,31 +62,84 @@ Console.CancelKeyPress += (_, e) => { e.Cancel = true; lifetime.Cancel(); };
 using var service = new GatewayRegistry();
 using var usb = new FcsUsb();
 _ = Task.Run(() => service.RunDiscoveryLoopAsync(lifetime.Token));
+var adapterTask = service.Adapters.RunAsync(lifetime.Token);
+_ = adapterTask.ContinueWith(_ => lifetime.Cancel(), CancellationToken.None,
+    TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+service.Subscriptions = new(async (id, cancel) =>
+{
+    var request = JsonSerializer.Serialize(new { operation = "node.request", deviceId = id,
+        command = "data.read", arguments = new { mode = "fresh" } });
+    return JsonSerializer.SerializeToElement((await FcsGatewayCommands.RunAsync(request, service, usb, cancel)).Payload);
+});
+service.Adapters.Changed += service.Subscriptions.Notify;
+var subscriptionTask = service.Subscriptions.RunAsync(lifetime.Token);
+_ = subscriptionTask.ContinueWith(_ => lifetime.Cancel(), CancellationToken.None,
+    TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+_ = new FcsScriptLoop(FcsScripts.DirectoryPath, service.Subscriptions.ScriptFrameAsync).RunAsync(lifetime.Token);
 // The gateway owns USB discovery even when the FC UI is closed. Re-probe on
 // port changes or every 30 seconds (for devices busy during the first attempt).
 _ = Task.Run(() => GatewayUsbDiscovery.RunAsync(usb, service, lifetime.Token));
-while (!lifetime.IsCancellationRequested)
+using var pipeSlots = new SemaphoreSlim(48);
+using var subscriptionSlots = new SemaphoreSlim(32);
+using var commandSlot = new SemaphoreSlim(1); // Preserve serialization of existing management requests.
+var clients = new List<Task>();
+async Task Serve(NamedPipeServerStream pipe)
 {
-    try
+    using (pipe)
     {
-        using var pipe = new NamedPipeServerStream(PipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
-            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
-        await pipe.WaitForConnectionAsync(lifetime.Token);
-        using var reader = new StreamReader(pipe, Encoding.UTF8, false, 4096, leaveOpen: true);
-        using var writer = new StreamWriter(pipe, new UTF8Encoding(false), 4096, leaveOpen: true) { AutoFlush = true };
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
-        timeout.CancelAfter(TimeSpan.FromSeconds(35));
-        var line = await reader.ReadLineAsync(timeout.Token);
-        if (line is null || line.Length > 4096) continue;
-        var response = await FcsGatewayCommands.RunAsync(line, service, usb, timeout.Token);
-        await writer.WriteLineAsync(JsonSerializer.Serialize(response.Payload,
-            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
-        if (response.Shutdown) lifetime.Cancel();
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+            timeout.CancelAfter(TimeSpan.FromSeconds(35));
+            using var reader = new StreamReader(pipe, Encoding.UTF8, false, 4096, leaveOpen: true);
+            using var writer = new StreamWriter(pipe, new UTF8Encoding(false), 4096, leaveOpen: true) { AutoFlush = true };
+            // Bound input while reading, including clients that never send a newline.
+            var input = new StringBuilder(); var character = new char[1];
+            while (await reader.ReadAsync(character.AsMemory(), timeout.Token) != 0 && character[0] != '\n')
+            { if (input.Length >= 16384) return; input.Append(character[0]); }
+            var line = input.ToString();
+            if (line.Length == 0) return;
+            using var document = JsonDocument.Parse(line);
+            var subscription = document.RootElement.TryGetProperty("operation", out var operation) &&
+                operation.ValueKind == JsonValueKind.String && operation.GetString() == "subscriptions.read";
+            var limiter = subscription ? subscriptionSlots : commandSlot;
+            if (subscription && !limiter.Wait(0))
+            { await writer.WriteLineAsync("{\"protocol\":\"fcs-gateway/1\",\"error\":\"busy\"}"); return; }
+            if (!subscription) await limiter.WaitAsync(timeout.Token);
+            try
+            {
+                var response = await FcsGatewayCommands.RunAsync(line, service, usb, timeout.Token);
+                await writer.WriteLineAsync(JsonSerializer.Serialize(response.Payload,
+                    new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+                if (response.Shutdown) lifetime.Cancel();
+            }
+            finally { limiter.Release(); }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OperationCanceledException or SocketException or JsonException or InvalidOperationException)
+        { /* A disconnected/malformed reader must not stop other subscribers. */ }
+        finally { pipeSlots.Release(); }
     }
-    catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { break; }
-    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OperationCanceledException or SocketException)
-    { /* Cancelled clients and temporary network failure do not stop the gateway. */ }
 }
+try
+{
+    while (!lifetime.IsCancellationRequested)
+    {
+        await pipeSlots.WaitAsync(lifetime.Token);
+        NamedPipeServerStream? pipe = null;
+        try
+        {
+            pipe = new NamedPipeServerStream(PipeName, PipeDirection.InOut, 49, PipeTransmissionMode.Byte,
+                PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+            await pipe.WaitForConnectionAsync(lifetime.Token);
+            clients.RemoveAll(t => t.IsCompleted);
+            clients.Add(Serve(pipe)); pipe = null;
+        }
+        catch { pipe?.Dispose(); pipeSlots.Release(); throw; }
+    }
+}
+catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+finally { lifetime.Cancel(); await Task.WhenAll(clients); }
+await Task.WhenAll(adapterTask, subscriptionTask);
 
 internal sealed record GatewayDevice(string DeviceId, string Ip, string Status,
     double? Lux, DateTimeOffset? LastSampleUtc, DateTimeOffset LastSeenUtc,
@@ -78,6 +147,8 @@ internal sealed record GatewayDevice(string DeviceId, string Ip, string Status,
 
 internal sealed class GatewayRegistry : IDisposable
 {
+    public FcsAdapters Adapters { get; } = new(FcsAdapters.WindowsDirectory);
+    public FcsSubscriptions? Subscriptions { get; set; }
     private sealed class Entry
     {
         public string Id = "", Ip = "", UsbPort = "", Transport = "";
@@ -95,7 +166,7 @@ internal sealed class GatewayRegistry : IDisposable
         return a[0] == 10 || a[0] == 172 && a[1] >= 16 && a[1] <= 31 ||
                a[0] == 192 && a[1] == 168;
     }
-    public static bool ValidId(string? id) => id is { Length: > 0 and <= 100 } &&
+    public static bool ValidId(string? id) => id is { Length: > 0 and <= 100 } && !FcsAdapters.IsExternal(id) &&
         id.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
     public static bool TryLight(JsonElement frame, string identity, out double lux)
     {
@@ -135,6 +206,31 @@ internal sealed class GatewayRegistry : IDisposable
         !string.IsNullOrEmpty(e.Ip) && DateTimeOffset.UtcNow - e.Seen < TimeSpan.FromMinutes(10);
     public bool HasRecentUsb(string id) => devices.TryGetValue(id, out var e) &&
         !string.IsNullOrEmpty(e.UsbPort) && DateTimeOffset.UtcNow - e.UsbSeen < TimeSpan.FromSeconds(15);
+    public async Task<JsonElement> ReadNodeAsync(string id, string operation, JsonElement arguments, CancellationToken cancel)
+    {
+        arguments = FcsNode.Arguments(operation, arguments);
+        if (!FcsNode.Routes.TryGetValue(operation, out var path)) throw new InvalidDataException("USB required.");
+        if (!ValidId(id) || !devices.TryGetValue(id, out var entry) || !HasLan(id))
+            throw new IOException("No current LAN endpoint.");
+        if (operation != "operations.list")
+            FcsNode.Require(await ReadNodeAsync(id, "operations.list", default, cancel), operation, "lan");
+        var query = arguments.EnumerateObject().Select(p => Uri.EscapeDataString(p.Name) + "=" + Uri.EscapeDataString(p.Value.GetString()!));
+        var suffix = string.Join("&", query);
+        using var response = await client.GetAsync("http://" + entry.Ip + ":8766" + path +
+            (suffix.Length > 0 ? "?" + suffix : ""), HttpCompletionOption.ResponseHeadersRead, cancel);
+        if (response.Content.Headers.ContentLength is > 65536) throw new InvalidDataException("Node frame too large.");
+        await using var stream = await response.Content.ReadAsStreamAsync(cancel);
+        using var buffer = new MemoryStream();
+        var chunk = new byte[2048];
+        int size;
+        while ((size = await stream.ReadAsync(chunk, cancel)) > 0)
+        {
+            if (buffer.Length + size > 65536) throw new InvalidDataException("Node frame too large.");
+            buffer.Write(chunk, 0, size);
+        }
+        using var doc = JsonDocument.Parse(buffer.ToArray(), new JsonDocumentOptions { MaxDepth = 16 });
+        return FcsNode.Validate(doc.RootElement, id).Clone();
+    }
     public async Task<FcsDeviceCapabilities> ReadCapabilitiesAsync(string id, CancellationToken cancel)
     {
         if (!ValidId(id) || !devices.TryGetValue(id, out var entry) ||
@@ -309,6 +405,17 @@ internal static class GatewayChecks
 {
     public static void Run()
     {
+        foreach (var input in new[] { "{\"sensorId\":null}", "{\"sensorId\":\"../x\"}", "{\"mode\":\"bad\"}", "{\"mode\":\"fresh\",\"mode\":\"latest\"}" })
+        {
+            using var invalid = JsonDocument.Parse(input);
+            try { FcsNode.Arguments("data.read", invalid.RootElement); throw new Exception("Invalid node argument accepted."); }
+            catch (InvalidDataException) { }
+        }
+        using (var planned = JsonDocument.Parse("""{"ok":true,"operations":[{"id":"sampling.set","state":"planned","access":"write","transports":["usb"]}]}"""))
+        {
+            try { FcsNode.Require(planned.RootElement, "sampling.set", "usb"); throw new Exception("Planned operation accepted."); }
+            catch (InvalidDataException) { }
+        }
         FcsMcp.SelfTest();
         // The MCP transport is stdio JSON-RPC: verify real initialize/tools/list
         // roundtrips without starting any physical device or changing settings.
@@ -397,7 +504,7 @@ internal static class GatewayChecks
         var capabilities = FcsGatewayCommands.RunAsync("{\"operation\":\"capabilities\",\"deviceId\":null,\"port\":\"AUTO\",\"command\":null,\"arguments\":null}",
             registry, serial, CancellationToken.None).GetAwaiter().GetResult();
         var cap = JsonSerializer.SerializeToElement(capabilities.Payload);
-        if (cap.GetProperty("pluginRuntime").GetString() != "not-implemented" ||
+        if (cap.GetProperty("pluginRuntime").GetString() != "usb-micropython-v1" ||
             cap.GetProperty("deviceCodeInstall").GetString() != "usb-only")
             throw new InvalidOperationException("Gateway plugin capability boundary invalid.");
         var unsafePort = FcsGatewayCommands.RunAsync("{\"operation\":\"usb.discover\",\"port\":\"../COM1\"}",

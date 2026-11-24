@@ -21,8 +21,10 @@ public sealed partial class MainWindow
             OpenAdaptivePage("devices"); await Task.Delay(100); SettingsPanel.UpdateLayout();
             if (SettingsPanel.Visibility != Visibility.Visible || MainScroll.Visibility != Visibility.Collapsed || settingsSections.Count != 3)
                 throw new InvalidOperationException("Adaptive page is not a dedicated three-section destination.");
-            if (!Descendants<Expander>(SettingsPanel).Any(x => AutomationProperties.GetAutomationId(x) == "sensor-buying-guide"))
-                throw new InvalidOperationException("Hardware onboarding guide missing.");
+            if (!Descendants<Button>(SettingsPanel).Any(x => AutomationProperties.GetAutomationId(x) == "open-fcs-manager"))
+                throw new InvalidOperationException("FCS manager launcher missing.");
+            if (Descendants<TextBox>(SettingsPanel).Any(x => Equals(x.Header, Strings.T("本地传感器端口", "Local sensor port"))))
+                throw new InvalidOperationException("Physical management leaked into FC subscriptions.");
             if (Descendants<StackPanel>(SettingsPanel).Count(x => AutomationProperties.GetAutomationId(x).StartsWith("light-source-row-")) != 2)
                 throw new InvalidOperationException("Saved sources are not individually listed.");
             Button Find(string id) => Descendants<Button>(SettingsPanel).Single(x => AutomationProperties.GetAutomationId(x) == id);

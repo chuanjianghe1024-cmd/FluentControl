@@ -1,61 +1,99 @@
-# FCS 插件协议初稿 / FCS Plugin Contract (Draft)
+# FCS 插件与脚本首版 / Plugins and scripts v1
 
-> 设计状态：插件运行、安装、规则无线下发和社区下载都尚未实现。此文档定义未来兼容边界；当前 `FcsGateway.exe` 的 `capabilities` 返回 `pluginRuntime: not-implemented`。任何软件不得将“协议预留”显示成“已安装插件”。
+当前开发版实现 USB 安装的 C3 MicroPython 动作插件、C3 光照阈值规则，以及桌面 Gateway/Linux host 的受限 Python 脚本。实际接口通过 `operations.list` 发现；旧固件的 planned 操作仍不可执行。完整 C3/WoL 实机验收待进行。
 
-## 插件包与规则包分离
+## 执行位置
 
-- **代码插件**（Python/MPY、Gateway .NET 扩展、专用驱动）：增加传感器、信号、事件处理器或动作。目标运行环境必须在清单中声明。**向设备端安装/更新可执行代码仅允许 USB 物理管理**；无线入口不能上传代码、固件或执行脚本。
-- **声明式规则包**（JSON）：只引用目标设备已经注册并允许使用的 Signal、Event 与 Action，包含可校验的时间窗、比较、去抖、冷却、执行策略等。未来可通过授权的 LAN/BLE 管理通道下发；当前未实现。
-- **固件基线与更新**：独立于插件安装系统；出厂重置应清除第三方插件和规则，恢复受信任的固件基线。必须保留 USB 烧录恢复手段。
+| 执行者 | 已实现 | 前提 |
+|---|---|---|
+| C3 | 稳定节点查询、WoL 动作插件、本地阈值/持续时间/回差/冷却 | 独立供电、已配网、通过 USB 安装并启用插件与后台采样 |
+| FC 内置 Gateway | USB 插件安装管理、复杂多信号脚本、WoL、显式 HTTPS POST | Windows 在线；脚本功能另需 Python 3.10+ |
+| Linux/Docker host | 共享脚本解释器、LAN 数据采集、HA REST 桥接、WoL/HTTPS | 常驻服务器；Docker 内含 Python；不支持 USB 安装 |
+| Home Assistant | 通过 REST sensor 消费 FCS 数据，再用 HA 自动化联动其他设备 | 配置 HA 集成；无 FCS MQTT Discovery 自动发现 |
 
-## Manifest v1（草案，不可安装）
+每条自动化只选择一个执行者。电脑关机后自身 Gateway 不能唤醒自身，可用仍供电的 C3 或其他常驻 Gateway。HA/HomeKit/米家关联设备的可用程度取决于对应 HA 集成；本项目没有原生米家产品认证。
+
+## C3 包、USB 事务和恢复
+
+实际包格式（严格字段，非之前的规划 manifest）：
 
 ```json
-{
-  "manifestVersion": 1,
-  "id": "community.example.light-wake",
-  "version": "1.0.0",
-  "displayName": "Study light wake",
-  "type": "action",
-  "target": {
-    "runtime": "micropython",
-    "boards": ["esp32-c3"],
-    "minCore": "1.0.0"
-  },
-  "entrypoint": "plugin.py",
-  "requires": {
-    "signals": ["illuminance"],
-    "capabilities": ["network.udp"]
-  },
-  "provides": {
-    "actions": ["wol.send"],
-    "events": []
-  },
-  "permissions": ["sensors.read", "network.udp.send"],
-  "settings": {
-    "macAddress": {"type":"string","format":"mac48","required":true}
-  }
-}
+{"id":"wol","version":"1.0.0","runtime":"micropython-v1","permissions":["network.wol"],"source":"def run(ctx, arguments):\n    return ctx.wol(ctx.settings['mac'], ctx.settings['broadcast'], 9)\n"}
 ```
 
-`id` 在同一发布者名下稳定，`version` 使用语义版本号，`runtime` 声明主控/环境，`requires` 用来做依赖检查。单台设备可包含多个 Sensor，一个 Sensor 可包含多个 Signal；规则明确引用 `deviceId/sensorId/signalId`，不得假设“一个设备只有一个光照”。
+源码与打包器在 FCS 仓库 `plugins/wol` 和 `scripts/build_plugin.py`。入口 `run(ctx, arguments)`；`ctx.settings` 为配置，`ctx.sample` 为规则样本（手动为 None）。`ctx.emit(data)` 需 `events.emit`；仅保留最近 16 条 RAM 事件。权限约束 SDK，**MicroPython 插件不是安全沙箱**，只能安装可信代码；不支持 MPY、native、额外模块或插件市场。
 
-## 安装状态机（未来实现）
+所有下列操作当前仅 USB：
 
-`discovered -> checked -> staged -> verified -> enabled`，失败进入 `rejected / failed / rollback`。安装必须核对来源、包摘要、签名状态（若有）、大小、平台、Core/API 兼容性、目标传感器/动作依赖、可用内存/Flash 与敏感权限。禁止将数据型规则解析成任意 Python/eval。提交更改前完整暂存，安全启动后再更新活动索引；掉电后回退旧版本。
+| 操作 | 参数 / 行为 |
+|---|---|
+| `storage.get` | 实际文件系统容量/余量、堆、数据分区和限制 |
+| `plugin.list` | 插件版本、启用状态、配置、安全模式、存储与 RAM 事件 |
+| `plugin.begin` | `id,size,sha256`，返回临时 `token` |
+| `plugin.chunk` | `token,offset,hex`，最多 512 字节、严格顺序 |
+| `plugin.commit` / `plugin.abort` | `token`；提交校验长度、SHA-256、语法，不执行源码 |
+| `plugin.configure` | `id,enabled,settings`；安装/更新后默认禁用 |
+| `plugin.run` | `id,arguments`；一次执行，不重试 |
+| `plugin.rollback` / `plugin.remove` | `id`；回滚后禁用，卸载清除代码槽 |
+| `plugin.recover` | 无参数；退出安全模式，保留全部插件禁用 |
+| `rules.list` / `rules.set` | 无参数 / `rules` 数组；替换整份规则集 |
 
-设备端第三方 MicroPython 与 Core 共享解释器，**不是安全沙箱**。声明权限仅用于审核、提示和 API 约束，无法保证恶意插件不会操作底层硬件/文件；Gateway 侧可在未来使用独立子进程隔离可执行扩展。
+4 MiB 为 Flash 总容量，系统分区和驱动占用后才是数据空间。最多 4 插件，包 12 KiB/源码 8 KiB、配置 1 KiB；安装按实际余量预留 64 KiB、暂存和状态空间。双代码槽、原子状态替换、超时暂存清理，保留上一版回滚。64 条传感器历史与 16 条执行记录仅 RAM。插件异常禁用；超过 250 ms 返回预算禁用；无限循环由 8 秒 WDT 复位进入安全模式。它不提供实时抢占或进程隔离。
 
-## 崩溃、安全模式与恢复
+规则示例：
 
-- 捕获异常并记录有限长度的错误日志，重复故障禁用插件。
-- 如果设备持续重启，启动恢复模式不加载第三方插件，保留 USB 诊断与卸载入口。
-- 完全恢复出厂清除第三方代码、规则、Wi-Fi、管理密钥和临时历史；保留稳定设备身份与永久标签凭据。实际固件回滚取决于主板 Flash/固件布局，不能靠“删除目录”冒充恢复固件。
-- 高采样信号只在 RAM 保留有界缓存，Flash 追加写入受频率和空间限制。
+```json
+{"rules":[{"id":"light-wake","pluginId":"wol","sensorId":"ambient-01","signalId":"illuminance","above":300,"rearmBelow":200,"holdMs":10000,"cooldownMs":300000,"enabled":true,"arguments":{}}]}
+```
 
-## FC / Gateway / 网站分工
+最多 8 条且序列化总计 1536 字节。先观察低于回差值，再连续高于阈值满持续时间才触发；重新回落才能再触发。需启用后台采样，推荐 1000 ms。启动、无效数据、超过 5 秒中断解除待触发状态，不补发旧动作。无线管理仍未开放。
 
-- **Gateway**：设备发现、身份与能力聚合、USB 管理与数据访问；后续可提供插件目录查询、已安装状态、安装包元数据、规则校验和操作审计。当前只提供 `capabilities` 的能力标志，不提供插件安装 API。
-- **FC**：展示插件列表、权限、兼容性和安装流程；在 Gateway 实现前只显示“预留”。
-- **fctrl.app**：网站源码继续私有。用户发布内容区分 `官方` / `社区` 来源、`官方代码审核` / `指定硬件安装验证` / `未验证` 审核状态，以及 `公开` / `私有` 可见性。审核代码不等于验证硬件；未来发布条款单独约定内容授权与撤回。**是否支持付费插件尚未决定**，不得推出占位收费或支付按钮。
-- 个人传感器历史与账号不是使用 Gateway 的前提；云同步默认关闭，未来只在用户明确授权的设备/信号上启用。
+## Gateway 脚本创建、验证与运行
+
+脚本语言标识 `fcs-python-subset/1`，语法类似 Python，由随 Gateway 分发的 AST 解释器执行，不会 `exec` 用户源码。Windows 可设置 `FCS_PYTHON` 为已安装 Python 3.10+ 的完整路径；默认调用 `python`。缺少 Python 只影响脚本，节点查询和 C3 管理不依赖 Python。Linux 容器已包含 Python。
+
+在 FC 安装目录（Linux 将 EXE 换成 `./FluentControl.FcsHost`）：
+
+```powershell
+.\FluentControl.FcsGateway.exe --script-create light-wake.json
+.\FluentControl.FcsGateway.exe --script-validate light-wake.json
+.\FluentControl.FcsGateway.exe --script-test light-wake.json signals.json
+```
+
+创建不会覆盖现有文件，初始 `enabled=false`。编辑 `inputs` 中设备/传感器/信号 ID 和 `targets.desktop` 的实际 MAC/广播地址。测试输入例如 `{"desk":{"value":500},"clock":{"utcHour":10,"utcMinute":0}}`。测试只输出动作意图，**不会发送 WoL 或 HTTP**。
+
+验证和测试通过后，将文件保存至 `%LOCALAPPDATA%\FluentControl\GatewayScripts`（可由 `FCS_SCRIPTS` 覆盖），显式改 `enabled=true`；FC 或 `FluentControl.FcsGateway.exe --serve` 需运行。Linux 为 `FCS_DATA/scripts`，容器默认 `/data/scripts`。修改文件后自动重载，不重放旧动作。`execution-status.json` 仅保存最近一次执行状态，不含凭据。
+
+每份 JSON 有 `format:"fcs.gateway-script/1"`, `id`, `enabled`, `inputs`, `settings`, `targets`, `holdMs`, `cooldownMs`, `source`；可选 `rearmMode:"explicit"`，生成的示例使用明确回差：
+
+```python
+def run(signals, settings):
+    light = signals['desk']['value']
+    if light < settings['below']:
+        return [{'action': 'rearm'}]
+    if light > settings['above'] and 7 <= signals['clock']['utcHour'] < 23:
+        return [{'action': 'wol', 'target': 'desktop'}]
+    return []
+```
+
+`clock` 为 Gateway 当前 **UTC** 时间。多个 `inputs` 可用于跨节点比较；仅全部输入有效且新鲜时评估。`rearm` 不能与动作混用；显式模式的 `[]` 不重新武装，保留回差。默认 `empty` 模式下 `[]` 为条件不满足/重新武装。启动必须先观察重新武装条件，不能靠启动时恰好满足条件执行动作。
+
+支持赋值、if/else、for、数值运算、比较、布尔、字典/列表取值，以及 min/max/sum/len/abs/round/range；不支持 import、属性访问、while、用户函数调用、文件/进程/网络访问。最多 8 个任务、每个 8 输入/8 动作；源码 16 KiB、AST 2048 节点、4096 执行步、循环 64 项、进程 3 秒截止，数据有深度/长度限制。扫描周期 2 秒，加上采集和解释耗时，不能当实时控制器。
+
+## HTTPS 上传（默认关闭）
+
+仅 Gateway 执行动作，C3 不保存云端凭据。显式配置一个固定 HTTPS 目标，例如：
+
+```json
+{"kind":"https","url":"https://your-service.example/telemetry","tokenFile":"/data/secrets/telemetry.token"}
+```
+
+脚本返回 `{"action":"https","target":"cloud","data":{"illuminance":123}}`，`cloud` 必须匹配 `targets` 中同名配置。`tokenFile` 可省略；若配置，必须为绝对路径，读取为 Bearer token，不随脚本包分享。数据上限 8 KiB、5 秒超时、不跟随重定向、不自动重试或离线补传。由用户选择哪些信号上报并配置接收服务，接收端的授权/保留/删除由该服务负责；未提供 FCS 云账户或云存储服务。
+
+WoL 目标只允许私有 IPv4、UDP 7/9；发送 6 个 FF + 16 次目标 MAC。`sent` 仅证明提交发送，不证明目标已醒。Docker bridge 的广播通常不能穿透到实体 LAN；要在 Linux 上用 host network（同时调整 HTTP 监听/防火墙），或让 C3 执行 WoL。默认 Compose 保持较小暴露面，不自动开启 host network。
+
+## 验证边界
+
+单元/集成测试覆盖存储限额、分块摘要、USB 权限、回滚、安全模式、触发重装、脚本禁止 I/O、资源预算、动作目标与干运行。Windows CI 检查安装包含执行器；Linux CI 验证原生和 Docker。实机 C3 运行内存、WDT/Wi-Fi 并发、真实网络广播、网卡唤醒与 HA 实例仍需验收。
+
+English: The development implementation supports trusted USB-installed MicroPython action plugins and bounded local threshold rules on C3, plus a restricted Python-syntax interpreter for desktop/Linux Gateway scripts. Create, validate and dry-run before enabling; dry-runs have no network effects. Windows scripting optionally requires Python 3.10+, while Docker includes it. Device code installation remains physical-USB-only. Actual free space is measured; 4 MiB flash is not plugin storage. HA uses the REST example; MQTT discovery, native Xiaomi certification, cloud accounts and plugin marketplaces are not implemented.

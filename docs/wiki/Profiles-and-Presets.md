@@ -70,3 +70,14 @@ Ambient adjustment uses fixed bands and jumps at the next threshold. Bars edit t
 开发版配网入口为「Wi-Fi 配网向导」：保持 USB 连接、关闭 Thonny，选择设备和 2.4 GHz 网络，输入密码后点下一步。向导自动保存绑定、等候 IP 并验证签名光照读数，成功后点完成切换到无线订阅。失败时提供重试；不会自动开启调光。旧「USB 设备设置与配网」保留用于管理。
 
 The unreleased Wi-Fi setup wizard guides device selection, 2.4 GHz network and password entry, connection polling and authenticated light-read verification. Keep USB connected and Thonny closed. Finish selects the wireless subscription without enabling brightness automation. Verification failures can be retried; the original USB management dialog remains available.
+
+## 开发版：亮度过渡 / Development: brightness transitions
+
+自动调节设置提供 1–3 秒过渡、线性/S 曲线及可拖动控制点的自定义曲线。
+可指定下发间隔或次数，图中以 30→40 展示取整后的台阶。实际速度受显示器响应时间限制。
+传感器来源设置可读取设备清单，并按 sensorId/signalId 选择光照信号。
+
+Automatic adjustment now has duration, linear/S/custom easing, and interval/count controls.
+Drag the custom curve handles; the 30→40 preview shows integer steps. Hardware response
+latency may extend the transition. FCS source settings can load sensor inventory and bind
+an illuminance signal by sensorId/signalId. These changes are not in a released installer yet.
