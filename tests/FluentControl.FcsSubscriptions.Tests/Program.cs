@@ -62,10 +62,15 @@ try
     bool canceledRead = false;
     try { await Read(hub, Args(), canceled.Token); } catch (OperationCanceledException) { canceledRead = true; }
     Check(canceledRead, "canceled reader exits without blocking the source");
-    var newHub = new FcsSubscriptions((id, ct) => Task.FromResult(Envelope(id, 100)));
+    var freshAfterRestart = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var newHub = new FcsSubscriptions((id, ct) => freshAfterRestart.Task.WaitAsync(ct));
     using var newLife = new CancellationTokenSource(); var newRun = newHub.RunAsync(newLife.Token);
     var reset = await Read(newHub, Args(initial.GetProperty("cursor").GetString(), 0));
     Check(reset.GetProperty("reset").GetBoolean() && !Sample(reset).GetProperty("valid").GetBoolean(), "restart resets cursor without restoring old live data");
+    freshAfterRestart.SetResult(Envelope(key.deviceId, 100));
+    var afterRestart = await Read(newHub, Args(reset.GetProperty("cursor").GetString(), 1500));
+    Check(Sample(afterRestart).GetProperty("valid").GetBoolean() && Sample(afterRestart).GetProperty("sequence").GetInt64() == 100,
+        "restart accepts a new observation after the empty initial state");
     newLife.Cancel(); await newRun;
 }
 finally { lifetime.Cancel(); await run; }

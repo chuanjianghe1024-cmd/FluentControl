@@ -1,4 +1,8 @@
 """Real Gateway HTTP/TCP contract tests, optional vcan and ROS 2 process tests."""
+import hashlib
+import hmac
+import http.client
+from unittest.mock import patch
 import argparse
 import copy
 import datetime as dt
@@ -23,6 +27,7 @@ sys.path.insert(0, str(ROOT / "tools/gateway-adapters"))
 from common import Publisher, receive_exact, utc
 from socketcan_adapter import decode, validate as validate_can, check_interface
 from ros2_adapter import validate as validate_ros
+from c3_bridge_adapter import Reader as BridgeReader
 
 
 class TelemetryFixture:
@@ -58,6 +63,50 @@ class TelemetryFixture:
 
     def close(self):
         self.server.shutdown(); self.server.server_close()
+
+
+def check_bridge(rpc, directory, producer_port):
+    # Real signed HTTP -> Python worker -> producer TCP -> Gateway subscription.
+    key = bytes.fromhex("11" * 32)
+    started = time.monotonic()
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            nonce = self.headers.get("X-FC-Nonce", "")
+            expected = hmac.new(key, ("BRIDGE-READ\nc3-bridge\n" + nonce).encode(), hashlib.sha256).hexdigest()
+            if self.path != "/v2/bridge" or not hmac.compare_digest(expected, self.headers.get("X-FC-Signature", "")):
+                self.send_error(403); return
+            frame = dict(protocol="fcs-node/2", deviceId="c3-bridge", ok=True, extensions={"fcs.bridge":dict(
+                protocol="fcs-bridge/1", bootId="a"*32, data=[dict(sourceId="espnow-020000000001",signalId="illuminance",
+                valueType="number",unit="lx",value=42.5,valid=True,sequence=1,
+                ageMilliseconds=int((time.monotonic()-started)*1000)+200,trust="paired-key")])})
+            raw=json.dumps(frame).encode()
+            signature=hmac.new(key,nonce.encode()+b"\n"+raw,hashlib.sha256).hexdigest()
+            self.send_response(200);self.send_header("Content-Length",str(len(raw)))
+            self.send_header("X-FC-Signature",signature);self.end_headers();self.wfile.write(raw)
+        def log_message(self,*args):pass
+    server=ThreadingHTTPServer(("127.0.0.1",0),Handler)
+    threading.Thread(target=server.serve_forever,daemon=True).start()
+    original=http.client.HTTPConnection
+    (directory/"bridge.key").write_text(key.hex())
+    item=dict(deviceId="ext-other-main",sensorId="light",signalId="illuminance",staleMilliseconds=1000,
+              sourceId="espnow-020000000001",sourceSignal="illuminance")
+    config=dict(adapterId="other",endpoint=dict(port=producer_port,tokenFile=str(directory/"adapter-tokens/other.token")),
+                bridge=dict(ip="192.168.1.42",deviceId="c3-bridge",bindingKeyFile=str(directory/"bridge.key")),inputs=[item])
+    publisher=Publisher(config);reader=BridgeReader(config,publisher)
+    def value():
+        return rpc("subscriptions.read",arguments=dict(signals=[{k:item[k] for k in ("deviceId","sensorId","signalId")}],waitMilliseconds=1000))["samples"][0]
+    try:
+        def poll():
+            with patch("c3_bridge_adapter.http.client.HTTPConnection",side_effect=lambda *a,**kw:original("127.0.0.1",server.server_port,**kw)):
+                reader.poll()
+        poll();assert until(publisher.flush)
+        assert until(lambda:value()["value"]==42.5)
+        poll();assert not publisher.pending
+        until(lambda:not value()["valid"])
+        poll();assert not publisher.pending
+        print("PASS signed C3 bridge HTTP -> producer -> shared subscription; duplicates expire",flush=True)
+    finally:
+        server.shutdown();server.server_close()
 
 
 def port():
@@ -225,6 +274,8 @@ def main(args):
             until(lambda: not value()["valid"])
             assert producer.flush() is None  # No cached-value heartbeat.
             print("PASS Gateway authority, scope, replay, expiry, virtual metadata, publisher and CAN decoding", flush=True)
+
+            check_bridge(rpc, directory, producer_port)
 
             if args.vcan:
                 worker["interface"] = args.vcan

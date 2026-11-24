@@ -25,10 +25,14 @@ return route.fulfill({contentType:'application/json',body:JSON.stringify(r)});
 await page.goto('http://127.0.0.1:18765/#'+token);await page.getByRole('heading',{name:'◉ fixture-c3'}).waitFor();assert.equal(new URL(page.url()).hash,'');
 await page.getByRole('button',{name:'管理设备'}).first().click();await page.locator('#details').filter({hasText:'BH1750'}).waitFor();
 await page.locator('#plugins').click();await page.locator('#plugin-id option').waitFor({state:'attached'});assert.match(await page.locator('#plugin-settings').inputValue(),/02:00/);
+await page.locator('#bridge-config').fill('{"role":"off","channel":1,"pmk":"","peers":[],"bthome":[]}');
+page.once('dialog',d=>d.dismiss());await page.locator('#bridge-save').click();assert.equal(calls.filter(x=>x.command==='bridge.configure').length,0);
+page.once('dialog',d=>d.accept());await page.locator('#bridge-save').click();await page.waitForFunction(()=>document.getElementById('status').textContent==='操作完成');
+assert.equal(calls.filter(x=>x.command==='bridge.configure').length,1);assert.equal(await page.locator('#bridge-config').inputValue(),'');
 // Dismissing a destructive action must not send a command.
 page.once('dialog',d=>d.dismiss());await page.locator('#factory').click();assert.equal(calls.filter(x=>x.command==='factory.reset').length,0);
 page.once('dialog',d=>d.accept());await page.locator('#enable').click();await page.waitForFunction(()=>document.getElementById('status').textContent==='操作完成');assert.equal(enabled,true);
-await page.locator('#close-detail').click();await page.getByRole('button',{name:'管理设备'}).nth(1).click();await page.locator('#device-title').filter({hasText:'lan-only'}).waitFor();assert.equal(await page.locator('#wifi-save').isDisabled(),true);assert.equal(await page.locator('#install').isDisabled(),true);
+await page.locator('#close-detail').click();await page.getByRole('button',{name:'管理设备'}).nth(1).click();await page.locator('#device-title').filter({hasText:'lan-only'}).waitFor();assert.equal(await page.locator('#wifi-save').isDisabled(),true);assert.equal(await page.locator('#install').isDisabled(),true);assert.equal(await page.locator('#bridge-save').isDisabled(),true);
 await page.locator('#close-detail').click();await page.getByRole('button',{name:'管理设备'}).nth(2).click();await page.locator('#device-limitations').filter({hasText:'外部虚拟设备'}).waitFor();assert.equal(await page.locator('#wifi-save').isDisabled(),true);assert.equal(await page.locator('#remove-node').isHidden(),true);await page.locator('#close-detail').click();await page.locator('#scripts').click();await page.locator('#script-list').filter({hasText:'gateway-rule'}).waitFor();await page.locator('#close-gateway').click();
 await page.locator('#recover').click();await page.locator('#port option').first().waitFor({state:'attached'});assert.equal(await page.locator('#flash').isDisabled(),true);
 await page.locator('#verify-device').click();await page.locator('#identity-result').filter({hasText:'102030405060'}).waitFor();assert.equal(await page.locator('#flash').isDisabled(),false);

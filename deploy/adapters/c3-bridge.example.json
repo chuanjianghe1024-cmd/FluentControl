@@ -1,0 +1,30 @@
+{
+  "adapterId": "radio",
+  "endpoint": {
+    "port": 18767,
+    "tokenFile": "/var/lib/fcs/adapter-tokens/radio.token"
+  },
+  "bridge": {
+    "ip": "192.168.1.42",
+    "deviceId": "c3-bh1750-REPLACE",
+    "bindingKeyFile": "/var/lib/fcs/private/bridge.key"
+  },
+  "inputs": [
+    {
+      "deviceId": "ext-radio-desk",
+      "sensorId": "ambient-01",
+      "signalId": "illuminance",
+      "staleMilliseconds": 5000,
+      "sourceId": "espnow-020000000001",
+      "sourceSignal": "illuminance"
+    },
+    {
+      "deviceId": "ext-radio-room",
+      "sensorId": "climate",
+      "signalId": "temperature",
+      "staleMilliseconds": 30000,
+      "sourceId": "ble-aabbccddeeff",
+      "sourceSignal": "temperature"
+    }
+  ]
+}

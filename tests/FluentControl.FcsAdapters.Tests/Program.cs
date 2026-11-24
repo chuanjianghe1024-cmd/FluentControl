@@ -16,6 +16,13 @@ FcsAdapters Load(string name, params FcsAdapters.Grant[] grants)
 }
 try
 {
+    Check(FcsNode.IsWrite("bridge.configure"), "bridge pairing requires write authority");
+    Check(!FcsNode.Routes.ContainsKey("bridge.configure"), "bridge configuration has no LAN route");
+    Check(FcsNode.Routes["bridge.status"] == "/v2/bridge/status", "bridge status is read-only LAN metadata");
+    var settings = JsonSerializer.SerializeToElement(new { configuration = new { role = "off", channel = 1, pmk = "", peers = new object[0], bthome = new object[0] } });
+    FcsNode.Arguments("bridge.configure", settings);
+    Reject(() => FcsNode.Arguments("bridge.configure", JsonSerializer.SerializeToElement(new { })), "bridge configuration cannot omit its object");
+    Reject(() => FcsNode.Arguments("bridge.configure", JsonSerializer.SerializeToElement(new { configuration = "code" })), "bridge configuration cannot carry executable text");
     var a = Grant("a", Signal("ext-a-b-main", "first"));
     var b = Grant("a-b", Signal("ext-a-b-main", "second"));
     foreach (var (name, grants) in new[] { ("forward", new[] { a, b }), ("reverse", new[] { b, a }) })
