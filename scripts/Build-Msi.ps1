@@ -104,7 +104,16 @@ try {
         # of build paths/version so component identity remains stable on upgrade.
         $component = Element $directories[$parentPath] 'Component' @{ Id = $componentId; Guid = (StableGuid $relative) }
         $fileId = if ($relative -eq 'FluentControl.exe') { 'ApplicationExe' } else { StableId 'F' $relative }
-        [void](Element $component 'File' @{ Id = $fileId; Source = $file.FullName; Name = $file.Name; KeyPath = 'no' })
+        $fileAttributes = @{ Id = $fileId; Source = $file.FullName; Name = $file.Name; KeyPath = 'no' }
+        # These two WinUI files reset their numeric versions in SDK 2.6.5.
+        # Make only those known exceptions follow our versioned executable;
+        # unchanged .NET/native runtimes must retain normal MSI versioning so
+        # an upgrade does not replace mapped, byte-identical runtime files.
+        # HKCU remains the keypath; neither companion is a file keypath.
+        if ($relative -in @('Microsoft.InteractiveExperiences.Projection.dll', 'Microsoft.WinUI.dll')) {
+            $fileAttributes.CompanionFile = 'ApplicationExe'
+        }
+        [void](Element $component 'File' $fileAttributes)
         [void](Element $component 'RegistryValue' @{ Root = 'HKCU'; Key = 'Software\FluentControl\Installer\Files'; Name = $componentId; Type = 'integer'; Value = '1'; KeyPath = 'yes' })
         [void](Element $group 'ComponentRef' @{ Id = $componentId })
         $manifest += [ordered]@{ path = $relative; bytes = $file.Length; sha256 = (Get-FileHash $file.FullName -Algorithm SHA256).Hash }
